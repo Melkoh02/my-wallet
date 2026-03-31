@@ -1,4 +1,5 @@
 import { View, Pressable, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
@@ -14,7 +15,7 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.handleContainer}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
       </View>
@@ -27,7 +28,7 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
         )}
       </View>
       <View style={styles.content}>{children}</View>
-    </View>
+    </SafeAreaView>
   );
 }
 

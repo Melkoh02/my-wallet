@@ -63,7 +63,9 @@ export async function updateAccountBalance(
     .where(eq(accounts.id, accountId));
 }
 
-export async function getAccountsTotals(): Promise<{
+export async function getAccountsTotals(
+  convertFn?: (amount: number, currency: string) => Promise<number>,
+): Promise<{
   netWorth: number;
   totalAssets: number;
   totalLiabilities: number;
@@ -73,10 +75,11 @@ export async function getAccountsTotals(): Promise<{
   let totalLiabilities = 0;
 
   for (const acc of allAccounts) {
+    const converted = convertFn ? await convertFn(acc.balance, acc.currency) : acc.balance;
     if (acc.type === "credit") {
-      totalLiabilities += acc.balance;
+      totalLiabilities += converted;
     } else {
-      totalAssets += acc.balance;
+      totalAssets += converted;
     }
   }
 

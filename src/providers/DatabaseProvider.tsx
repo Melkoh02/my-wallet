@@ -4,6 +4,7 @@ import { db } from "@/db/client";
 import { seed } from "@/db/seed";
 import { processDueRecurring } from "@/db/queries/recurring";
 import { checkAndRunAutoBackup } from "@/services/backup.service";
+import { checkAndFetchRates } from "@/services/exchangeRate.service";
 import migrations from "@/db/migrations/migrations";
 
 type DatabaseContextValue = {
@@ -34,6 +35,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
         console.log("Auto backup completed");
       }
     });
+    checkAndFetchRates();
   }, [isSeeded]);
 
   if (error) {

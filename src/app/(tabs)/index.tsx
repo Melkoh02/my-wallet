@@ -11,8 +11,8 @@ import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
-import { getAccountsTotals } from "@/db/queries/accounts";
 import { getMonthSummary, getRecentTransactions } from "@/db/queries/transactions";
 import { formatCurrency } from "@/utils/format";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
@@ -24,18 +24,16 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const { hideAmounts, toggleHideAmounts } = usePrivacy();
   const { revisions } = useDataRefresh();
-  const [netWorth, setNetWorth] = useState(0);
+  const { totals } = useAccounts();
   const [monthSummary, setMonthSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [recent, setRecent] = useState<TransactionWithRelations[]>([]);
 
   useEffect(() => {
     const now = new Date();
     Promise.all([
-      getAccountsTotals(),
       getMonthSummary(now.getFullYear(), now.getMonth() + 1),
       getRecentTransactions(5),
-    ]).then(([totals, summary, txns]) => {
-      setNetWorth(totals.netWorth);
+    ]).then(([summary, txns]) => {
       setMonthSummary(summary);
       setRecent(txns);
     });
@@ -54,9 +52,13 @@ export default function HomeScreen() {
       {/* Balance card */}
       <View style={[styles.balanceCard, { backgroundColor: colors.primary + "10" }]}>
         <AppText variant="caption" color={colors.textSecondary}>
-          Net Worth
+          Net Worth ({totals.displayCurrency})
         </AppText>
-        <AmountDisplay amount={netWorth} variant="amountLarge" />
+        <AmountDisplay
+          amount={totals.netWorth}
+          currency={totals.displayCurrency}
+          variant="amountLarge"
+        />
       </View>
 
       {/* Month summary */}

@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
-import { View, Pressable, Switch, StyleSheet } from "react-native";
+import { View, Pressable, Switch, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
+import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
+import { refreshExchangeRates } from "@/services/exchangeRate.service";
 import { spacing } from "@/theme/spacing";
+
+const CURRENCIES = ["USD", "EUR", "GBP", "PYG", "BRL", "ARS", "JPY", "CAD"];
 
 type SettingsRowProps = {
   icon: string;
@@ -72,11 +76,15 @@ function SettingsToggle({
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { invalidate } = useDataRefresh();
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     getSetting("location_enabled").then((v) => setLocationEnabled(v === "true"));
+    getSetting("display_currency").then((v) => setDisplayCurrency(v ?? "USD"));
   }, []);
 
   const handleLocationToggle = async (value: boolean) => {
@@ -85,9 +93,57 @@ export default function SettingsScreen() {
     invalidate("settings");
   };
 
+  const handleCurrencyChange = async (currency: string) => {
+    setDisplayCurrency(currency);
+    await setSetting("display_currency", currency);
+    invalidate("settings", "accounts");
+  };
+
+  const handleRefreshRates = async () => {
+    setRefreshing(true);
+    const success = await refreshExchangeRates();
+    setRefreshing(false);
+    if (success) {
+      invalidate("accounts");
+      Alert.alert("Rates Updated", "Exchange rates have been refreshed.");
+    } else {
+      Alert.alert("Update Failed", "Could not fetch exchange rates. Check your connection.");
+    }
+  };
+
   return (
     <ScreenLayout scrollable edges={["top"]}>
       <HeaderBar title="Settings" onBack={() => router.back()} />
+
+      {/* Display Currency */}
+      <View style={styles.section}>
+        <View style={styles.row}>
+          <AppIcon name="currency-usd" size={22} color={colors.primary} />
+          <View style={styles.rowText}>
+            <AppText variant="body">Display Currency</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              All balances converted to this currency
+            </AppText>
+          </View>
+        </View>
+        <View style={styles.chipWrap}>
+          {CURRENCIES.map((c) => (
+            <Chip
+              key={c}
+              label={c}
+              selected={displayCurrency === c}
+              onPress={() => handleCurrencyChange(c)}
+            />
+          ))}
+        </View>
+        <Pressable onPress={handleRefreshRates} disabled={refreshing} style={styles.refreshRow}>
+          <AppIcon name="refresh" size={18} color={colors.primary} />
+          <AppText variant="bodySmall" color={colors.primary}>
+            {refreshing ? "Updating rates..." : "Update exchange rates"}
+          </AppText>
+        </Pressable>
+      </View>
+      <Divider />
 
       <SettingsRow
         icon="palette"
@@ -133,5 +189,21 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     gap: 2,
+  },
+  section: {
+    paddingBottom: spacing.sm,
+  },
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  refreshRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
 });

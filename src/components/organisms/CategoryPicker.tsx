@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Pressable, FlatList, Modal, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { Chip } from "@/components/atoms/Chip";
@@ -67,7 +68,7 @@ export function CategoryPicker({
       </Pressable>
 
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-        <View style={[styles.modal, { backgroundColor: colors.background }]}>
+        <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <AppText variant="h3">Select Categories</AppText>
             <Pressable onPress={() => setVisible(false)}>
@@ -121,7 +122,7 @@ export function CategoryPicker({
               </View>
             )}
           />
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );

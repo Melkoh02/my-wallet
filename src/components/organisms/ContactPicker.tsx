@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { View, Pressable, FlatList, Modal, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/atoms/AppText";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppIcon } from "@/components/atoms/AppIcon";
@@ -77,7 +78,7 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
       )}
 
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-        <View style={[styles.modal, { backgroundColor: colors.background }]}>
+        <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <AppText variant="h3">Select Contact</AppText>
             <Pressable onPress={() => setVisible(false)}>
@@ -121,7 +122,7 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
               )
             }
           />
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );

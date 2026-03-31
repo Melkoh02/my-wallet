@@ -67,7 +67,12 @@ export function CategoryPicker({
         <AppIcon name="chevron-down" size={20} color={colors.iconSecondary} />
       </Pressable>
 
-      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setVisible(false)}
+      >
         <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <AppText variant="h3">Select Categories</AppText>

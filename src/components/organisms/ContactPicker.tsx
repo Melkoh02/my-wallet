@@ -77,7 +77,12 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
         </AppText>
       )}
 
-      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setVisible(false)}
+      >
         <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <AppText variant="h3">Select Contact</AppText>

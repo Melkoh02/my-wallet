@@ -1,3 +1,4 @@
+import "@/i18n";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
 import { DatabaseProvider } from "@/providers/DatabaseProvider";

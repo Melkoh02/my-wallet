@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Pressable, Switch, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
@@ -11,6 +12,8 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { refreshExchangeRates } from "@/services/exchangeRate.service";
+import { SUPPORTED_LANGUAGES } from "@/i18n";
+import { useLanguage } from "@/hooks/useLanguage";
 import { spacing } from "@/theme/spacing";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "PYG", "BRL", "ARS", "JPY", "CAD"];
@@ -76,8 +79,10 @@ function SettingsToggle({
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { invalidate } = useDataRefresh();
+  const { language, changeLanguage } = useLanguage();
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [refreshing, setRefreshing] = useState(false);
@@ -115,24 +120,24 @@ export default function SettingsScreen() {
     if (success) {
       invalidate("accounts");
       setRatesUpdatedAt(new Date().toISOString());
-      Alert.alert("Rates Updated", "Exchange rates have been refreshed.");
+      Alert.alert(t("settings.ratesUpdated"), t("settings.ratesUpdatedDesc"));
     } else {
-      Alert.alert("Update Failed", "Could not fetch exchange rates. Check your connection.");
+      Alert.alert(t("settings.ratesFailed"), t("settings.ratesFailedDesc"));
     }
   };
 
   return (
     <ScreenLayout scrollable edges={["top"]}>
-      <HeaderBar title="Settings" onBack={() => router.back()} />
+      <HeaderBar title={t("settings.title")} onBack={() => router.back()} />
 
       {/* Display Currency */}
       <View style={styles.section}>
         <View style={styles.row}>
           <AppIcon name="currency-usd" size={22} color={colors.primary} />
           <View style={styles.rowText}>
-            <AppText variant="body">Display Currency</AppText>
+            <AppText variant="body">{t("settings.displayCurrency")}</AppText>
             <AppText variant="caption" color={colors.textSecondary}>
-              All balances converted to this currency
+              {t("settings.displayCurrencyDesc")}
             </AppText>
           </View>
         </View>
@@ -150,43 +155,67 @@ export default function SettingsScreen() {
           <Pressable onPress={handleRefreshRates} disabled={refreshing} style={styles.refreshRow}>
             <AppIcon name="refresh" size={18} color={colors.primary} />
             <AppText variant="bodySmall" color={colors.primary}>
-              {refreshing ? "Updating rates..." : "Update exchange rates"}
+              {refreshing ? t("settings.updatingRates") : t("settings.updateRates")}
             </AppText>
           </Pressable>
           {ratesUpdatedAt && (
             <AppText variant="caption" color={colors.textTertiary}>
-              Last updated: {new Date(ratesUpdatedAt).toLocaleDateString()}
+              {t("settings.lastUpdated", { date: new Date(ratesUpdatedAt).toLocaleDateString() })}
             </AppText>
           )}
         </View>
       </View>
       <Divider />
 
+      {/* Language */}
+      <View style={styles.section}>
+        <View style={styles.row}>
+          <AppIcon name="translate" size={22} color={colors.primary} />
+          <View style={styles.rowText}>
+            <AppText variant="body">{t("settings.language")}</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {t("settings.languageDesc")}
+            </AppText>
+          </View>
+        </View>
+        <View style={styles.chipWrap}>
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <Chip
+              key={lang.code}
+              label={lang.label}
+              selected={language === lang.code}
+              onPress={() => changeLanguage(lang.code)}
+            />
+          ))}
+        </View>
+      </View>
+      <Divider />
+
       <SettingsRow
         icon="palette"
-        title="Themes"
-        subtitle="Customize app appearance"
+        title={t("settings.themes")}
+        subtitle={t("settings.themesDesc")}
         onPress={() => router.push("/settings/themes")}
       />
       <Divider />
       <SettingsRow
         icon="cloud-upload"
-        title="Backup & Export"
-        subtitle="Auto-backup, export, and import data"
+        title={t("settings.backup")}
+        subtitle={t("settings.backupDesc")}
         onPress={() => router.push("/settings/backup")}
       />
       <Divider />
       <SettingsRow
         icon="refresh"
-        title="Recurring Transactions"
-        subtitle="Manage subscriptions and salary"
+        title={t("settings.recurringTransactions")}
+        subtitle={t("settings.recurringDesc")}
         onPress={() => router.push("/recurring")}
       />
       <Divider />
       <SettingsToggle
         icon="map-marker"
-        title="Location Stamps"
-        subtitle="Attach location to new transactions"
+        title={t("settings.locationStamps")}
+        subtitle={t("settings.locationDesc")}
         value={locationEnabled}
         onToggle={handleLocationToggle}
       />

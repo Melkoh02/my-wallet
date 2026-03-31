@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ModalLayout } from "@/components/templates/ModalLayout";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
@@ -57,6 +58,7 @@ const QUICK_ICONS = [
 
 export default function CategoryFormScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ id?: string }>();
   const { colors } = useTheme();
   const { invalidate } = useDataRefresh();
@@ -106,18 +108,21 @@ export default function CategoryFormScreen() {
   const isValid = name.trim().length > 0;
 
   return (
-    <ModalLayout title={initial ? "Edit Category" : "New Category"} onClose={() => router.back()}>
+    <ModalLayout
+      title={initial ? t("categories.editCategory") : t("categories.newCategory")}
+      onClose={() => router.back()}
+    >
       <ScrollView contentContainerStyle={styles.container}>
         <AppInput
-          label="Category Name"
+          label={t("categories.categoryName")}
           value={name}
           onChangeText={setName}
-          placeholder="e.g. Groceries"
+          placeholder={t("categories.categoryNamePlaceholder")}
         />
 
         <View style={styles.section}>
           <AppText variant="label" color={colors.textSecondary}>
-            Color
+            {t("accounts.color")}
           </AppText>
           <View style={styles.grid}>
             {COLORS.map((c) => (
@@ -135,7 +140,7 @@ export default function CategoryFormScreen() {
 
         <View style={styles.section}>
           <AppText variant="label" color={colors.textSecondary}>
-            Icon
+            {t("categories.icon")}
           </AppText>
           <View style={styles.grid}>
             {QUICK_ICONS.map((i) => (
@@ -170,13 +175,13 @@ export default function CategoryFormScreen() {
 
         <View style={styles.actions}>
           <AppButton
-            title={initial ? "Save Changes" : "Create Category"}
+            title={initial ? t("accounts.saveChanges") : t("common.create")}
             onPress={handleSubmit}
             disabled={!isValid}
           />
           {initial && !initial.isSystem && (
             <AppButton
-              title="Delete Category"
+              title={t("categories.deleteCategory")}
               onPress={handleDelete}
               variant="danger"
               icon="delete"

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
+import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
@@ -9,12 +10,12 @@ import { spacing } from "@/theme/spacing";
 import type { Account, NewAccount } from "@/db/schema";
 import type { AccountType } from "@/types";
 
-const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
-  { value: "debit", label: "Debit", icon: "bank" },
-  { value: "credit", label: "Credit", icon: "credit-card" },
-  { value: "cash", label: "Cash", icon: "cash" },
-  { value: "wallet", label: "Wallet", icon: "wallet" },
-  { value: "savings", label: "Savings", icon: "piggy-bank" },
+const ACCOUNT_TYPE_DEFS: { value: AccountType; key: string; icon: string }[] = [
+  { value: "debit", key: "accounts.debit", icon: "bank" },
+  { value: "credit", key: "accounts.credit", icon: "credit-card" },
+  { value: "cash", key: "accounts.cash", icon: "cash" },
+  { value: "wallet", key: "accounts.wallet", icon: "wallet" },
+  { value: "savings", key: "accounts.savings", icon: "piggy-bank" },
 ];
 
 const COLORS = [
@@ -40,6 +41,7 @@ type AccountFormProps = {
 
 export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [name, setName] = useState(initial?.name ?? "");
   const [institution, setInstitution] = useState(initial?.institution ?? "");
   const [type, setType] = useState<AccountType>((initial?.type as AccountType) ?? "debit");
@@ -58,7 +60,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       creditLimit: type === "credit" ? parseFloat(creditLimit) || null : null,
       currency,
       color,
-      icon: ACCOUNT_TYPES.find((t) => t.value === type)?.icon ?? "wallet",
+      icon: ACCOUNT_TYPE_DEFS.find((td) => td.value === type)?.icon ?? "wallet",
     });
   };
 
@@ -67,36 +69,36 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <AppInput
-        label="Account Name"
+        label={t("accounts.accountName")}
         value={name}
         onChangeText={setName}
-        placeholder="e.g. Main Checking"
+        placeholder={t("accounts.accountNamePlaceholder")}
       />
       <AppInput
-        label="Institution"
+        label={t("accounts.institution")}
         value={institution}
         onChangeText={setInstitution}
-        placeholder="e.g. Chase Bank"
+        placeholder={t("accounts.institutionPlaceholder")}
       />
 
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>
-          Type
+          {t("accounts.type")}
         </AppText>
         <View style={styles.chipRow}>
-          {ACCOUNT_TYPES.map((t) => (
+          {ACCOUNT_TYPE_DEFS.map((td) => (
             <Chip
-              key={t.value}
-              label={t.label}
-              selected={type === t.value}
-              onPress={() => setType(t.value)}
+              key={td.value}
+              label={t(td.key)}
+              selected={type === td.value}
+              onPress={() => setType(td.value)}
             />
           ))}
         </View>
       </View>
 
       <AppInput
-        label="Initial Balance"
+        label={t("accounts.initialBalance")}
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"
@@ -105,7 +107,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
 
       {type === "credit" && (
         <AppInput
-          label="Credit Limit"
+          label={t("accounts.creditLimit")}
           value={creditLimit}
           onChangeText={setCreditLimit}
           keyboardType="decimal-pad"
@@ -115,7 +117,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
 
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>
-          Currency
+          {t("accounts.currency")}
         </AppText>
         <View style={styles.chipRow}>
           {["USD", "EUR", "GBP", "PYG", "BRL", "ARS", "JPY", "CAD"].map((c) => (
@@ -126,7 +128,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
 
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>
-          Color
+          {t("accounts.color")}
         </AppText>
         <View style={styles.colorRow}>
           {COLORS.map((c) => (
@@ -144,12 +146,17 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
 
       <View style={styles.actions}>
         <AppButton
-          title={initial ? "Save Changes" : "Create Account"}
+          title={initial ? t("accounts.saveChanges") : t("accounts.createAccount")}
           onPress={handleSubmit}
           disabled={!isValid}
         />
         {initial && onDelete && (
-          <AppButton title="Archive Account" onPress={onDelete} variant="danger" icon="archive" />
+          <AppButton
+            title={t("accounts.archiveAccount")}
+            onPress={onDelete}
+            variant="danger"
+            icon="archive"
+          />
         )}
       </View>
     </ScrollView>

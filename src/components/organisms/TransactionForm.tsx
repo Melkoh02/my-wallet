@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
+import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
@@ -32,6 +33,7 @@ export function TransactionForm({
   locationEnabled = false,
 }: TransactionFormProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [type, setType] = useState<TransactionType>(initialType);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -89,14 +91,14 @@ export function TransactionForm({
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       {/* Type selector */}
       <View style={styles.typeRow}>
-        {(["expense", "income", "transfer"] as const).map((t) => {
-          const isActive = type === t;
+        {(["expense", "income", "transfer"] as const).map((tp) => {
+          const isActive = type === tp;
           const tColor =
-            t === "income" ? colors.income : t === "expense" ? colors.expense : colors.transfer;
+            tp === "income" ? colors.income : tp === "expense" ? colors.expense : colors.transfer;
           return (
             <Pressable
-              key={t}
-              onPress={() => setType(t)}
+              key={tp}
+              onPress={() => setType(tp)}
               style={[
                 styles.typeBtn,
                 {
@@ -106,7 +108,11 @@ export function TransactionForm({
               ]}
             >
               <AppText variant="label" color={isActive ? tColor : colors.textSecondary}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {tp === "expense"
+                  ? t("transactionForm.expense")
+                  : tp === "income"
+                    ? t("transactionForm.income")
+                    : t("transactionForm.transfer")}
               </AppText>
             </Pressable>
           );
@@ -114,7 +120,7 @@ export function TransactionForm({
       </View>
 
       <AppInput
-        label="Amount"
+        label={t("transactionForm.amount")}
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
@@ -122,16 +128,16 @@ export function TransactionForm({
       />
 
       <AppInput
-        label="Description"
+        label={t("transactionForm.description")}
         value={description}
         onChangeText={setDescription}
-        placeholder="What was this for?"
+        placeholder={t("transactionForm.descriptionPlaceholder")}
       />
 
       {/* Account selector */}
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>
-          {type === "transfer" ? "From Account" : "Account"}
+          {type === "transfer" ? t("transactionForm.fromAccount") : t("transactionForm.account")}
         </AppText>
         <View style={styles.chipRow}>
           {accounts.map((acc) => (
@@ -148,7 +154,7 @@ export function TransactionForm({
       {type === "transfer" && (
         <View style={styles.section}>
           <AppText variant="label" color={colors.textSecondary}>
-            To Account
+            {t("transactionForm.toAccount")}
           </AppText>
           <View style={styles.chipRow}>
             {accounts
@@ -179,10 +185,10 @@ export function TransactionForm({
       {/* Date & Time */}
       <View style={styles.row}>
         <View style={styles.halfInput}>
-          <DatePicker label="Date" value={date} onChange={setDate} />
+          <DatePicker label={t("transactionForm.date")} value={date} onChange={setDate} />
         </View>
         <View style={styles.halfInput}>
-          <TimePicker label="Time" value={time} onChange={setTime} />
+          <TimePicker label={t("transactionForm.time")} value={time} onChange={setTime} />
         </View>
       </View>
 
@@ -198,13 +204,17 @@ export function TransactionForm({
               </AppText>
               <Pressable onPress={() => setLocation(null)}>
                 <AppText variant="caption" color={colors.danger}>
-                  Remove
+                  {t("common.remove")}
                 </AppText>
               </Pressable>
             </View>
           ) : (
             <AppButton
-              title={locationLoading ? "Getting location..." : "Add Location"}
+              title={
+                locationLoading
+                  ? t("transactionForm.gettingLocation")
+                  : t("transactionForm.addLocation")
+              }
               variant="ghost"
               icon="map-marker-plus"
               onPress={handleAddLocation}
@@ -215,15 +225,19 @@ export function TransactionForm({
       )}
 
       <AppInput
-        label="Notes"
+        label={t("transactionForm.notes")}
         value={notes}
         onChangeText={setNotes}
-        placeholder="Optional notes..."
+        placeholder={t("transactionForm.notesPlaceholder")}
         multiline
         numberOfLines={3}
       />
 
-      <AppButton title="Save Transaction" onPress={handleSubmit} disabled={!isValid} />
+      <AppButton
+        title={t("transactionForm.saveTransaction")}
+        onPress={handleSubmit}
+        disabled={!isValid}
+      />
     </ScrollView>
   );
 }

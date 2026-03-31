@@ -1,5 +1,6 @@
 import { FlatList, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AccountCard } from "@/components/organisms/AccountCard";
@@ -11,11 +12,12 @@ import { spacing } from "@/theme/spacing";
 
 export default function AccountsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accounts, totals, loading } = useAccounts();
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title="Accounts" />
+      <HeaderBar title={t("accounts.title")} />
       <FlatList
         data={accounts}
         keyExtractor={(item) => item.id.toString()}
@@ -32,8 +34,8 @@ export default function AccountsScreen() {
           loading ? null : (
             <EmptyState
               icon="wallet"
-              title="No accounts yet"
-              description="Add your first account to get started"
+              title={t("accounts.noAccounts")}
+              description={t("accounts.addFirst")}
             />
           )
         }

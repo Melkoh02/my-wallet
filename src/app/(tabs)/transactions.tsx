@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { View, FlatList, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { TransactionListItem } from "@/components/organisms/TransactionListItem";
@@ -13,15 +14,16 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { spacing } from "@/theme/spacing";
 
-const TYPE_FILTERS = [
-  { label: "All", value: undefined },
-  { label: "Income", value: "income" },
-  { label: "Expense", value: "expense" },
-  { label: "Transfer", value: "transfer" },
-] as const;
-
 export default function TransactionsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+
+  const TYPE_FILTERS = [
+    { label: t("common.all"), value: undefined },
+    { label: t("transactionForm.income"), value: "income" },
+    { label: t("transactionForm.expense"), value: "expense" },
+    { label: t("transactionForm.transfer"), value: "transfer" },
+  ] as const;
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
 
@@ -37,10 +39,10 @@ export default function TransactionsScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title="Transactions" />
+      <HeaderBar title={t("transactions.title")} />
       <View style={styles.filters}>
         <AppInput
-          placeholder="Search transactions..."
+          placeholder={t("transactions.search")}
           value={search}
           onChangeText={setSearch}
           style={styles.searchInput}
@@ -72,8 +74,8 @@ export default function TransactionsScreen() {
           loading ? null : (
             <EmptyState
               icon="swap-horizontal"
-              title="No transactions"
-              description="Add your first transaction to start tracking"
+              title={t("transactions.noTransactions")}
+              description={t("transactions.addFirst")}
             />
           )
         }

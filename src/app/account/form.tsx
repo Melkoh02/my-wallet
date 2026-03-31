@@ -1,5 +1,6 @@
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ModalLayout } from "@/components/templates/ModalLayout";
 import { AccountForm } from "@/components/organisms/AccountForm";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -13,6 +14,7 @@ import type { Account, NewAccount } from "@/db/schema";
 
 export default function AccountFormScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ id?: string }>();
   const { invalidate } = useDataRefresh();
   const [initial, setInitial] = useState<Account | undefined>();
@@ -48,7 +50,10 @@ export default function AccountFormScreen() {
   if (!loaded) return null;
 
   return (
-    <ModalLayout title={initial ? "Edit Account" : "New Account"} onClose={() => router.back()}>
+    <ModalLayout
+      title={initial ? t("accounts.editAccount") : t("accounts.newAccount")}
+      onClose={() => router.back()}
+    >
       <AccountForm
         initial={initial}
         onSubmit={handleSubmit}

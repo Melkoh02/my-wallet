@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { View, FlatList, Pressable, Modal, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTranslation } from "react-i18next";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppInput } from "@/components/atoms/AppInput";
@@ -25,6 +26,7 @@ export function IconPickerModal({
   selectedColor,
 }: IconPickerModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -44,14 +46,14 @@ export function IconPickerModal({
     >
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <AppText variant="h3">Choose Icon</AppText>
+          <AppText variant="h3">{t("iconPicker.title")}</AppText>
           <Pressable onPress={onClose}>
             <AppIcon name="close" size={24} color={colors.icon} />
           </Pressable>
         </View>
         <View style={styles.searchWrap}>
           <AppInput
-            placeholder="Search icons... (e.g. cart, music, star)"
+            placeholder={t("iconPicker.search")}
             value={search}
             onChangeText={setSearch}
             autoFocus
@@ -76,7 +78,7 @@ export function IconPickerModal({
           )}
           ListEmptyComponent={
             <AppText variant="bodySmall" color={colors.textTertiary} style={styles.empty}>
-              No icons found for &ldquo;{search}&rdquo;
+              {t("iconPicker.noResults", { query: search })}
             </AppText>
           }
         />

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { View, Pressable, FlatList, Modal, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { AppText } from "@/components/atoms/AppText";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppIcon } from "@/components/atoms/AppIcon";
@@ -20,6 +21,7 @@ type ContactPickerProps = {
 
 export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SimpleContact[]>([]);
@@ -47,7 +49,7 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
   return (
     <View style={styles.container}>
       <AppText variant="label" color={colors.textSecondary}>
-        Contact (optional)
+        {t("transactionForm.contact")} ({t("common.optional")})
       </AppText>
       <Pressable
         onPress={selected ? () => onSelect(null) : openPicker}
@@ -65,7 +67,7 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
           <>
             <AppIcon name="account-plus-outline" size={20} color={colors.iconSecondary} />
             <AppText variant="body" color={colors.placeholder}>
-              Select contact...
+              {t("transactionForm.selectContact")}
             </AppText>
           </>
         )}
@@ -73,7 +75,7 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
 
       {hasPermission === false && (
         <AppText variant="caption" color={colors.warning}>
-          Contact permission denied
+          {t("contacts.permissionDenied")}
         </AppText>
       )}
 
@@ -85,14 +87,14 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
       >
         <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
-            <AppText variant="h3">Select Contact</AppText>
+            <AppText variant="h3">{t("contacts.selectContact")}</AppText>
             <Pressable onPress={() => setVisible(false)}>
               <AppIcon name="close" size={24} color={colors.icon} />
             </Pressable>
           </View>
           <View style={styles.searchWrap}>
             <AppInput
-              placeholder="Search contacts..."
+              placeholder={t("contacts.searchContacts")}
               value={query}
               onChangeText={handleSearch}
               autoFocus
@@ -118,11 +120,11 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
             ListEmptyComponent={
               query.length >= 2 ? (
                 <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
-                  No contacts found
+                  {t("contacts.noContacts")}
                 </AppText>
               ) : (
                 <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
-                  Type at least 2 characters to search
+                  {t("contacts.typeToSearch")}
                 </AppText>
               )
             }

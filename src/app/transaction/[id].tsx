@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, ScrollView, StyleSheet, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
@@ -18,6 +19,7 @@ import type { TransactionWithRelations } from "@/db/queries/transactions";
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { invalidate } = useDataRefresh();
   const [txn, setTxn] = useState<TransactionWithRelations | null>(null);
@@ -31,10 +33,10 @@ export default function TransactionDetailScreen() {
   if (!txn) return null;
 
   const handleDelete = () => {
-    Alert.alert("Delete Transaction", "This action cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("transactions.deleteTitle"), t("transactions.deleteMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           await deleteTransaction(txn.id);
@@ -47,7 +49,7 @@ export default function TransactionDetailScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title="Transaction" onBack={() => router.back()} />
+      <HeaderBar title={t("transactions.transaction")} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.amountSection}>
           <AppText variant="caption" color={colors.textSecondary}>
@@ -63,20 +65,28 @@ export default function TransactionDetailScreen() {
         <Divider />
 
         <View style={styles.details}>
-          {txn.description ? <DetailRow label="Description" value={txn.description} /> : null}
-          <DetailRow label="Account" value={txn.accountName} />
-          {txn.toAccountName && <DetailRow label="To" value={txn.toAccountName} />}
-          <DetailRow label="Date" value={formatDate(txn.date)} />
-          <DetailRow label="Time" value={formatTime(txn.time)} />
-          {txn.contactName && <DetailRow label="Contact" value={txn.contactName} />}
-          {txn.locationName && <DetailRow label="Location" value={txn.locationName} />}
-          {txn.notes && <DetailRow label="Notes" value={txn.notes} />}
+          {txn.description ? (
+            <DetailRow label={t("transactionForm.description")} value={txn.description} />
+          ) : null}
+          <DetailRow label={t("transactionForm.account")} value={txn.accountName} />
+          {txn.toAccountName && (
+            <DetailRow label={t("transactionForm.toAccount")} value={txn.toAccountName} />
+          )}
+          <DetailRow label={t("transactionForm.date")} value={formatDate(txn.date)} />
+          <DetailRow label={t("transactionForm.time")} value={formatTime(txn.time)} />
+          {txn.contactName && (
+            <DetailRow label={t("transactionForm.contact")} value={txn.contactName} />
+          )}
+          {txn.locationName && (
+            <DetailRow label={t("transactionForm.addLocation")} value={txn.locationName} />
+          )}
+          {txn.notes && <DetailRow label={t("transactionForm.notes")} value={txn.notes} />}
         </View>
 
         {txn.subcategoryList.length > 0 && (
           <View style={styles.categoriesSection}>
             <AppText variant="label" color={colors.textSecondary}>
-              Categories
+              {t("categories.title")}
             </AppText>
             <View style={styles.pills}>
               {txn.subcategoryList.map((sub) => (
@@ -92,7 +102,7 @@ export default function TransactionDetailScreen() {
         )}
 
         <AppButton
-          title="Delete Transaction"
+          title={t("transactions.deleteTitle")}
           onPress={handleDelete}
           variant="danger"
           icon="delete"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, FlatList, Pressable, StyleSheet, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
@@ -17,6 +18,7 @@ import type { CategoryWithSubs } from "@/db/queries/categories";
 export default function CategoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { invalidate, revisions } = useDataRefresh();
   const [category, setCategory] = useState<CategoryWithSubs | null>(null);
@@ -38,10 +40,10 @@ export default function CategoryDetailScreen() {
   };
 
   const handleDeleteSub = (subId: number, name: string) => {
-    Alert.alert("Delete Subcategory", `Remove "${name}"?`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("categories.deleteSubcategory"), t("categories.removeSubcategory", { name }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           await deleteSubcategory(subId);
@@ -67,13 +69,13 @@ export default function CategoryDetailScreen() {
       <Divider />
       <View style={styles.addRow}>
         <AppInput
-          placeholder="New subcategory..."
+          placeholder={t("categories.newSubcategory")}
           value={newSubName}
           onChangeText={setNewSubName}
           style={styles.addInput}
           onSubmitEditing={handleAddSub}
         />
-        <AppButton title="Add" onPress={handleAddSub} disabled={!newSubName.trim()} />
+        <AppButton title={t("common.add")} onPress={handleAddSub} disabled={!newSubName.trim()} />
       </View>
       <FlatList
         data={category.subcategories}
@@ -85,7 +87,7 @@ export default function CategoryDetailScreen() {
             </AppText>
             {item.isGeneral ? (
               <AppText variant="caption" color={colors.textTertiary}>
-                Default
+                {t("common.default")}
               </AppText>
             ) : (
               <Pressable onPress={() => handleDeleteSub(item.id, item.name)} hitSlop={8}>

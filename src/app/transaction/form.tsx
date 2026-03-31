@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ModalLayout } from "@/components/templates/ModalLayout";
 import { TransactionForm } from "@/components/organisms/TransactionForm";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -15,6 +16,7 @@ import type { TransactionType } from "@/types";
 
 export default function TransactionFormScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ type?: string }>();
   const { accounts } = useAccounts();
   const { categories } = useCategories();
@@ -46,7 +48,7 @@ export default function TransactionFormScreen() {
   };
 
   return (
-    <ModalLayout title="New Transaction" onClose={() => router.back()}>
+    <ModalLayout title={t("transactionForm.newTransaction")} onClose={() => router.back()}>
       <TransactionForm
         accounts={accounts}
         categories={categories}

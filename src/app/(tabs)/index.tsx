@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { TransactionListItem } from "@/components/organisms/TransactionListItem";
@@ -21,6 +22,7 @@ import type { TransactionWithRelations } from "@/db/queries/transactions";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { hideAmounts, toggleHideAmounts } = usePrivacy();
   const { revisions } = useDataRefresh();
@@ -42,7 +44,7 @@ export default function HomeScreen() {
   return (
     <ScreenLayout scrollable edges={["top"]}>
       <HeaderBar
-        title="My Wallet"
+        title={t("home.title")}
         rightActions={[
           { icon: hideAmounts ? "eye-off" : "eye", onPress: toggleHideAmounts },
           { icon: "cog", onPress: () => router.push("/settings") },
@@ -52,7 +54,7 @@ export default function HomeScreen() {
       {/* Balance card */}
       <View style={[styles.balanceCard, { backgroundColor: colors.primary + "10" }]}>
         <AppText variant="caption" color={colors.textSecondary}>
-          Net Worth ({totals.displayCurrency})
+          {t("home.netWorth")} ({totals.displayCurrency})
         </AppText>
         <AmountDisplay
           amount={totals.netWorth}
@@ -65,7 +67,7 @@ export default function HomeScreen() {
       <View style={styles.summaryRow}>
         <View style={[styles.summaryItem, { backgroundColor: colors.card }]}>
           <AppText variant="caption" color={colors.textSecondary}>
-            Income
+            {t("home.income")}
           </AppText>
           <AppText variant="label" color={colors.income}>
             {hideAmounts ? "••••" : formatCurrency(monthSummary.income)}
@@ -73,7 +75,7 @@ export default function HomeScreen() {
         </View>
         <View style={[styles.summaryItem, { backgroundColor: colors.card }]}>
           <AppText variant="caption" color={colors.textSecondary}>
-            Expenses
+            {t("home.expenses")}
           </AppText>
           <AppText variant="label" color={colors.expense}>
             {hideAmounts ? "••••" : formatCurrency(monthSummary.expense)}
@@ -84,13 +86,13 @@ export default function HomeScreen() {
       {/* Recent transactions */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <AppText variant="h3">Recent</AppText>
+          <AppText variant="h3">{t("home.recent")}</AppText>
           <AppText
             variant="bodySmall"
             color={colors.primary}
             onPress={() => router.push("/(tabs)/transactions")}
           >
-            See all
+            {t("home.seeAll")}
           </AppText>
         </View>
         {recent.length > 0 ? (
@@ -106,8 +108,8 @@ export default function HomeScreen() {
         ) : (
           <EmptyState
             icon="swap-horizontal"
-            title="No transactions yet"
-            description="Start by adding a transaction"
+            title={t("home.noTransactionsYet")}
+            description={t("home.startByAdding")}
           />
         )}
       </View>

@@ -1,5 +1,6 @@
 import { View, FlatList, Pressable, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
@@ -15,12 +16,12 @@ import { formatDate } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
 import type { RecurringTransaction } from "@/db/schema";
 
-const FREQ_LABELS: Record<string, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  biweekly: "Biweekly",
-  monthly: "Monthly",
-  yearly: "Yearly",
+const FREQ_KEYS: Record<string, string> = {
+  daily: "recurring.daily",
+  weekly: "recurring.weekly",
+  biweekly: "recurring.biweekly",
+  monthly: "recurring.monthly",
+  yearly: "recurring.yearly",
 };
 
 function RecurringRow({
@@ -33,6 +34,7 @@ function RecurringRow({
   onDelete: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const typeColor = item.type === "income" ? colors.income : colors.expense;
 
   return (
@@ -49,7 +51,7 @@ function RecurringRow({
           {item.description}
         </AppText>
         <AppText variant="caption" color={colors.textSecondary}>
-          {FREQ_LABELS[item.frequency]} · Next: {formatDate(item.nextDate)}
+          {t(FREQ_KEYS[item.frequency])} · {t("recurring.next")}: {formatDate(item.nextDate)}
         </AppText>
       </View>
       <AmountDisplay
@@ -75,6 +77,7 @@ function RecurringRow({
 
 export default function RecurringScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { items, loading } = useRecurring(false);
   const { invalidate } = useDataRefresh();
 
@@ -84,10 +87,10 @@ export default function RecurringScreen() {
   };
 
   const handleDelete = (id: number, name: string) => {
-    Alert.alert("Delete Recurring", `Remove "${name}"?`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("recurring.deleteTitle"), t("recurring.deleteMessage", { name }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           await deleteRecurring(id);

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Pressable, FlatList, Modal, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { Chip } from "@/components/atoms/Chip";
@@ -23,6 +24,7 @@ export function CategoryPicker({
   label = "Categories",
 }: CategoryPickerProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [expandedCatId, setExpandedCatId] = useState<number | null>(null);
 
@@ -61,7 +63,7 @@ export function CategoryPicker({
           </View>
         ) : (
           <AppText variant="body" color={colors.placeholder}>
-            Select categories...
+            {t("categoryPicker.selectPlaceholder")}
           </AppText>
         )}
         <AppIcon name="chevron-down" size={20} color={colors.iconSecondary} />
@@ -75,10 +77,10 @@ export function CategoryPicker({
       >
         <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
-            <AppText variant="h3">Select Categories</AppText>
+            <AppText variant="h3">{t("categoryPicker.title")}</AppText>
             <Pressable onPress={() => setVisible(false)}>
               <AppText variant="button" color={colors.primary}>
-                Done
+                {t("common.done")}
               </AppText>
             </Pressable>
           </View>
@@ -118,7 +120,7 @@ export function CategoryPicker({
                       </AppText>
                       {sub.isGeneral && (
                         <AppText variant="caption" color={colors.textTertiary}>
-                          General
+                          {t("common.general")}
                         </AppText>
                       )}
                     </Pressable>

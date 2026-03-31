@@ -1,5 +1,6 @@
 import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
@@ -13,6 +14,7 @@ import type { CategoryWithSubs } from "@/db/queries/categories";
 
 function CategoryRow({ category, onPress }: { category: CategoryWithSubs; onPress: () => void }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const subCount = category.subcategories.filter((s) => !s.isGeneral).length;
 
   return (
@@ -29,7 +31,7 @@ function CategoryRow({ category, onPress }: { category: CategoryWithSubs; onPres
       <View style={styles.rowInfo}>
         <AppText variant="label">{category.name}</AppText>
         <AppText variant="caption" color={colors.textSecondary}>
-          {subCount} {subCount === 1 ? "subcategory" : "subcategories"}
+          {subCount} {subCount === 1 ? t("categories.subcategory") : t("categories.subcategories")}
         </AppText>
       </View>
       <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
@@ -39,11 +41,12 @@ function CategoryRow({ category, onPress }: { category: CategoryWithSubs; onPres
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { categories, loading } = useCategories();
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title="Categories" />
+      <HeaderBar title={t("categories.title")} />
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id.toString()}
@@ -51,7 +54,9 @@ export default function CategoriesScreen() {
         renderItem={({ item }) => (
           <CategoryRow category={item} onPress={() => router.push(`/category/${item.id}`)} />
         )}
-        ListEmptyComponent={loading ? null : <EmptyState icon="shape" title="No categories" />}
+        ListEmptyComponent={
+          loading ? null : <EmptyState icon="shape" title={t("categories.noCategories")} />
+        }
       />
       <FAB onPress={() => router.push("/category/form")} />
     </ScreenLayout>

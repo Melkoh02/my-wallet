@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, FlatList, Pressable, StyleSheet, Alert } from "react-native";
+import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
@@ -9,6 +9,7 @@ import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
+import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { lightPalette } from "@/theme/colors";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -42,6 +43,7 @@ export default function ThemesScreen() {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [accentColor, setAccentColor] = useState(ACCENT_COLORS[0]);
   const [statusBarStyle, setStatusBarStyle] = useState<StatusBarStyle>("auto");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     getThemes().then(setThemeList);
@@ -70,18 +72,11 @@ export default function ThemesScreen() {
     invalidate("themes");
   };
 
-  const handleDelete = (id: number, themeName: string) => {
-    Alert.alert("Delete Theme", `Remove "${themeName}"?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteTheme(id);
-          invalidate("themes");
-        },
-      },
-    ]);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await deleteTheme(deleteTarget.id);
+    invalidate("themes");
+    setDeleteTarget(null);
   };
 
   return (
@@ -114,7 +109,7 @@ export default function ThemesScreen() {
         renderItem={({ item }) => (
           <Pressable
             onPress={() => handleActivate(item.id)}
-            onLongPress={() => handleDelete(item.id, item.name)}
+            onLongPress={() => setDeleteTarget({ id: item.id, name: item.name })}
             style={[
               styles.themeRow,
               {
@@ -212,6 +207,15 @@ export default function ThemesScreen() {
             />
           )
         }
+      />
+      <ConfirmModal
+        visible={!!deleteTarget}
+        title="Delete Theme"
+        message={`Remove "${deleteTarget?.name ?? ""}"?`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </ScreenLayout>
   );

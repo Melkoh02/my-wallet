@@ -40,7 +40,22 @@
     "addFirst": "Add your first transaction to start tracking",
     "deleteTitle": "Delete Transaction",
     "deleteMessage": "This action cannot be undone.",
-    "transaction": "Transaction"
+    "transaction": "Transaction",
+    "filters": "Filters",
+    "type": "Type",
+    "dateRange": "Date Range",
+    "from": "From",
+    "to": "To",
+    "amountRange": "Amount Range",
+    "min": "Min",
+    "max": "Max",
+    "contacts": "Contacts",
+    "fromAccounts": "From Accounts",
+    "toAccounts": "To Accounts",
+    "categories": "Categories",
+    "clearAll": "Clear All",
+    "apply": "Apply",
+    "activeFilters": "{{count}} active"
   },
   "accounts": {
     "title": "Accounts",

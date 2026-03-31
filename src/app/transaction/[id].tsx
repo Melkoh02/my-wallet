@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -9,6 +9,7 @@ import { CategoryPill } from "@/components/molecules/CategoryPill";
 import { AppText } from "@/components/atoms/AppText";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
+import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getTransactionById, deleteTransaction } from "@/db/queries/transactions";
@@ -23,6 +24,7 @@ export default function TransactionDetailScreen() {
   const { colors } = useTheme();
   const { invalidate } = useDataRefresh();
   const [txn, setTxn] = useState<TransactionWithRelations | null>(null);
+  const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -32,19 +34,11 @@ export default function TransactionDetailScreen() {
 
   if (!txn) return null;
 
-  const handleDelete = () => {
-    Alert.alert(t("transactions.deleteTitle"), t("transactions.deleteMessage"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: async () => {
-          await deleteTransaction(txn.id);
-          invalidate("transactions", "accounts");
-          router.back();
-        },
-      },
-    ]);
+  const handleDelete = async () => {
+    setShowDelete(false);
+    await deleteTransaction(txn.id);
+    invalidate("transactions", "accounts");
+    router.back();
   };
 
   return (
@@ -103,11 +97,20 @@ export default function TransactionDetailScreen() {
 
         <AppButton
           title={t("transactions.deleteTitle")}
-          onPress={handleDelete}
+          onPress={() => setShowDelete(true)}
           variant="danger"
           icon="delete"
         />
       </ScrollView>
+      <ConfirmModal
+        visible={showDelete}
+        title={t("transactions.deleteTitle")}
+        message={t("transactions.deleteMessage")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDelete(false)}
+      />
     </ScreenLayout>
   );
 }

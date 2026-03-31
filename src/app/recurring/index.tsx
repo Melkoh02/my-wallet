@@ -1,4 +1,5 @@
-import { View, FlatList, Pressable, StyleSheet, Alert } from "react-native";
+import { useState } from "react";
+import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -8,6 +9,7 @@ import { AppIcon } from "@/components/atoms/AppIcon";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { Divider } from "@/components/atoms/Divider";
+import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useRecurring } from "@/hooks/useRecurring";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -80,24 +82,18 @@ export default function RecurringScreen() {
   const { t } = useTranslation();
   const { items, loading } = useRecurring(false);
   const { invalidate } = useDataRefresh();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   const handleToggle = async (id: number) => {
     await toggleRecurring(id);
     invalidate("recurring");
   };
 
-  const handleDelete = (id: number, name: string) => {
-    Alert.alert(t("recurring.deleteTitle"), t("recurring.deleteMessage", { name }), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: async () => {
-          await deleteRecurring(id);
-          invalidate("recurring");
-        },
-      },
-    ]);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await deleteRecurring(deleteTarget.id);
+    invalidate("recurring");
+    setDeleteTarget(null);
   };
 
   return (
@@ -115,7 +111,7 @@ export default function RecurringScreen() {
           <RecurringRow
             item={item}
             onToggle={() => handleToggle(item.id)}
-            onDelete={() => handleDelete(item.id, item.description)}
+            onDelete={() => setDeleteTarget({ id: item.id, name: item.description })}
           />
         )}
         ItemSeparatorComponent={Divider}
@@ -128,6 +124,15 @@ export default function RecurringScreen() {
             />
           )
         }
+      />
+      <ConfirmModal
+        visible={!!deleteTarget}
+        title={t("recurring.deleteTitle")}
+        message={t("recurring.deleteMessage", { name: deleteTarget?.name ?? "" })}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </ScreenLayout>
   );

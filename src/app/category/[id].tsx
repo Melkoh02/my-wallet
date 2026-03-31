@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, FlatList, Pressable, StyleSheet, Alert } from "react-native";
+import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -9,6 +9,7 @@ import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
+import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getCategoryById, createSubcategory, deleteSubcategory } from "@/db/queries/categories";
@@ -23,6 +24,7 @@ export default function CategoryDetailScreen() {
   const { invalidate, revisions } = useDataRefresh();
   const [category, setCategory] = useState<CategoryWithSubs | null>(null);
   const [newSubName, setNewSubName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -39,18 +41,11 @@ export default function CategoryDetailScreen() {
     invalidate("categories");
   };
 
-  const handleDeleteSub = (subId: number, name: string) => {
-    Alert.alert(t("categories.deleteSubcategory"), t("categories.removeSubcategory", { name }), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: async () => {
-          await deleteSubcategory(subId);
-          invalidate("categories");
-        },
-      },
-    ]);
+  const confirmDeleteSub = async () => {
+    if (!deleteTarget) return;
+    await deleteSubcategory(deleteTarget.id);
+    invalidate("categories");
+    setDeleteTarget(null);
   };
 
   return (
@@ -90,12 +85,24 @@ export default function CategoryDetailScreen() {
                 {t("common.default")}
               </AppText>
             ) : (
-              <Pressable onPress={() => handleDeleteSub(item.id, item.name)} hitSlop={8}>
+              <Pressable
+                onPress={() => setDeleteTarget({ id: item.id, name: item.name })}
+                hitSlop={8}
+              >
                 <AppIcon name="close-circle-outline" size={20} color={colors.iconSecondary} />
               </Pressable>
             )}
           </View>
         )}
+      />
+      <ConfirmModal
+        visible={!!deleteTarget}
+        title={t("categories.deleteSubcategory")}
+        message={t("categories.removeSubcategory", { name: deleteTarget?.name ?? "" })}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={confirmDeleteSub}
+        onCancel={() => setDeleteTarget(null)}
       />
     </ScreenLayout>
   );

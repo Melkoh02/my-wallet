@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import {
   getTransactions,
@@ -11,29 +11,34 @@ export function useTransactions(filters: TransactionFilters = {}) {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const { revisions } = useDataRefresh();
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
   const limit = filters.limit ?? 30;
 
-  // Stabilize filters to avoid re-renders
-  const stableFilters = useMemo(
-    () => ({
-      search: filters.search,
-      type: filters.type,
-      accountId: filters.accountId,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
-      limit,
-    }),
-    [filters.search, filters.type, filters.accountId, filters.dateFrom, filters.dateTo, limit],
-  );
+  // Serialize filters for dependency tracking
+  const filterKey = JSON.stringify({
+    search: filters.search,
+    types: filters.types,
+    accountId: filters.accountId,
+    fromAccountIds: filters.fromAccountIds,
+    toAccountIds: filters.toAccountIds,
+    contactIds: filters.contactIds,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    amountMin: filters.amountMin,
+    amountMax: filters.amountMax,
+    subcategoryIds: filters.subcategoryIds,
+  });
 
   const fetch = useCallback(async () => {
     setLoading(true);
-    const result = await getTransactions({ ...stableFilters, offset: 0 });
+    const result = await getTransactions({ ...filtersRef.current, offset: 0, limit });
     setTransactions(result);
     setHasMore(result.length >= limit);
     setLoading(false);
-  }, [stableFilters, limit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey, limit]);
 
   useEffect(() => {
     fetch();
@@ -42,12 +47,14 @@ export function useTransactions(filters: TransactionFilters = {}) {
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) return;
     const result = await getTransactions({
-      ...stableFilters,
+      ...filtersRef.current,
       offset: transactions.length,
+      limit,
     });
     setTransactions((prev) => [...prev, ...result]);
     setHasMore(result.length >= limit);
-  }, [stableFilters, transactions.length, limit, hasMore, loading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey, transactions.length, limit, hasMore, loading]);
 
   return { transactions, loading, hasMore, loadMore, refetch: fetch };
 }

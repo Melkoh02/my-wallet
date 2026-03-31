@@ -1,4 +1,4 @@
-import { eq, and, like, desc, sql, or, gte, lte } from "drizzle-orm";
+import { eq, and, like, desc, sql, or, gte, lte, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   transactions,
@@ -25,10 +25,16 @@ export type TransactionWithRelations = Transaction & {
 
 export type TransactionFilters = {
   search?: string;
-  type?: string;
+  types?: string[];
   accountId?: number;
+  fromAccountIds?: number[];
+  toAccountIds?: number[];
+  contactIds?: string[];
   dateFrom?: string;
   dateTo?: string;
+  amountMin?: number;
+  amountMax?: number;
+  subcategoryIds?: number[];
   limit?: number;
   offset?: number;
 };
@@ -36,21 +42,71 @@ export type TransactionFilters = {
 export async function getTransactions(
   filters: TransactionFilters = {},
 ): Promise<TransactionWithRelations[]> {
-  const { search, type, accountId, dateFrom, dateTo, limit = 30, offset = 0 } = filters;
+  const {
+    search,
+    types,
+    accountId,
+    fromAccountIds,
+    toAccountIds,
+    contactIds,
+    dateFrom,
+    dateTo,
+    amountMin,
+    amountMax,
+    subcategoryIds: filterSubIds,
+    limit = 30,
+    offset = 0,
+  } = filters;
 
   const conditions = [];
-  if (type) conditions.push(eq(transactions.type, type));
+
+  // Type filter (multi-select)
+  if (types && types.length > 0) {
+    conditions.push(inArray(transactions.type, types));
+  }
+
+  // Account filters
   if (accountId) {
     conditions.push(
       or(eq(transactions.accountId, accountId), eq(transactions.toAccountId, accountId))!,
     );
   }
+  if (fromAccountIds && fromAccountIds.length > 0) {
+    conditions.push(inArray(transactions.accountId, fromAccountIds));
+  }
+  if (toAccountIds && toAccountIds.length > 0) {
+    conditions.push(inArray(transactions.toAccountId, toAccountIds));
+  }
+
+  // Contact filter (multi-select)
+  if (contactIds && contactIds.length > 0) {
+    conditions.push(inArray(transactions.contactId, contactIds));
+  }
+
+  // Date range
   if (dateFrom) conditions.push(gte(transactions.date, dateFrom));
   if (dateTo) conditions.push(lte(transactions.date, dateTo));
+
+  // Amount range
+  if (amountMin !== undefined) conditions.push(gte(transactions.amount, amountMin));
+  if (amountMax !== undefined) conditions.push(lte(transactions.amount, amountMax));
+
+  // Search
   if (search) {
     conditions.push(
       or(like(transactions.description, `%${search}%`), like(transactions.notes, `%${search}%`))!,
     );
+  }
+
+  // If filtering by subcategory, get matching transaction IDs first
+  if (filterSubIds && filterSubIds.length > 0) {
+    const matchingTxns = await db
+      .select({ transactionId: transactionSubcategories.transactionId })
+      .from(transactionSubcategories)
+      .where(inArray(transactionSubcategories.subcategoryId, filterSubIds));
+    const txnIds = [...new Set(matchingTxns.map((r) => r.transactionId))];
+    if (txnIds.length === 0) return [];
+    conditions.push(inArray(transactions.id, txnIds));
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;

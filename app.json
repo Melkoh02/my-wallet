@@ -8,7 +8,8 @@
     "scheme": "mywallet",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "dev.melkoh.mywallet"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,8 +18,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.melkoh.mywallet"
+      "package": "dev.melkoh.mywallet"
     },
     "web": {
       "output": "static",

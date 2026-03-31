@@ -5,6 +5,7 @@ import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { EmptyState } from "@/components/molecules/EmptyState";
+import { FAB } from "@/components/atoms/FAB";
 import { useCategories } from "@/hooks/useCategories";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
@@ -42,11 +43,7 @@ export default function CategoriesScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar
-        title="Categories"
-        rightIcon="plus"
-        onRightPress={() => router.push("/category/form")}
-      />
+      <HeaderBar title="Categories" />
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id.toString()}
@@ -56,6 +53,7 @@ export default function CategoriesScreen() {
         )}
         ListEmptyComponent={loading ? null : <EmptyState icon="shape" title="No categories" />}
       />
+      <FAB onPress={() => router.push("/category/form")} />
     </ScreenLayout>
   );
 }

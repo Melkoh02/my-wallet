@@ -16,13 +16,12 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.handleContainer}>
-        <View style={[styles.handle, { backgroundColor: colors.border }]} />
-      </View>
       <View style={styles.header}>
-        <AppText variant="h3">{title}</AppText>
+        <AppText variant="h3" style={styles.title}>
+          {title}
+        </AppText>
         {onClose && (
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
             <AppIcon name="close" size={24} color={colors.icon} />
           </Pressable>
         )}
@@ -36,21 +35,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  handleContainer: {
-    alignItems: "center",
-    paddingTop: spacing.sm,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  title: {
+    flex: 1,
+  },
+  closeBtn: {
+    padding: spacing.xs,
   },
   content: {
     flex: 1,

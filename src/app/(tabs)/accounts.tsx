@@ -5,6 +5,7 @@ import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AccountCard } from "@/components/organisms/AccountCard";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
+import { FAB } from "@/components/atoms/FAB";
 import { useAccounts } from "@/hooks/useAccounts";
 import { spacing } from "@/theme/spacing";
 
@@ -14,11 +15,7 @@ export default function AccountsScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar
-        title="Accounts"
-        rightIcon="plus"
-        onRightPress={() => router.push("/account/form")}
-      />
+      <HeaderBar title="Accounts" />
       <FlatList
         data={accounts}
         keyExtractor={(item) => item.id.toString()}
@@ -40,8 +37,9 @@ export default function AccountsScreen() {
             />
           )
         }
-        ItemSeparatorComponent={() => <></> /* gap handled by contentContainerStyle */}
+        ItemSeparatorComponent={() => <></>}
       />
+      <FAB onPress={() => router.push("/account/form")} />
     </ScreenLayout>
   );
 }

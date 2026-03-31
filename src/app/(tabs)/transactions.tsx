@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/molecules/EmptyState";
 import { AppInput } from "@/components/atoms/AppInput";
 import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
+import { FAB } from "@/components/atoms/FAB";
 import { useTransactions } from "@/hooks/useTransactions";
 import { spacing } from "@/theme/spacing";
 
@@ -35,11 +36,7 @@ export default function TransactionsScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar
-        title="Transactions"
-        rightIcon="plus"
-        onRightPress={() => router.push("/transaction/form")}
-      />
+      <HeaderBar title="Transactions" />
       <View style={styles.filters}>
         <AppInput
           placeholder="Search transactions..."
@@ -80,6 +77,7 @@ export default function TransactionsScreen() {
           )
         }
       />
+      <FAB onPress={() => router.push("/transaction/form")} />
     </ScreenLayout>
   );
 }

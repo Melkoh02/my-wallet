@@ -54,6 +54,26 @@ const QUICK_ICONS = [
   "phone",
   "airplane",
   "music",
+  "book-open-variant",
+  "camera",
+  "cart",
+  "coffee",
+  "controller-classic",
+  "fire",
+  "flower",
+  "guitar-electric",
+  "hammer-wrench",
+  "headphones",
+  "hospital-box",
+  "lightning-bolt",
+  "map-marker",
+  "palette",
+  "pill",
+  "pizza",
+  "run",
+  "silverware-fork-knife",
+  "star",
+  "train",
 ];
 
 export default function CategoryFormScreen() {
@@ -143,6 +163,22 @@ export default function CategoryFormScreen() {
             {t("categories.icon")}
           </AppText>
           <View style={styles.grid}>
+            {/* Show selected icon first if it's custom (not in defaults) */}
+            {!QUICK_ICONS.includes(icon) && (
+              <Pressable
+                onPress={() => {}}
+                style={[
+                  styles.iconOption,
+                  {
+                    backgroundColor: color + "20",
+                    borderColor: color,
+                    borderWidth: 2,
+                  },
+                ]}
+              >
+                <AppIcon name={icon} size={22} color={color} />
+              </Pressable>
+            )}
             {QUICK_ICONS.map((i) => (
               <Pressable
                 key={i}
@@ -155,7 +191,7 @@ export default function CategoryFormScreen() {
                 <AppIcon name={i} size={22} color={icon === i ? color : colors.icon} />
               </Pressable>
             ))}
-            {/* Search all icons button */}
+            {/* Search all icons */}
             <Pressable
               onPress={() => setIconPickerVisible(true)}
               style={[

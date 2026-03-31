@@ -18,6 +18,14 @@ export function formatCurrency(amount: number, currency = "USD"): string {
 
 export function formatDate(dateStr: string): string {
   const date = new Date(dateStr + "T00:00:00");
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",

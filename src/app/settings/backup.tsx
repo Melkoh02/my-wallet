@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, FlatList, Pressable, StyleSheet, Alert, Switch } from "react-native";
+import { View, FlatList, Pressable, StyleSheet, Switch } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
@@ -7,6 +7,7 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
+import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
@@ -29,6 +30,9 @@ export default function BackupScreen() {
   const [autoEnabled, setAutoEnabled] = useState(true);
   const [keepCount, setKeepCount] = useState(2);
   const [loading, setLoading] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [deleteBackupId, setDeleteBackupId] = useState<number | null>(null);
+  const [resultModal, setResultModal] = useState<{ title: string; message: string } | null>(null);
 
   const loadData = async () => {
     const [list, enabled, count] = await Promise.all([
@@ -71,53 +75,34 @@ export default function BackupScreen() {
     setLoading(false);
   };
 
-  const handleImport = async () => {
-    Alert.alert(
-      "Import Data",
-      "This will replace ALL existing data. Make sure you have a backup first.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Import",
-          style: "destructive",
-          onPress: async () => {
-            setLoading(true);
-            const result = await importBackup();
-            setLoading(false);
-            if (result.success) {
-              invalidate(
-                "accounts",
-                "categories",
-                "transactions",
-                "recurring",
-                "cashback",
-                "themes",
-                "settings",
-                "backups",
-              );
-              Alert.alert("Success", "Data imported successfully");
-              await loadData();
-            } else {
-              Alert.alert("Error", result.error ?? "Import failed");
-            }
-          },
-        },
-      ],
-    );
+  const confirmImport = async () => {
+    setShowImport(false);
+    setLoading(true);
+    const result = await importBackup();
+    setLoading(false);
+    if (result.success) {
+      invalidate(
+        "accounts",
+        "categories",
+        "transactions",
+        "recurring",
+        "cashback",
+        "themes",
+        "settings",
+        "backups",
+      );
+      setResultModal({ title: "Success", message: "Data imported successfully" });
+      await loadData();
+    } else {
+      setResultModal({ title: "Error", message: result.error ?? "Import failed" });
+    }
   };
 
-  const handleDeleteBackup = (id: number) => {
-    Alert.alert("Delete Backup", "Remove this backup file?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteBackup(id);
-          await loadData();
-        },
-      },
-    ]);
+  const confirmDeleteBackup = async () => {
+    if (deleteBackupId === null) return;
+    await deleteBackup(deleteBackupId);
+    setDeleteBackupId(null);
+    await loadData();
   };
 
   const formatSize = (bytes: number) => {
@@ -186,7 +171,7 @@ export default function BackupScreen() {
                 title="Import"
                 variant="secondary"
                 icon="cloud-download"
-                onPress={handleImport}
+                onPress={() => setShowImport(true)}
                 disabled={loading}
               />
             </View>
@@ -199,7 +184,7 @@ export default function BackupScreen() {
         }
         renderItem={({ item }) => (
           <Pressable
-            onLongPress={() => handleDeleteBackup(item.id)}
+            onLongPress={() => setDeleteBackupId(item.id)}
             style={[styles.backupRow, { borderColor: colors.border }]}
           >
             <AppIcon
@@ -223,6 +208,32 @@ export default function BackupScreen() {
             No backups yet
           </AppText>
         }
+      />
+      <ConfirmModal
+        visible={showImport}
+        title="Import Data"
+        message="This will replace ALL existing data. Make sure you have a backup first."
+        confirmLabel="Import"
+        cancelLabel="Cancel"
+        onConfirm={confirmImport}
+        onCancel={() => setShowImport(false)}
+      />
+      <ConfirmModal
+        visible={deleteBackupId !== null}
+        title="Delete Backup"
+        message="Remove this backup file?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeleteBackup}
+        onCancel={() => setDeleteBackupId(null)}
+      />
+      <ConfirmModal
+        visible={!!resultModal}
+        title={resultModal?.title ?? ""}
+        message={resultModal?.message ?? ""}
+        confirmLabel="OK"
+        variant="primary"
+        onConfirm={() => setResultModal(null)}
       />
     </ScreenLayout>
   );

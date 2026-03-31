@@ -3,6 +3,7 @@ import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { db } from "@/db/client";
 import { seed } from "@/db/seed";
 import { processDueRecurring } from "@/db/queries/recurring";
+import { checkAndRunAutoBackup } from "@/services/backup.service";
 import migrations from "@/db/migrations/migrations";
 
 type DatabaseContextValue = {
@@ -26,6 +27,11 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     processDueRecurring().then((count) => {
       if (count > 0) {
         console.log(`Processed ${count} recurring transaction(s)`);
+      }
+    });
+    checkAndRunAutoBackup().then((didBackup) => {
+      if (didBackup) {
+        console.log("Auto backup completed");
       }
     });
   }, [isSeeded]);

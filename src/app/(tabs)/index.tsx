@@ -40,7 +40,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenLayout scrollable edges={["top"]}>
-      <HeaderBar title="My Wallet" rightIcon="cog" onRightPress={() => {}} />
+      <HeaderBar title="My Wallet" rightIcon="cog" onRightPress={() => router.push("/settings")} />
 
       {/* Balance card */}
       <View style={[styles.balanceCard, { backgroundColor: colors.primary + "10" }]}>

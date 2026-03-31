@@ -5,9 +5,11 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { Chip } from "@/components/atoms/Chip";
 import { CategoryPicker } from "@/components/organisms/CategoryPicker";
+import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import { todayDateString, nowTimeString } from "@/utils/format";
+import { getCurrentLocation } from "@/services/location.service";
 import type { Account, NewTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 import type { TransactionType } from "@/types";
@@ -17,6 +19,7 @@ type TransactionFormProps = {
   categories: CategoryWithSubs[];
   onSubmit: (data: NewTransaction, subcategoryIds: number[]) => void;
   initialType?: TransactionType;
+  locationEnabled?: boolean;
 };
 
 export function TransactionForm({
@@ -24,6 +27,7 @@ export function TransactionForm({
   categories,
   onSubmit,
   initialType = "expense",
+  locationEnabled = false,
 }: TransactionFormProps) {
   const { colors } = useTheme();
   const [type, setType] = useState<TransactionType>(initialType);
@@ -35,12 +39,26 @@ export function TransactionForm({
   const [time, setTime] = useState(nowTimeString());
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>([]);
   const [notes, setNotes] = useState("");
+  const [contact, setContact] = useState<{ id: string; name: string } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    name?: string;
+  } | null>(null);
 
   const filteredCategories = categories.filter((c) => {
     if (type === "income") return c.isIncome;
     if (type === "expense") return c.isExpense;
-    return c.isExpense; // transfer uses expense categories
+    return c.isExpense;
   });
+
+  const handleAddLocation = async () => {
+    setLocationLoading(true);
+    const loc = await getCurrentLocation();
+    setLocation(loc);
+    setLocationLoading(false);
+  };
 
   const handleSubmit = () => {
     const parsed = parseFloat(amount);
@@ -56,6 +74,11 @@ export function TransactionForm({
         date,
         time,
         notes: notes.trim() || null,
+        contactId: contact?.id ?? null,
+        contactName: contact?.name ?? null,
+        latitude: location?.latitude ?? null,
+        longitude: location?.longitude ?? null,
+        locationName: location?.name ?? null,
       },
       subcategoryIds,
     );
@@ -92,7 +115,6 @@ export function TransactionForm({
         })}
       </View>
 
-      {/* Amount */}
       <AppInput
         label="Amount"
         value={amount}
@@ -125,7 +147,6 @@ export function TransactionForm({
         </View>
       </View>
 
-      {/* To account for transfers */}
       {type === "transfer" && (
         <View style={styles.section}>
           <AppText variant="label" color={colors.textSecondary}>
@@ -146,7 +167,6 @@ export function TransactionForm({
         </View>
       )}
 
-      {/* Categories */}
       {type !== "transfer" && (
         <CategoryPicker
           categories={filteredCategories}
@@ -154,6 +174,9 @@ export function TransactionForm({
           onSelectionChange={setSubcategoryIds}
         />
       )}
+
+      {/* Contact - only for income/expense */}
+      {type !== "transfer" && <ContactPicker selected={contact} onSelect={setContact} />}
 
       {/* Date & Time */}
       <View style={styles.row}>
@@ -165,7 +188,34 @@ export function TransactionForm({
         </View>
       </View>
 
-      {/* Notes */}
+      {/* Location stamp */}
+      {locationEnabled && (
+        <View style={styles.section}>
+          {location ? (
+            <View style={styles.locationRow}>
+              <AppText variant="bodySmall" color={colors.textSecondary} style={styles.locationText}>
+                📍{" "}
+                {location.name ||
+                  `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+              </AppText>
+              <Pressable onPress={() => setLocation(null)}>
+                <AppText variant="caption" color={colors.danger}>
+                  Remove
+                </AppText>
+              </Pressable>
+            </View>
+          ) : (
+            <AppButton
+              title={locationLoading ? "Getting location..." : "Add Location"}
+              variant="ghost"
+              icon="map-marker-plus"
+              onPress={handleAddLocation}
+              disabled={locationLoading}
+            />
+          )}
+        </View>
+      )}
+
       <AppInput
         label="Notes"
         value={notes}
@@ -181,17 +231,9 @@ export function TransactionForm({
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  container: {
-    gap: spacing.lg,
-    paddingBottom: spacing["5xl"],
-  },
-  typeRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
+  scroll: { flex: 1 },
+  container: { gap: spacing.lg, paddingBottom: spacing["5xl"] },
+  typeRow: { flexDirection: "row", gap: spacing.sm },
   typeBtn: {
     flex: 1,
     paddingVertical: spacing.md,
@@ -199,19 +241,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1.5,
   },
-  section: {
-    gap: spacing.sm,
-  },
-  chipRow: {
+  section: { gap: spacing.sm },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  row: { flexDirection: "row", gap: spacing.md },
+  halfInput: { flex: 1 },
+  locationRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  row: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  halfInput: {
-    flex: 1,
-  },
+  locationText: { flex: 1 },
 });

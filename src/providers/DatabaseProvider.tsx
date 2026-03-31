@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { db } from "@/db/client";
 import { seed } from "@/db/seed";
+import { processDueRecurring } from "@/db/queries/recurring";
 import migrations from "@/db/migrations/migrations";
 
 type DatabaseContextValue = {
@@ -19,12 +20,22 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     seed(db).then(() => setIsSeeded(true));
   }, [success]);
 
+  // Process due recurring transactions on app ready
+  useEffect(() => {
+    if (!isSeeded) return;
+    processDueRecurring().then((count) => {
+      if (count > 0) {
+        console.log(`Processed ${count} recurring transaction(s)`);
+      }
+    });
+  }, [isSeeded]);
+
   if (error) {
     throw new Error(`Database migration failed: ${error.message}`);
   }
 
   if (!success || !isSeeded) {
-    return null; // Or a loading screen
+    return null;
   }
 
   return <DatabaseContext.Provider value={{ isReady: true }}>{children}</DatabaseContext.Provider>;

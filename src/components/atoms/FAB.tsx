@@ -27,6 +27,7 @@ type FABProps = {
 
 const ITEM_HEIGHT = 52;
 const ITEM_GAP = 10;
+const ITEM_WIDTH = 150;
 const FAB_SIZE = 56;
 const DRAG_THRESHOLD = 10;
 const ANIM_DURATION = 160;
@@ -42,11 +43,11 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const isDragging = useRef(false);
   const startY = useRef(0);
   const isOpenRef = useRef(false);
+  const wasOpenOnGrant = useRef(false);
   const lastHoveredIndex = useRef(-1);
 
   const isSpeedDial = actions && actions.length > 0;
 
-  // Measure on layout so it's always ready — no async delay during gestures
   const handleLayout = useCallback(() => {
     fabRef.current?.measureInWindow((x, y, width, height) => {
       fabLayout.current = { x, y, width, height };
@@ -67,20 +68,43 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
     setTimeout(() => setIsOpen(false), 120);
   }, [expanded]);
 
-  // Hit test using pre-measured layout — no async needed
+  // Hit test with clamping: if finger is above all items, clamp to topmost;
+  // if between FAB and bottom item, clamp to bottom item
   const getActionIndexAtPosition = useCallback(
     (pageY: number) => {
-      if (!actions) return -1;
+      if (!actions || actions.length === 0) return -1;
       const fabTop = fabLayout.current.y;
-      if (fabTop === 0) return -1; // Not measured yet
+      if (fabTop === 0) return -1;
 
-      for (let i = 0; i < actions.length; i++) {
+      const count = actions.length;
+      const topItemTop = fabTop - count * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
+      const bottomItemBottom = fabTop - (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
+
+      // Above all items → clamp to topmost
+      if (pageY < topItemTop) return count - 1;
+      // Below all items but above FAB → clamp to bottommost
+      if (pageY > bottomItemBottom + ITEM_HEIGHT && pageY < fabTop) return 0;
+
+      for (let i = 0; i < count; i++) {
         const itemBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
         const itemTop = itemBottom + ITEM_HEIGHT;
         if (pageY >= itemBottom && pageY <= itemTop) {
           return i;
         }
       }
+
+      // In a gap between items — find the closest
+      for (let i = 0; i < count - 1; i++) {
+        const thisBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
+        const nextTop = fabTop - (i + 2) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP + ITEM_HEIGHT;
+        if (pageY >= nextTop && pageY <= thisBottom) {
+          // In gap between i and i+1, pick the closer one
+          const distToI = pageY - thisBottom;
+          const distToNext = nextTop - pageY;
+          return Math.abs(distToI) < Math.abs(distToNext) ? i : i + 1;
+        }
+      }
+
       return -1;
     },
     [actions],
@@ -93,6 +117,7 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
       onPanResponderGrant: (evt) => {
         isDragging.current = false;
         lastHoveredIndex.current = -1;
+        wasOpenOnGrant.current = isOpenRef.current;
         startY.current = evt.nativeEvent.pageY;
         if (!isOpenRef.current) {
           open();
@@ -115,8 +140,11 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
           close();
         } else if (isDragging.current) {
           close();
+        } else if (wasOpenOnGrant.current) {
+          // Tap on FAB while open → close
+          close();
         }
-        // If not dragging, it was a tap — menu stays open for tap-to-select
+        // If not dragging and wasn't open → menu just opened, stays open for tap-to-select
         isDragging.current = false;
       },
     }),
@@ -249,6 +277,7 @@ const styles = StyleSheet.create({
   actionItem: {
     position: "absolute",
     right: 20,
+    width: ITEM_WIDTH,
     height: ITEM_HEIGHT,
     flexDirection: "row",
     alignItems: "center",

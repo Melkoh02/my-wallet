@@ -81,10 +81,19 @@ export default function SettingsScreen() {
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [refreshing, setRefreshing] = useState(false);
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
     getSetting("location_enabled").then((v) => setLocationEnabled(v === "true"));
     getSetting("display_currency").then((v) => setDisplayCurrency(v ?? "USD"));
+    getSetting("exchange_rates_cache").then((v) => {
+      if (v) {
+        try {
+          const cache = JSON.parse(v);
+          setRatesUpdatedAt(cache.updatedAt ?? null);
+        } catch {}
+      }
+    });
   }, []);
 
   const handleLocationToggle = async (value: boolean) => {
@@ -105,6 +114,7 @@ export default function SettingsScreen() {
     setRefreshing(false);
     if (success) {
       invalidate("accounts");
+      setRatesUpdatedAt(new Date().toISOString());
       Alert.alert("Rates Updated", "Exchange rates have been refreshed.");
     } else {
       Alert.alert("Update Failed", "Could not fetch exchange rates. Check your connection.");
@@ -136,12 +146,19 @@ export default function SettingsScreen() {
             />
           ))}
         </View>
-        <Pressable onPress={handleRefreshRates} disabled={refreshing} style={styles.refreshRow}>
-          <AppIcon name="refresh" size={18} color={colors.primary} />
-          <AppText variant="bodySmall" color={colors.primary}>
-            {refreshing ? "Updating rates..." : "Update exchange rates"}
-          </AppText>
-        </Pressable>
+        <View style={styles.ratesRow}>
+          <Pressable onPress={handleRefreshRates} disabled={refreshing} style={styles.refreshRow}>
+            <AppIcon name="refresh" size={18} color={colors.primary} />
+            <AppText variant="bodySmall" color={colors.primary}>
+              {refreshing ? "Updating rates..." : "Update exchange rates"}
+            </AppText>
+          </Pressable>
+          {ratesUpdatedAt && (
+            <AppText variant="caption" color={colors.textTertiary}>
+              Last updated: {new Date(ratesUpdatedAt).toLocaleDateString()}
+            </AppText>
+          )}
+        </View>
       </View>
       <Divider />
 
@@ -199,11 +216,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.sm,
   },
+  ratesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
   refreshRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
   },
 });

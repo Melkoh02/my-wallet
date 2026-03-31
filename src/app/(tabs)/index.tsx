@@ -10,6 +10,7 @@ import { AppText } from "@/components/atoms/AppText";
 import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { useTheme } from "@/providers/ThemeProvider";
+import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getAccountsTotals } from "@/db/queries/accounts";
 import { getMonthSummary, getRecentTransactions } from "@/db/queries/transactions";
@@ -21,6 +22,7 @@ import type { TransactionWithRelations } from "@/db/queries/transactions";
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { hideAmounts, toggleHideAmounts } = usePrivacy();
   const { revisions } = useDataRefresh();
   const [netWorth, setNetWorth] = useState(0);
   const [monthSummary, setMonthSummary] = useState({ income: 0, expense: 0, net: 0 });
@@ -41,7 +43,13 @@ export default function HomeScreen() {
 
   return (
     <ScreenLayout scrollable edges={["top"]}>
-      <HeaderBar title="My Wallet" rightIcon="cog" onRightPress={() => router.push("/settings")} />
+      <HeaderBar
+        title="My Wallet"
+        rightActions={[
+          { icon: hideAmounts ? "eye-off" : "eye", onPress: toggleHideAmounts },
+          { icon: "cog", onPress: () => router.push("/settings") },
+        ]}
+      />
 
       {/* Balance card */}
       <View style={[styles.balanceCard, { backgroundColor: colors.primary + "10" }]}>
@@ -58,7 +66,7 @@ export default function HomeScreen() {
             Income
           </AppText>
           <AppText variant="label" color={colors.income}>
-            {formatCurrency(monthSummary.income)}
+            {hideAmounts ? "••••" : formatCurrency(monthSummary.income)}
           </AppText>
         </View>
         <View style={[styles.summaryItem, { backgroundColor: colors.card }]}>
@@ -66,7 +74,7 @@ export default function HomeScreen() {
             Expenses
           </AppText>
           <AppText variant="label" color={colors.expense}>
-            {formatCurrency(monthSummary.expense)}
+            {hideAmounts ? "••••" : formatCurrency(monthSummary.expense)}
           </AppText>
         </View>
       </View>

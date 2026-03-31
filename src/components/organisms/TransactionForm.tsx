@@ -4,6 +4,8 @@ import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { Chip } from "@/components/atoms/Chip";
+import { DatePicker } from "@/components/molecules/DatePicker";
+import { TimePicker } from "@/components/molecules/TimePicker";
 import { CategoryPicker } from "@/components/organisms/CategoryPicker";
 import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -177,10 +179,10 @@ export function TransactionForm({
       {/* Date & Time */}
       <View style={styles.row}>
         <View style={styles.halfInput}>
-          <AppInput label="Date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" />
+          <DatePicker label="Date" value={date} onChange={setDate} />
         </View>
         <View style={styles.halfInput}>
-          <AppInput label="Time" value={time} onChangeText={setTime} placeholder="HH:mm" />
+          <TimePicker label="Time" value={time} onChange={setTime} />
         </View>
       </View>
 

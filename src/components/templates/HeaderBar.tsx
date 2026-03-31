@@ -4,15 +4,30 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { spacing } from "@/theme/spacing";
 
+type HeaderAction = {
+  icon: string;
+  onPress: () => void;
+};
+
 type HeaderBarProps = {
   title: string;
   onBack?: () => void;
   rightIcon?: string;
   onRightPress?: () => void;
+  rightActions?: HeaderAction[];
 };
 
-export function HeaderBar({ title, onBack, rightIcon, onRightPress }: HeaderBarProps) {
+export function HeaderBar({
+  title,
+  onBack,
+  rightIcon,
+  onRightPress,
+  rightActions,
+}: HeaderBarProps) {
   const { colors } = useTheme();
+
+  const actions =
+    rightActions ?? (rightIcon && onRightPress ? [{ icon: rightIcon, onPress: onRightPress }] : []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -27,11 +42,16 @@ export function HeaderBar({ title, onBack, rightIcon, onRightPress }: HeaderBarP
         {title}
       </AppText>
       <View style={styles.right}>
-        {rightIcon && onRightPress && (
-          <Pressable onPress={onRightPress} hitSlop={8} style={styles.iconButton}>
-            <AppIcon name={rightIcon} size={24} color={colors.text} />
+        {actions.map((action) => (
+          <Pressable
+            key={action.icon}
+            onPress={action.onPress}
+            hitSlop={8}
+            style={styles.iconButton}
+          >
+            <AppIcon name={action.icon} size={24} color={colors.text} />
           </Pressable>
-        )}
+        ))}
       </View>
     </View>
   );
@@ -53,8 +73,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   right: {
-    width: 40,
-    alignItems: "flex-end",
+    flexDirection: "row",
+    gap: spacing.sm,
+    minWidth: 40,
+    justifyContent: "flex-end",
   },
   iconButton: {
     padding: spacing.xs,

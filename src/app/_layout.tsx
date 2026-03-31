@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { DatabaseProvider } from "@/providers/DatabaseProvider";
 import { ThemeProvider, useTheme } from "@/providers/ThemeProvider";
 import { DataRefreshProvider } from "@/providers/DataRefreshProvider";
+import { PrivacyProvider } from "@/providers/PrivacyProvider";
 
 function AppStatusBar() {
   const { statusBarStyle, isDark } = useTheme();
@@ -45,7 +46,9 @@ export default function RootLayout() {
     <DatabaseProvider>
       <DataRefreshProvider>
         <ThemeProvider>
-          <AppStack />
+          <PrivacyProvider>
+            <AppStack />
+          </PrivacyProvider>
         </ThemeProvider>
       </DataRefreshProvider>
     </DatabaseProvider>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ModalLayout } from "@/components/templates/ModalLayout";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
+import { AppIcon } from "@/components/atoms/AppIcon";
+import { IconPickerModal } from "@/components/organisms/IconPickerModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import {
@@ -31,7 +33,7 @@ const COLORS = [
   "#22C55E",
 ];
 
-const ICONS = [
+const QUICK_ICONS = [
   "food",
   "car",
   "home",
@@ -51,7 +53,6 @@ const ICONS = [
   "phone",
   "airplane",
   "music",
-  "book-open-variant",
 ];
 
 export default function CategoryFormScreen() {
@@ -61,6 +62,7 @@ export default function CategoryFormScreen() {
   const { invalidate } = useDataRefresh();
   const [initial, setInitial] = useState<Category | undefined>();
   const [loaded, setLoaded] = useState(!params.id);
+  const [iconPickerVisible, setIconPickerVisible] = useState(false);
 
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLORS[2]);
@@ -119,13 +121,13 @@ export default function CategoryFormScreen() {
           </AppText>
           <View style={styles.grid}>
             {COLORS.map((c) => (
-              <View
+              <Pressable
                 key={c}
+                onPress={() => setColor(c)}
                 style={[
                   styles.colorDot,
                   { backgroundColor: c, borderColor: color === c ? colors.text : "transparent" },
                 ]}
-                onTouchEnd={() => setColor(c)}
               />
             ))}
           </View>
@@ -136,27 +138,33 @@ export default function CategoryFormScreen() {
             Icon
           </AppText>
           <View style={styles.grid}>
-            {ICONS.map((i) => (
-              <View
+            {QUICK_ICONS.map((i) => (
+              <Pressable
                 key={i}
+                onPress={() => setIcon(i)}
                 style={[
                   styles.iconOption,
                   { backgroundColor: icon === i ? color + "20" : colors.surface },
                 ]}
-                onTouchEnd={() => setIcon(i)}
               >
-                <AppText>{/* AppIcon inline */}</AppText>
-                <View style={styles.iconCenter}>
-                  <AppButton
-                    title=""
-                    variant="ghost"
-                    icon={i}
-                    onPress={() => setIcon(i)}
-                    style={styles.iconBtn}
-                  />
-                </View>
-              </View>
+                <AppIcon name={i} size={22} color={icon === i ? color : colors.icon} />
+              </Pressable>
             ))}
+            {/* Search all icons button */}
+            <Pressable
+              onPress={() => setIconPickerVisible(true)}
+              style={[
+                styles.iconOption,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                },
+              ]}
+            >
+              <AppIcon name="magnify" size={22} color={colors.primary} />
+            </Pressable>
           </View>
         </View>
 
@@ -176,6 +184,13 @@ export default function CategoryFormScreen() {
           )}
         </View>
       </ScrollView>
+
+      <IconPickerModal
+        visible={iconPickerVisible}
+        onClose={() => setIconPickerVisible(false)}
+        onSelect={setIcon}
+        selectedColor={color}
+      />
     </ModalLayout>
   );
 }
@@ -205,14 +220,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-  },
-  iconCenter: {
-    position: "absolute",
-  },
-  iconBtn: {
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderWidth: 0,
   },
   actions: {
     gap: spacing.md,

@@ -4,6 +4,7 @@ import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { Chip } from "@/components/atoms/Chip";
+import { DatePicker } from "@/components/molecules/DatePicker";
 import { CategoryPicker } from "@/components/organisms/CategoryPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
@@ -138,20 +139,19 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
 
       <View style={styles.row}>
         <View style={styles.halfInput}>
-          <AppInput
-            label="Start Date"
-            value={nextDate}
-            onChangeText={setNextDate}
-            placeholder="YYYY-MM-DD"
-          />
+          <DatePicker label="Start Date" value={nextDate} onChange={setNextDate} />
         </View>
         <View style={styles.halfInput}>
-          <AppInput
-            label="End Date (optional)"
-            value={endDate}
-            onChangeText={setEndDate}
-            placeholder="YYYY-MM-DD"
-          />
+          {endDate ? (
+            <DatePicker label="End Date" value={endDate} onChange={setEndDate} />
+          ) : (
+            <AppInput
+              label="End Date (optional)"
+              value=""
+              onFocus={() => setEndDate(nextDate)}
+              placeholder="No end date"
+            />
+          )}
         </View>
       </View>
 

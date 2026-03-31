@@ -3,9 +3,9 @@ import { View, StyleSheet, PanResponder } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
   interpolate,
+  Easing,
 } from "react-native-reanimated";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppIcon } from "./AppIcon";
@@ -19,9 +19,7 @@ type FABAction = {
 };
 
 type FABProps = {
-  /** Simple FAB — single action */
   onPress?: () => void;
-  /** Speed dial FAB — multiple actions */
   actions?: FABAction[];
   onAction?: (key: string) => void;
   icon?: string;
@@ -30,6 +28,9 @@ type FABProps = {
 const ITEM_HEIGHT = 52;
 const ITEM_GAP = 10;
 const FAB_SIZE = 56;
+const DRAG_THRESHOLD = 10;
+const ANIM_DURATION = 160;
+const ANIM_EASING = Easing.out(Easing.cubic);
 
 export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const { colors } = useTheme();
@@ -38,19 +39,23 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const fabRef = useRef<View>(null);
   const fabLayout = useRef({ x: 0, y: 0, width: 0, height: 0 });
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const isOpenRef = useRef(false);
 
-  // If no actions provided, behave as simple FAB
   const isSpeedDial = actions && actions.length > 0;
 
   const open = useCallback(() => {
     setIsOpen(true);
-    expanded.value = withSpring(1, { damping: 14, stiffness: 150 });
+    isOpenRef.current = true;
+    expanded.value = withTiming(1, { duration: ANIM_DURATION, easing: ANIM_EASING });
   }, [expanded]);
 
   const close = useCallback(() => {
-    expanded.value = withTiming(0, { duration: 200 });
+    expanded.value = withTiming(0, { duration: 120 });
     setHoveredIndex(-1);
-    setTimeout(() => setIsOpen(false), 200);
+    isOpenRef.current = false;
+    setTimeout(() => setIsOpen(false), 120);
   }, [expanded]);
 
   const getActionIndexAtPosition = useCallback(
@@ -75,24 +80,37 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
       onStartShouldSetPanResponder: () => !!isSpeedDial,
       onMoveShouldSetPanResponder: () => !!isSpeedDial,
       onPanResponderGrant: (evt) => {
-        // Measure FAB position
+        isDragging.current = false;
+        startY.current = evt.nativeEvent.pageY;
         fabRef.current?.measureInWindow((x, y, width, height) => {
           fabLayout.current = { x, y, width, height };
         });
-        if (!isOpen) {
+        if (!isOpenRef.current) {
           open();
         }
       },
       onPanResponderMove: (evt) => {
-        const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
-        setHoveredIndex(idx);
+        const dy = Math.abs(evt.nativeEvent.pageY - startY.current);
+        if (dy > DRAG_THRESHOLD) {
+          isDragging.current = true;
+        }
+        if (isDragging.current) {
+          const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
+          setHoveredIndex(idx);
+        }
       },
       onPanResponderRelease: (evt) => {
-        const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
-        if (idx >= 0 && actions && onAction) {
-          onAction(actions[idx].key);
+        if (isDragging.current) {
+          // Drag release — select if over an option, otherwise close
+          const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
+          if (idx >= 0 && actions && onAction) {
+            onAction(actions[idx].key);
+          }
+          close();
         }
-        close();
+        // If not dragging, it was a tap — menu is already open, leave it open
+        // so user can tap individual items
+        isDragging.current = false;
       },
     }),
   ).current;
@@ -100,17 +118,8 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const handleTap = () => {
     if (!isSpeedDial) {
       onPress?.();
-      return;
     }
-    if (isOpen) {
-      close();
-    } else {
-      // Measure before opening
-      fabRef.current?.measureInWindow((x, y, width, height) => {
-        fabLayout.current = { x, y, width, height };
-      });
-      open();
-    }
+    // Speed dial tap is handled by panResponder
   };
 
   const mainIconStyle = useAnimatedStyle(() => ({
@@ -124,10 +133,8 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
 
   return (
     <>
-      {/* Backdrop */}
       {isSpeedDial && <Animated.View style={[styles.backdrop, backdropStyle]} onTouchEnd={close} />}
 
-      {/* Action items */}
       {isSpeedDial &&
         isOpen &&
         actions!.map((action, i) => (
@@ -145,7 +152,6 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
           />
         ))}
 
-      {/* Main FAB */}
       <View
         ref={fabRef}
         style={[styles.fab, { backgroundColor: colors.primary }]}
@@ -180,7 +186,7 @@ function SpeedDialItem({
     return {
       transform: [
         { translateY: interpolate(expanded.value, [0, 1], [offset, 0]) },
-        { scale: interpolate(expanded.value, [0, 1], [0.5, 1]) },
+        { scale: interpolate(expanded.value, [0, 0.5, 1], [0.8, 0.95, 1]) },
       ],
       opacity: expanded.value,
     };

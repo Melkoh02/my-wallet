@@ -47,11 +47,7 @@ export function TransactionForm({
     name?: string;
   } | null>(null);
 
-  const filteredCategories = categories.filter((c) => {
-    if (type === "income") return c.isIncome;
-    if (type === "expense") return c.isExpense;
-    return c.isExpense;
-  });
+  const filteredCategories = categories;
 
   const handleAddLocation = async () => {
     setLocationLoading(true);

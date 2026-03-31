@@ -5,7 +5,6 @@ import { ModalLayout } from "@/components/templates/ModalLayout";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
-import { Chip } from "@/components/atoms/Chip";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import {
@@ -66,8 +65,6 @@ export default function CategoryFormScreen() {
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLORS[2]);
   const [icon, setIcon] = useState("tag");
-  const [isIncome, setIsIncome] = useState(false);
-  const [isExpense, setIsExpense] = useState(true);
 
   useEffect(() => {
     if (params.id) {
@@ -77,8 +74,6 @@ export default function CategoryFormScreen() {
           setName(cat.name);
           setColor(cat.color);
           setIcon(cat.icon);
-          setIsIncome(cat.isIncome);
-          setIsExpense(cat.isExpense);
         }
         setLoaded(true);
       });
@@ -86,7 +81,7 @@ export default function CategoryFormScreen() {
   }, [params.id]);
 
   const handleSubmit = async () => {
-    const data = { name: name.trim(), color, icon, isIncome, isExpense };
+    const data = { name: name.trim(), color, icon, isIncome: true, isExpense: true };
     if (initial) {
       await updateCategory(initial.id, data);
     } else {
@@ -106,7 +101,7 @@ export default function CategoryFormScreen() {
 
   if (!loaded) return null;
 
-  const isValid = name.trim().length > 0 && (isIncome || isExpense);
+  const isValid = name.trim().length > 0;
 
   return (
     <ModalLayout title={initial ? "Edit Category" : "New Category"} onClose={() => router.back()}>
@@ -117,16 +112,6 @@ export default function CategoryFormScreen() {
           onChangeText={setName}
           placeholder="e.g. Groceries"
         />
-
-        <View style={styles.section}>
-          <AppText variant="label" color={colors.textSecondary}>
-            Used for
-          </AppText>
-          <View style={styles.chipRow}>
-            <Chip label="Expense" selected={isExpense} onPress={() => setIsExpense(!isExpense)} />
-            <Chip label="Income" selected={isIncome} onPress={() => setIsIncome(!isIncome)} />
-          </View>
-        </View>
 
         <View style={styles.section}>
           <AppText variant="label" color={colors.textSecondary}>
@@ -201,10 +186,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing["5xl"],
   },
   section: {
-    gap: spacing.sm,
-  },
-  chipRow: {
-    flexDirection: "row",
     gap: spacing.sm,
   },
   grid: {

@@ -48,16 +48,6 @@ export async function getCategoryById(id: number): Promise<CategoryWithSubs | un
   return { ...cat, subcategories: subs };
 }
 
-export async function getIncomeCategories(): Promise<CategoryWithSubs[]> {
-  const all = await getCategories();
-  return all.filter((c) => c.isIncome);
-}
-
-export async function getExpenseCategories(): Promise<CategoryWithSubs[]> {
-  const all = await getCategories();
-  return all.filter((c) => c.isExpense);
-}
-
 export async function createCategory(data: Omit<NewCategory, "isSystem">): Promise<Category> {
   const [cat] = await db
     .insert(categories)

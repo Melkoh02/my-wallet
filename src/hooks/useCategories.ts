@@ -18,8 +18,5 @@ export function useCategories(activeOnly = true) {
     fetch();
   }, [fetch, revisions.categories]);
 
-  const incomeCategories = categories.filter((c) => c.isIncome);
-  const expenseCategories = categories.filter((c) => c.isExpense);
-
-  return { categories, incomeCategories, expenseCategories, loading, refetch: fetch };
+  return { categories, loading, refetch: fetch };
 }

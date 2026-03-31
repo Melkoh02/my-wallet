@@ -63,13 +63,6 @@ export default function CategoryDetailScreen() {
         <View style={[styles.iconBig, { backgroundColor: category.color + "20" }]}>
           <AppIcon name={category.icon} size={32} color={category.color} />
         </View>
-        <AppText variant="caption" color={colors.textSecondary}>
-          {category.isIncome && category.isExpense
-            ? "Income & Expense"
-            : category.isIncome
-              ? "Income"
-              : "Expense"}
-        </AppText>
       </View>
       <Divider />
       <View style={styles.addRow}>

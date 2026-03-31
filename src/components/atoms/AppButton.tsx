@@ -27,9 +27,9 @@ export function AppButton({
 
   const variantStyles = {
     primary: {
-      bg: colors.primary,
-      text: colors.textInverse,
-      border: colors.primary,
+      bg: disabled ? colors.primaryLight : colors.primary,
+      text: disabled ? colors.textSecondary : colors.textInverse,
+      border: disabled ? colors.primaryLight : colors.primary,
     },
     secondary: {
       bg: "transparent",
@@ -48,6 +48,8 @@ export function AppButton({
     },
   }[variant];
 
+  const disabledOpacity = variant === "primary" ? 1 : 0.6;
+
   return (
     <Pressable
       onPress={onPress}
@@ -57,7 +59,7 @@ export function AppButton({
         {
           backgroundColor: variantStyles.bg,
           borderColor: variantStyles.border,
-          opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
+          opacity: disabled ? disabledOpacity : pressed ? 0.8 : 1,
         },
         style,
       ]}

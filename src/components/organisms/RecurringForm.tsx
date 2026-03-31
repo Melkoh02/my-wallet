@@ -37,9 +37,7 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
   const [endDate, setEndDate] = useState("");
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>([]);
 
-  const filteredCategories = categories.filter((c) =>
-    type === "income" ? c.isIncome : c.isExpense,
-  );
+  const filteredCategories = categories;
 
   const handleSubmit = () => {
     const parsed = parseFloat(amount);

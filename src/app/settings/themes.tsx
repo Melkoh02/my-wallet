@@ -10,6 +10,7 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { useTheme } from "@/providers/ThemeProvider";
+import { lightPalette } from "@/theme/colors";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getThemes, createTheme, deleteTheme } from "@/db/queries/themes";
 import { spacing } from "@/theme/spacing";
@@ -96,7 +97,7 @@ export default function ThemesScreen() {
               onPress={handleReset}
               style={[styles.themeRow, { borderColor: colors.border }]}
             >
-              <View style={[styles.colorDot, { backgroundColor: colors.primary }]} />
+              <View style={[styles.colorDot, { backgroundColor: lightPalette.primary }]} />
               <View style={styles.themeInfo}>
                 <AppText variant="label">System Default</AppText>
                 <AppText variant="caption" color={colors.textSecondary}>

@@ -42,8 +42,16 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const isDragging = useRef(false);
   const startY = useRef(0);
   const isOpenRef = useRef(false);
+  const lastHoveredIndex = useRef(-1);
 
   const isSpeedDial = actions && actions.length > 0;
+
+  // Measure on layout so it's always ready — no async delay during gestures
+  const handleLayout = useCallback(() => {
+    fabRef.current?.measureInWindow((x, y, width, height) => {
+      fabLayout.current = { x, y, width, height };
+    });
+  }, []);
 
   const open = useCallback(() => {
     setIsOpen(true);
@@ -54,14 +62,17 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const close = useCallback(() => {
     expanded.value = withTiming(0, { duration: 120 });
     setHoveredIndex(-1);
+    lastHoveredIndex.current = -1;
     isOpenRef.current = false;
     setTimeout(() => setIsOpen(false), 120);
   }, [expanded]);
 
+  // Hit test using pre-measured layout — no async needed
   const getActionIndexAtPosition = useCallback(
     (pageY: number) => {
       if (!actions) return -1;
       const fabTop = fabLayout.current.y;
+      if (fabTop === 0) return -1; // Not measured yet
 
       for (let i = 0; i < actions.length; i++) {
         const itemBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
@@ -81,10 +92,8 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
       onMoveShouldSetPanResponder: () => !!isSpeedDial,
       onPanResponderGrant: (evt) => {
         isDragging.current = false;
+        lastHoveredIndex.current = -1;
         startY.current = evt.nativeEvent.pageY;
-        fabRef.current?.measureInWindow((x, y, width, height) => {
-          fabLayout.current = { x, y, width, height };
-        });
         if (!isOpenRef.current) {
           open();
         }
@@ -96,20 +105,18 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
         }
         if (isDragging.current) {
           const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
+          lastHoveredIndex.current = idx;
           setHoveredIndex(idx);
         }
       },
-      onPanResponderRelease: (evt) => {
-        if (isDragging.current) {
-          // Drag release — select if over an option, otherwise close
-          const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
-          if (idx >= 0 && actions && onAction) {
-            onAction(actions[idx].key);
-          }
+      onPanResponderRelease: () => {
+        if (isDragging.current && lastHoveredIndex.current >= 0 && actions && onAction) {
+          onAction(actions[lastHoveredIndex.current].key);
+          close();
+        } else if (isDragging.current) {
           close();
         }
-        // If not dragging, it was a tap — menu is already open, leave it open
-        // so user can tap individual items
+        // If not dragging, it was a tap — menu stays open for tap-to-select
         isDragging.current = false;
       },
     }),
@@ -119,7 +126,6 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
     if (!isSpeedDial) {
       onPress?.();
     }
-    // Speed dial tap is handled by panResponder
   };
 
   const mainIconStyle = useAnimatedStyle(() => ({
@@ -154,6 +160,7 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
 
       <View
         ref={fabRef}
+        onLayout={handleLayout}
         style={[styles.fab, { backgroundColor: colors.primary }]}
         {...(isSpeedDial ? panResponder.panHandlers : {})}
         onTouchEnd={isSpeedDial ? undefined : handleTap}

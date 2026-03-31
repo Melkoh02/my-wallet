@@ -46,7 +46,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [balance, setBalance] = useState(initial?.balance?.toString() ?? "0");
   const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() ?? "");
   const [color, setColor] = useState(initial?.color ?? COLORS[3]);
-  const [currency] = useState(initial?.currency ?? "USD");
+  const [currency, setCurrency] = useState(initial?.currency ?? "USD");
 
   const handleSubmit = () => {
     const parsed = parseFloat(balance) || 0;
@@ -112,6 +112,17 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
           placeholder="0.00"
         />
       )}
+
+      <View style={styles.section}>
+        <AppText variant="label" color={colors.textSecondary}>
+          Currency
+        </AppText>
+        <View style={styles.chipRow}>
+          {["USD", "EUR", "GBP", "PYG", "BRL", "ARS", "JPY", "CAD"].map((c) => (
+            <Chip key={c} label={c} selected={currency === c} onPress={() => setCurrency(c)} />
+          ))}
+        </View>
+      </View>
 
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>

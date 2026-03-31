@@ -31,7 +31,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         if (!isNaN(id)) {
           const [theme] = await db.select().from(themes).where(eq(themes.id, id));
           if (theme) {
-            setActiveThemeId(id);
             setActiveTheme({
               mode: theme.mode,
               accentColor: theme.accentColor,

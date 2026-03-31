@@ -95,7 +95,11 @@ export function TransactionForm({
     parseFloat(amount) > 0 && accountId !== null && (type !== "transfer" || toAccountId !== null);
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Type selector */}
       <View style={styles.typeRow}>
         {(["expense", "income", "transfer"] as const).map((tp) => {

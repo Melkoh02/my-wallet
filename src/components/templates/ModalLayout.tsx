@@ -1,4 +1,4 @@
-import { View, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppText } from "@/components/atoms/AppText";
@@ -26,7 +26,13 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
           </Pressable>
         )}
       </View>
-      <View style={styles.content}>{children}</View>
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      >
+        {children}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

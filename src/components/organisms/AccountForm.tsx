@@ -67,7 +67,11 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const isValid = name.trim().length > 0;
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <AppInput
         label={t("accounts.accountName")}
         value={name}

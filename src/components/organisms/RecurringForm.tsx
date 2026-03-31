@@ -60,7 +60,11 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
   const isValid = parseFloat(amount) > 0 && accountId !== null && description.trim().length > 0;
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.typeRow}>
         {(["expense", "income"] as const).map((t) => {
           const isActive = type === t;

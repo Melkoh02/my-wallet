@@ -21,7 +21,20 @@ function AppStack() {
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
         }}
-      />
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="account/form" options={{ presentation: "modal" }} />
+        <Stack.Screen name="account/[id]" />
+        <Stack.Screen name="transaction/form" options={{ presentation: "modal" }} />
+        <Stack.Screen name="transaction/[id]" />
+        <Stack.Screen name="category/form" options={{ presentation: "modal" }} />
+        <Stack.Screen name="category/[id]" />
+        <Stack.Screen name="recurring/index" />
+        <Stack.Screen name="recurring/form" options={{ presentation: "modal" }} />
+        <Stack.Screen name="settings/index" />
+        <Stack.Screen name="settings/themes" />
+        <Stack.Screen name="settings/backup" />
+      </Stack>
       <AppStatusBar />
     </>
   );

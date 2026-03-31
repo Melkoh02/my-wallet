@@ -1,30 +1,58 @@
-import { View, StyleSheet } from "react-native";
+import { FlatList, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
-import { AppText } from "@/components/atoms/AppText";
-import { useTheme } from "@/providers/ThemeProvider";
+import { AccountCard } from "@/components/organisms/AccountCard";
+import { AmountDisplay } from "@/components/molecules/AmountDisplay";
+import { EmptyState } from "@/components/molecules/EmptyState";
+import { useAccounts } from "@/hooks/useAccounts";
 import { spacing } from "@/theme/spacing";
 
 export default function AccountsScreen() {
-  const { colors } = useTheme();
+  const router = useRouter();
+  const { accounts, totals, loading } = useAccounts();
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title="Accounts" rightIcon="plus" onRightPress={() => {}} />
-      <View style={styles.content}>
-        <AppText variant="bodySmall" color={colors.textSecondary}>
-          Account list coming soon
-        </AppText>
-      </View>
+      <HeaderBar
+        title="Accounts"
+        rightIcon="plus"
+        onRightPress={() => router.push("/account/form")}
+      />
+      <FlatList
+        data={accounts}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          accounts.length > 0 ? (
+            <AmountDisplay amount={totals.netWorth} variant="amountLarge" style={styles.netWorth} />
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <AccountCard account={item} onPress={() => router.push(`/account/${item.id}`)} />
+        )}
+        ListEmptyComponent={
+          loading ? null : (
+            <EmptyState
+              icon="wallet"
+              title="No accounts yet"
+              description="Add your first account to get started"
+            />
+          )
+        }
+        ItemSeparatorComponent={() => <></> /* gap handled by contentContainerStyle */}
+      />
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  list: {
     padding: spacing.lg,
+    gap: spacing.md,
+  },
+  netWorth: {
+    textAlign: "center",
+    marginBottom: spacing.sm,
   },
 });

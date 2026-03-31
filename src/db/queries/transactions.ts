@@ -1,0 +1,181 @@
+import { eq, and, like, desc, sql, or, gte, lte } from "drizzle-orm";
+import { db } from "@/db/client";
+import {
+  transactions,
+  transactionSubcategories,
+  accounts,
+  subcategories,
+  categories,
+  type Transaction,
+  type NewTransaction,
+} from "@/db/schema";
+import { updateAccountBalance } from "./accounts";
+
+export type TransactionWithRelations = Transaction & {
+  accountName: string;
+  toAccountName?: string;
+  subcategoryList: {
+    id: number;
+    name: string;
+    categoryName: string;
+    categoryColor: string;
+    categoryIcon: string;
+  }[];
+};
+
+export type TransactionFilters = {
+  search?: string;
+  type?: string;
+  accountId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function getTransactions(
+  filters: TransactionFilters = {},
+): Promise<TransactionWithRelations[]> {
+  const { search, type, accountId, dateFrom, dateTo, limit = 30, offset = 0 } = filters;
+
+  const conditions = [];
+  if (type) conditions.push(eq(transactions.type, type));
+  if (accountId) {
+    conditions.push(
+      or(eq(transactions.accountId, accountId), eq(transactions.toAccountId, accountId))!,
+    );
+  }
+  if (dateFrom) conditions.push(gte(transactions.date, dateFrom));
+  if (dateTo) conditions.push(lte(transactions.date, dateTo));
+  if (search) {
+    conditions.push(
+      or(like(transactions.description, `%${search}%`), like(transactions.notes, `%${search}%`))!,
+    );
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(where)
+    .orderBy(desc(transactions.date), desc(transactions.time))
+    .limit(limit)
+    .offset(offset);
+
+  return Promise.all(rows.map(enrichTransaction));
+}
+
+async function enrichTransaction(txn: Transaction): Promise<TransactionWithRelations> {
+  // Get account names
+  const [acc] = await db.select().from(accounts).where(eq(accounts.id, txn.accountId));
+  let toAccountName: string | undefined;
+  if (txn.toAccountId) {
+    const [toAcc] = await db.select().from(accounts).where(eq(accounts.id, txn.toAccountId));
+    toAccountName = toAcc?.name;
+  }
+
+  // Get subcategories with their parent category info
+  const subs = await db
+    .select({
+      id: subcategories.id,
+      name: subcategories.name,
+      categoryName: categories.name,
+      categoryColor: categories.color,
+      categoryIcon: categories.icon,
+    })
+    .from(transactionSubcategories)
+    .innerJoin(subcategories, eq(transactionSubcategories.subcategoryId, subcategories.id))
+    .innerJoin(categories, eq(subcategories.categoryId, categories.id))
+    .where(eq(transactionSubcategories.transactionId, txn.id));
+
+  return {
+    ...txn,
+    accountName: acc?.name ?? "Unknown",
+    toAccountName,
+    subcategoryList: subs,
+  };
+}
+
+export async function getTransactionById(
+  id: number,
+): Promise<TransactionWithRelations | undefined> {
+  const [txn] = await db.select().from(transactions).where(eq(transactions.id, id));
+  if (!txn) return undefined;
+  return enrichTransaction(txn);
+}
+
+export async function createTransaction(
+  data: NewTransaction,
+  subcategoryIds: number[],
+): Promise<Transaction> {
+  const [txn] = await db.insert(transactions).values(data).returning();
+
+  // Insert subcategory links
+  if (subcategoryIds.length > 0) {
+    await db.insert(transactionSubcategories).values(
+      subcategoryIds.map((subId) => ({
+        transactionId: txn.id,
+        subcategoryId: subId,
+      })),
+    );
+  }
+
+  // Update account balances
+  await updateAccountBalance(
+    txn.accountId,
+    txn.amount,
+    txn.type as "income" | "expense" | "transfer",
+    true,
+  );
+  if (txn.toAccountId && txn.type === "transfer") {
+    await updateAccountBalance(txn.toAccountId, txn.amount, "transfer", false);
+  }
+
+  return txn;
+}
+
+export async function deleteTransaction(id: number): Promise<void> {
+  const [txn] = await db.select().from(transactions).where(eq(transactions.id, id));
+  if (!txn) return;
+
+  // Reverse balance changes
+  await updateAccountBalance(
+    txn.accountId,
+    -txn.amount,
+    txn.type as "income" | "expense" | "transfer",
+    true,
+  );
+  if (txn.toAccountId && txn.type === "transfer") {
+    await updateAccountBalance(txn.toAccountId, -txn.amount, "transfer", false);
+  }
+
+  // Junction table rows are cascade-deleted
+  await db.delete(transactions).where(eq(transactions.id, id));
+}
+
+export async function getMonthSummary(
+  year: number,
+  month: number,
+): Promise<{ income: number; expense: number; net: number }> {
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+
+  const rows = await db
+    .select({ type: transactions.type, total: sql<number>`SUM(${transactions.amount})` })
+    .from(transactions)
+    .where(like(transactions.date, `${monthStr}%`))
+    .groupBy(transactions.type);
+
+  let income = 0;
+  let expense = 0;
+  for (const row of rows) {
+    if (row.type === "income") income = row.total;
+    if (row.type === "expense") expense = row.total;
+  }
+
+  return { income, expense, net: income - expense };
+}
+
+export async function getRecentTransactions(limit = 5): Promise<TransactionWithRelations[]> {
+  return getTransactions({ limit, offset: 0 });
+}

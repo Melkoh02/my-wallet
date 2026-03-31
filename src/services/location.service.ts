@@ -6,53 +6,46 @@ export type LocationStamp = {
   name?: string;
 };
 
-let _hasPermission: boolean | null = null;
-
-export async function hasLocationPermission(): Promise<boolean> {
-  if (_hasPermission !== null) return _hasPermission;
-  const { status } = await Location.getForegroundPermissionsAsync();
-  _hasPermission = status === "granted";
-  return _hasPermission;
-}
-
-export async function requestLocationPermission(): Promise<boolean> {
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  _hasPermission = status === "granted";
-  return _hasPermission;
-}
-
 export async function getCurrentLocation(): Promise<LocationStamp | null> {
-  if (!(await hasLocationPermission())) {
-    const granted = await requestLocationPermission();
-    if (!granted) return null;
+  // Always check fresh — don't cache permission status
+  const { status } = await Location.getForegroundPermissionsAsync();
+  if (status !== "granted") {
+    const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+    if (newStatus !== "granted") return null;
   }
 
   try {
-    const loc = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-
-    const stamp: LocationStamp = {
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-    };
-
-    // Try reverse geocoding for a human-readable name
-    try {
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
-      if (address) {
-        const parts = [address.name, address.city, address.region].filter(Boolean);
-        stamp.name = parts.join(", ");
-      }
-    } catch {
-      // Reverse geocoding failed, that's ok
+    // Try last known position first (instant)
+    const lastKnown = await Location.getLastKnownPositionAsync();
+    if (lastKnown) {
+      return buildStamp(lastKnown.coords.latitude, lastKnown.coords.longitude);
     }
 
-    return stamp;
-  } catch {
+    // Fall back to current position with a timeout
+    const loc = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Low,
+      timeInterval: 5000,
+    });
+
+    return buildStamp(loc.coords.latitude, loc.coords.longitude);
+  } catch (e) {
+    console.warn("Location error:", e);
     return null;
   }
+}
+
+async function buildStamp(latitude: number, longitude: number): Promise<LocationStamp> {
+  const stamp: LocationStamp = { latitude, longitude };
+
+  try {
+    const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
+    if (address) {
+      const parts = [address.name, address.city, address.region].filter(Boolean);
+      stamp.name = parts.join(", ");
+    }
+  } catch {
+    // Reverse geocoding failed, coords are still useful
+  }
+
+  return stamp;
 }

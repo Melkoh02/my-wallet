@@ -45,6 +45,7 @@ export function TransactionFilterModal({
   const [fromAccountIds, setFromAccountIds] = useState<number[]>(filters.fromAccountIds ?? []);
   const [toAccountIds, setToAccountIds] = useState<number[]>(filters.toAccountIds ?? []);
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>(filters.subcategoryIds ?? []);
+  const [expandedCatId, setExpandedCatId] = useState<number | null>(null);
 
   // Sync when modal opens
   useEffect(() => {
@@ -244,36 +245,69 @@ export function TransactionFilterModal({
             </View>
           </Section>
 
-          {/* Categories / Subcategories */}
+          {/* Categories / Subcategories — collapsible */}
           <Section title={t("transactions.categories")} colors={colors}>
-            <View style={styles.chipRow}>
-              {categories.map((cat) => (
+            {categories.map((cat) => {
+              const selectedCount = cat.subcategories.filter((s) =>
+                subcategoryIds.includes(s.id),
+              ).length;
+              const isExpanded = expandedCatId === cat.id;
+              return (
                 <View key={cat.id}>
-                  <AppText variant="caption" color={colors.textSecondary} style={styles.catLabel}>
-                    {cat.name}
-                  </AppText>
-                  <View style={styles.chipRow}>
-                    {cat.subcategories.map((sub) => (
-                      <Chip
-                        key={sub.id}
-                        label={sub.name}
-                        selected={subcategoryIds.includes(sub.id)}
-                        onPress={() => toggleId(subcategoryIds, sub.id, setSubcategoryIds)}
-                      />
-                    ))}
-                  </View>
+                  <Pressable
+                    onPress={() => setExpandedCatId(isExpanded ? null : cat.id)}
+                    style={styles.catRow}
+                  >
+                    <View style={[styles.catDot, { backgroundColor: cat.color }]} />
+                    <AppText variant="label" style={styles.catName}>
+                      {cat.name}
+                    </AppText>
+                    {selectedCount > 0 && (
+                      <View style={[styles.catBadge, { backgroundColor: colors.primary }]}>
+                        <AppText
+                          variant="caption"
+                          color={colors.textInverse}
+                          style={styles.catBadgeText}
+                        >
+                          {selectedCount}
+                        </AppText>
+                      </View>
+                    )}
+                    <AppIcon
+                      name={isExpanded ? "chevron-up" : "chevron-down"}
+                      size={18}
+                      color={colors.iconSecondary}
+                    />
+                  </Pressable>
+                  {isExpanded && (
+                    <View style={styles.catSubs}>
+                      {cat.subcategories.map((sub) => (
+                        <Chip
+                          key={sub.id}
+                          label={sub.name}
+                          selected={subcategoryIds.includes(sub.id)}
+                          onPress={() => toggleId(subcategoryIds, sub.id, setSubcategoryIds)}
+                        />
+                      ))}
+                    </View>
+                  )}
                 </View>
-              ))}
-            </View>
+              );
+            })}
           </Section>
         </ScrollView>
 
         <View style={styles.footer}>
-          <AppButton title={t("transactions.clearAll")} variant="ghost" onPress={clearAll} />
+          <AppButton
+            title={t("transactions.clearAll")}
+            variant="ghost"
+            onPress={clearAll}
+            style={styles.footerBtn}
+          />
           <AppButton
             title={t("transactions.apply")}
             onPress={handleApply}
-            style={styles.applyBtn}
+            style={styles.footerBtn}
           />
         </View>
       </SafeAreaView>
@@ -336,9 +370,38 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: "center",
   },
-  catLabel: {
-    marginBottom: spacing.xs,
-    marginTop: spacing.xs,
+  catRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  catDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  catName: {
+    flex: 1,
+  },
+  catBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
+  catSubs: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    paddingLeft: spacing.xl,
+    paddingBottom: spacing.sm,
   },
   footer: {
     flexDirection: "row",
@@ -346,5 +409,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.md,
   },
-  applyBtn: { flex: 1 },
+  footerBtn: { flex: 1 },
 });

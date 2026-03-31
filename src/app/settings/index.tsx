@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Pressable, Switch, StyleSheet, Alert } from "react-native";
+import { View, Pressable, Switch, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -120,9 +120,6 @@ export default function SettingsScreen() {
     if (success) {
       invalidate("accounts");
       setRatesUpdatedAt(new Date().toISOString());
-      Alert.alert(t("settings.ratesUpdated"), t("settings.ratesUpdatedDesc"));
-    } else {
-      Alert.alert(t("settings.ratesFailed"), t("settings.ratesFailedDesc"));
     }
   };
 

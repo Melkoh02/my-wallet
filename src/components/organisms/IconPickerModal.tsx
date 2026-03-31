@@ -30,9 +30,9 @@ export function IconPickerModal({
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return ALL_ICONS.slice(0, 200); // Show first 200 by default
+    if (!search.trim()) return ALL_ICONS;
     const q = search.toLowerCase();
-    return ALL_ICONS.filter((name) => name.includes(q)).slice(0, 200);
+    return ALL_ICONS.filter((name) => name.includes(q));
   }, [search]);
 
   const iconColor = selectedColor ?? colors.icon;

@@ -1,45 +1,256 @@
-import { Pressable, StyleSheet } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { View, StyleSheet, PanResponder } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+} from "react-native-reanimated";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppIcon } from "./AppIcon";
+import { AppText } from "./AppText";
 
-type FABProps = {
-  icon?: string;
-  onPress: () => void;
+type FABAction = {
+  key: string;
+  label: string;
+  icon: string;
+  color: string;
 };
 
-export function FAB({ icon = "plus", onPress }: FABProps) {
+type FABProps = {
+  /** Simple FAB — single action */
+  onPress?: () => void;
+  /** Speed dial FAB — multiple actions */
+  actions?: FABAction[];
+  onAction?: (key: string) => void;
+  icon?: string;
+};
+
+const ITEM_HEIGHT = 52;
+const ITEM_GAP = 10;
+const FAB_SIZE = 56;
+
+export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const { colors } = useTheme();
+  const expanded = useSharedValue(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
+  const fabRef = useRef<View>(null);
+  const fabLayout = useRef({ x: 0, y: 0, width: 0, height: 0 });
+
+  // If no actions provided, behave as simple FAB
+  const isSpeedDial = actions && actions.length > 0;
+
+  const open = useCallback(() => {
+    setIsOpen(true);
+    expanded.value = withSpring(1, { damping: 14, stiffness: 150 });
+  }, [expanded]);
+
+  const close = useCallback(() => {
+    expanded.value = withTiming(0, { duration: 200 });
+    setHoveredIndex(-1);
+    setTimeout(() => setIsOpen(false), 200);
+  }, [expanded]);
+
+  const getActionIndexAtPosition = useCallback(
+    (pageY: number) => {
+      if (!actions) return -1;
+      const fabTop = fabLayout.current.y;
+
+      for (let i = 0; i < actions.length; i++) {
+        const itemBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
+        const itemTop = itemBottom + ITEM_HEIGHT;
+        if (pageY >= itemBottom && pageY <= itemTop) {
+          return i;
+        }
+      }
+      return -1;
+    },
+    [actions],
+  );
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => !!isSpeedDial,
+      onMoveShouldSetPanResponder: () => !!isSpeedDial,
+      onPanResponderGrant: (evt) => {
+        // Measure FAB position
+        fabRef.current?.measureInWindow((x, y, width, height) => {
+          fabLayout.current = { x, y, width, height };
+        });
+        if (!isOpen) {
+          open();
+        }
+      },
+      onPanResponderMove: (evt) => {
+        const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
+        setHoveredIndex(idx);
+      },
+      onPanResponderRelease: (evt) => {
+        const idx = getActionIndexAtPosition(evt.nativeEvent.pageY);
+        if (idx >= 0 && actions && onAction) {
+          onAction(actions[idx].key);
+        }
+        close();
+      },
+    }),
+  ).current;
+
+  const handleTap = () => {
+    if (!isSpeedDial) {
+      onPress?.();
+      return;
+    }
+    if (isOpen) {
+      close();
+    } else {
+      // Measure before opening
+      fabRef.current?.measureInWindow((x, y, width, height) => {
+        fabLayout.current = { x, y, width, height };
+      });
+      open();
+    }
+  };
+
+  const mainIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${interpolate(expanded.value, [0, 1], [0, 45])}deg` }],
+  }));
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: expanded.value * 0.4,
+    pointerEvents: expanded.value > 0 ? ("auto" as const) : ("none" as const),
+  }));
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.container,
+    <>
+      {/* Backdrop */}
+      {isSpeedDial && <Animated.View style={[styles.backdrop, backdropStyle]} onTouchEnd={close} />}
+
+      {/* Action items */}
+      {isSpeedDial &&
+        isOpen &&
+        actions!.map((action, i) => (
+          <SpeedDialItem
+            key={action.key}
+            action={action}
+            index={i}
+            expanded={expanded}
+            hovered={hoveredIndex === i}
+            colors={colors}
+            onPress={() => {
+              onAction?.(action.key);
+              close();
+            }}
+          />
+        ))}
+
+      {/* Main FAB */}
+      <View
+        ref={fabRef}
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        {...(isSpeedDial ? panResponder.panHandlers : {})}
+        onTouchEnd={isSpeedDial ? undefined : handleTap}
+      >
+        <Animated.View style={mainIconStyle}>
+          <AppIcon name={icon} size={26} color={colors.textInverse} />
+        </Animated.View>
+      </View>
+    </>
+  );
+}
+
+function SpeedDialItem({
+  action,
+  index,
+  expanded,
+  hovered,
+  colors,
+  onPress,
+}: {
+  action: FABAction;
+  index: number;
+  expanded: Animated.SharedValue<number>;
+  hovered: boolean;
+  colors: ReturnType<typeof useTheme>["colors"];
+  onPress: () => void;
+}) {
+  const animStyle = useAnimatedStyle(() => {
+    const offset = (index + 1) * (ITEM_HEIGHT + ITEM_GAP);
+    return {
+      transform: [
+        { translateY: interpolate(expanded.value, [0, 1], [offset, 0]) },
+        { scale: interpolate(expanded.value, [0, 1], [0.5, 1]) },
+      ],
+      opacity: expanded.value,
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.actionItem,
         {
-          backgroundColor: colors.primary,
-          opacity: pressed ? 0.85 : 1,
+          bottom: 24 + FAB_SIZE + ITEM_GAP + index * (ITEM_HEIGHT + ITEM_GAP),
+          backgroundColor: hovered ? action.color : colors.card,
+          borderColor: hovered ? action.color : colors.border,
         },
+        animStyle,
       ]}
+      onTouchEnd={onPress}
     >
-      <AppIcon name={icon} size={26} color={colors.textInverse} />
-    </Pressable>
+      <AppIcon name={action.icon} size={20} color={hovered ? colors.textInverse : action.color} />
+      <AppText
+        variant="label"
+        color={hovered ? colors.textInverse : colors.text}
+        style={styles.actionLabel}
+      >
+        {action.label}
+      </AppText>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+    zIndex: 90,
+  },
+  fab: {
     position: "absolute",
     bottom: 24,
     right: 20,
-    width: 56,
-    height: 56,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 4,
+    elevation: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+    zIndex: 100,
+  },
+  actionItem: {
+    position: "absolute",
+    right: 20,
+    height: ITEM_HEIGHT,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    zIndex: 95,
+  },
+  actionLabel: {
+    marginRight: 4,
   },
 });

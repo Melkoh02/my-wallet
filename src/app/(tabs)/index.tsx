@@ -7,13 +7,14 @@ import { TransactionListItem } from "@/components/organisms/TransactionListItem"
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { AppText } from "@/components/atoms/AppText";
-import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
+import { FAB } from "@/components/atoms/FAB";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getAccountsTotals } from "@/db/queries/accounts";
 import { getMonthSummary, getRecentTransactions } from "@/db/queries/transactions";
 import { formatCurrency } from "@/utils/format";
+import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
 
@@ -70,15 +71,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Quick action */}
-      <View style={styles.quickAction}>
-        <AppButton
-          title="Add Transaction"
-          icon="plus"
-          onPress={() => router.push("/transaction/form")}
-        />
-      </View>
-
       {/* Recent transactions */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -109,6 +101,10 @@ export default function HomeScreen() {
           />
         )}
       </View>
+      <FAB
+        actions={TRANSACTION_FAB_ACTIONS}
+        onAction={(key) => router.push(`/transaction/form?type=${key}`)}
+      />
     </ScreenLayout>
   );
 }
@@ -132,10 +128,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: 12,
     gap: spacing.xs,
-  },
-  quickAction: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
   },
   section: {
     paddingTop: spacing.xl,

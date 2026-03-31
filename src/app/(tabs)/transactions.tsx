@@ -10,6 +10,7 @@ import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { useTransactions } from "@/hooks/useTransactions";
+import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { spacing } from "@/theme/spacing";
 
 const TYPE_FILTERS = [
@@ -77,7 +78,10 @@ export default function TransactionsScreen() {
           )
         }
       />
-      <FAB onPress={() => router.push("/transaction/form")} />
+      <FAB
+        actions={TRANSACTION_FAB_ACTIONS}
+        onAction={(key) => router.push(`/transaction/form?type=${key}`)}
+      />
     </ScreenLayout>
   );
 }

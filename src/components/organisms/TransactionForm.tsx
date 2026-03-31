@@ -53,10 +53,17 @@ export function TransactionForm({
 
   const filteredCategories = categories;
 
+  const [locationError, setLocationError] = useState("");
+
   const handleAddLocation = async () => {
     setLocationLoading(true);
+    setLocationError("");
     const loc = await getCurrentLocation();
-    setLocation(loc);
+    if (loc) {
+      setLocation(loc);
+    } else {
+      setLocationError(t("transactionForm.locationFailed"));
+    }
     setLocationLoading(false);
   };
 
@@ -209,17 +216,24 @@ export function TransactionForm({
               </Pressable>
             </View>
           ) : (
-            <AppButton
-              title={
-                locationLoading
-                  ? t("transactionForm.gettingLocation")
-                  : t("transactionForm.addLocation")
-              }
-              variant="ghost"
-              icon="map-marker-plus"
-              onPress={handleAddLocation}
-              disabled={locationLoading}
-            />
+            <>
+              <AppButton
+                title={
+                  locationLoading
+                    ? t("transactionForm.gettingLocation")
+                    : t("transactionForm.addLocation")
+                }
+                variant="ghost"
+                icon="map-marker-plus"
+                onPress={handleAddLocation}
+                disabled={locationLoading}
+              />
+              {locationError ? (
+                <AppText variant="caption" color={colors.warning}>
+                  {locationError}
+                </AppText>
+              ) : null}
+            </>
           )}
         </View>
       )}

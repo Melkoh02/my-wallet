@@ -100,6 +100,7 @@
     "saveTransaction": "\u4fdd\u5b58\u4ea4\u6613",
     "addLocation": "\u6dfb\u52a0\u4f4d\u7f6e",
     "gettingLocation": "\u6b63\u5728\u83b7\u53d6\u4f4d\u7f6e...",
+    "locationFailed": "\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e\u3002\u8bf7\u786e\u4fdd\u4f4d\u7f6e\u670d\u52a1\u5df2\u542f\u7528\u3002",
     "contact": "\u8054\u7cfb\u4eba",
     "selectContact": "\u9009\u62e9\u8054\u7cfb\u4eba..."
   },

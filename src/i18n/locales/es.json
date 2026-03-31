@@ -100,6 +100,7 @@
     "saveTransaction": "Guardar Transacci\u00f3n",
     "addLocation": "Agregar Ubicaci\u00f3n",
     "gettingLocation": "Obteniendo ubicaci\u00f3n...",
+    "locationFailed": "No se pudo obtener la ubicaci\u00f3n. Aseg\u00farate de que los servicios de ubicaci\u00f3n est\u00e9n activados.",
     "contact": "Contacto",
     "selectContact": "Seleccionar contacto..."
   },

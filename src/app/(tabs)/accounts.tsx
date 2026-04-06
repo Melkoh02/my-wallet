@@ -33,7 +33,6 @@ export default function AccountsScreen() {
             />
           )
         }
-        ItemSeparatorComponent={() => <></>}
       />
       <FAB onPress={() => router.push("/account/form")} />
     </ScreenLayout>

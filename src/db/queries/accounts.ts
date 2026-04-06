@@ -89,8 +89,15 @@ export async function getAccountsTotals(
     if (acc.type === "credit") {
       const debt = (acc.creditLimit ?? 0) - acc.balance;
       if (debt > 0) {
+        // Normal case: owe money on the card
         const converted = convertFn ? await convertFn(debt, acc.currency) : debt;
         totalLiabilities += converted;
+      } else if (debt < 0) {
+        // Overpaid card: issuer owes us money — count as asset
+        const converted = convertFn
+          ? await convertFn(Math.abs(debt), acc.currency)
+          : Math.abs(debt);
+        totalAssets += converted;
       }
     } else {
       const converted = convertFn ? await convertFn(acc.balance, acc.currency) : acc.balance;

@@ -31,10 +31,11 @@ async function migrateCreditCardBalances() {
   const creditAccounts = await db.select().from(accounts).where(eq(accounts.type, "credit"));
 
   for (const acc of creditAccounts) {
-    if (acc.creditLimit != null) {
-      const newBalance = acc.creditLimit - acc.balance;
-      await db.update(accounts).set({ balance: newBalance }).where(eq(accounts.id, acc.id));
-    }
+    // creditLimit should always be set for credit cards, but handle the edge case:
+    // if no limit was set, treat the old balance as pure debt → available = 0 - oldBalance
+    const limit = acc.creditLimit ?? 0;
+    const newBalance = limit - acc.balance;
+    await db.update(accounts).set({ balance: newBalance }).where(eq(accounts.id, acc.id));
   }
 
   await db

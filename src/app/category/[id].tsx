@@ -67,7 +67,7 @@ export default function CategoryDetailScreen() {
           placeholder={t("categories.newSubcategory")}
           value={newSubName}
           onChangeText={setNewSubName}
-          style={styles.addInput}
+          containerStyle={styles.addInput}
           onSubmitEditing={handleAddSub}
         />
         <AppButton title={t("common.add")} onPress={handleAddSub} disabled={!newSubName.trim()} />

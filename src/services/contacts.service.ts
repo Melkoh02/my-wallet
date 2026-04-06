@@ -38,6 +38,22 @@ export async function searchContacts(query: string): Promise<SimpleContact[]> {
     }));
 }
 
+export async function getAllContacts(limit = 50): Promise<SimpleContact[]> {
+  if (!(await hasContactsPermission())) return [];
+
+  const { data } = await Contacts.getContactsAsync({
+    fields: [Contacts.Fields.Name],
+    pageSize: limit,
+  });
+
+  return data
+    .filter((c) => c.name)
+    .map((c) => ({
+      id: c.id,
+      name: c.name!,
+    }));
+}
+
 export async function getContactById(id: string): Promise<SimpleContact | null> {
   if (!(await hasContactsPermission())) return null;
   const contact = await Contacts.getContactByIdAsync(id, [Contacts.Fields.Name]);

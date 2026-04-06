@@ -48,7 +48,7 @@ export function AccountCard({ account, onPress }: AccountCardProps) {
       <AmountDisplay
         amount={account.balance}
         currency={account.currency}
-        type={account.type === "credit" && account.balance > 0 ? "expense" : "neutral"}
+        type={account.type === "credit" && account.balance < 0 ? "expense" : "neutral"}
         variant="label"
       />
     </Pressable>

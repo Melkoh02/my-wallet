@@ -19,39 +19,39 @@ import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
 
 const ALL_CURRENCIES = [
-  "USD",
+  "AED",
+  "ARS",
+  "AUD",
+  "BRL",
+  "CAD",
+  "CHF",
+  "CLP",
+  "CNY",
+  "COP",
+  "CZK",
+  "DKK",
   "EUR",
   "GBP",
-  "JPY",
-  "CAD",
-  "AUD",
-  "CHF",
-  "CNY",
-  "BRL",
-  "ARS",
-  "PYG",
-  "MXN",
-  "COP",
-  "CLP",
-  "PEN",
-  "INR",
-  "KRW",
-  "TWD",
-  "THB",
-  "SGD",
   "HKD",
-  "NZD",
-  "SEK",
-  "NOK",
-  "DKK",
-  "PLN",
-  "CZK",
   "HUF",
-  "TRY",
-  "ZAR",
   "ILS",
-  "AED",
+  "INR",
+  "JPY",
+  "KRW",
+  "MXN",
+  "NOK",
+  "NZD",
+  "PEN",
+  "PLN",
+  "PYG",
   "SAR",
+  "SEK",
+  "SGD",
+  "THB",
+  "TRY",
+  "TWD",
+  "USD",
+  "ZAR",
 ];
 
 type SettingsRowProps = {
@@ -343,47 +343,41 @@ export default function SettingsScreen() {
     <ScreenLayout scrollable edges={["top"]}>
       <HeaderBar title={t("settings.title")} onBack={() => router.back()} />
 
-      {/* Display Currency — only if multi-currency */}
-      {multiCurrency && (
-        <>
-          <View style={styles.section}>
-            <Pressable
-              onPress={() => setShowCurrencyPicker(true)}
-              style={({ pressed }) => [
-                styles.row,
-                { backgroundColor: pressed ? colors.borderLight : "transparent" },
-              ]}
-            >
-              <AppIcon name="currency-usd" size={22} color={colors.primary} />
-              <View style={styles.rowText}>
-                <AppText variant="body">{t("settings.displayCurrency")}</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  {displayCurrency}
-                </AppText>
-              </View>
-              <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
-            </Pressable>
-            <View style={styles.ratesRow}>
-              <Pressable
-                onPress={handleRefreshRates}
-                disabled={refreshing}
-                style={styles.refreshRow}
-              >
-                <AppIcon name="refresh" size={18} color={colors.primary} />
-                <AppText variant="bodySmall" color={colors.primary}>
-                  {refreshing ? t("settings.updatingRates") : t("settings.updateRates")}
-                </AppText>
-              </Pressable>
-              {ratesUpdatedAt && (
-                <AppText variant="caption" color={colors.textTertiary}>
-                  {t("settings.lastUpdated", { date: formatLastUpdated(ratesUpdatedAt) })}
-                </AppText>
-              )}
-            </View>
+      {/* Display Currency */}
+      <View style={styles.section}>
+        <Pressable
+          onPress={() => setShowCurrencyPicker(true)}
+          style={({ pressed }) => [
+            styles.row,
+            { backgroundColor: pressed ? colors.borderLight : "transparent" },
+          ]}
+        >
+          <AppIcon name="currency-usd" size={22} color={colors.primary} />
+          <View style={styles.rowText}>
+            <AppText variant="body">{t("settings.displayCurrency")}</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {displayCurrency}
+            </AppText>
           </View>
-          <Divider />
-        </>
-      )}
+          <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
+        </Pressable>
+        {multiCurrency && (
+          <View style={styles.ratesRow}>
+            <Pressable onPress={handleRefreshRates} disabled={refreshing} style={styles.refreshRow}>
+              <AppIcon name="refresh" size={18} color={colors.primary} />
+              <AppText variant="bodySmall" color={colors.primary}>
+                {refreshing ? t("settings.updatingRates") : t("settings.updateRates")}
+              </AppText>
+            </Pressable>
+            {ratesUpdatedAt && (
+              <AppText variant="caption" color={colors.textTertiary}>
+                {t("settings.lastUpdated", { date: formatLastUpdated(ratesUpdatedAt) })}
+              </AppText>
+            )}
+          </View>
+        )}
+      </View>
+      <Divider />
 
       {/* Language */}
       <Pressable
@@ -473,7 +467,7 @@ export default function SettingsScreen() {
       {/* App version */}
       <View style={styles.versionContainer}>
         <AppText variant="caption" color={colors.textTertiary}>
-          {t("settings.version", { version: "1.0.0" })}
+          {t("settings.version", { version: "1.0.1" })}
         </AppText>
       </View>
 
@@ -514,7 +508,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.xs,
   },
   refreshRow: {
     flexDirection: "row",

@@ -297,6 +297,43 @@ export async function getRecentTransactions(limit = 5): Promise<TransactionWithR
   return getTransactions({ limit, offset: 0 });
 }
 
+export async function getFrequentContacts(
+  limit = 5,
+): Promise<{ id: string; name: string; count: number }[]> {
+  const rows = await db
+    .select({
+      id: transactions.contactId,
+      name: transactions.contactName,
+      count: sql<number>`COUNT(*)`.as("cnt"),
+    })
+    .from(transactions)
+    .where(sql`${transactions.contactId} IS NOT NULL`)
+    .groupBy(transactions.contactId, transactions.contactName)
+    .orderBy(sql`cnt DESC`)
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id!,
+    name: r.name!,
+    count: r.count,
+  }));
+}
+
+export async function getLastUsedContact(): Promise<{ id: string; name: string } | null> {
+  const [row] = await db
+    .select({
+      id: transactions.contactId,
+      name: transactions.contactName,
+    })
+    .from(transactions)
+    .where(sql`${transactions.contactId} IS NOT NULL`)
+    .orderBy(desc(transactions.date), desc(transactions.time))
+    .limit(1);
+
+  if (!row?.id || !row?.name) return null;
+  return { id: row.id, name: row.name };
+}
+
 export async function getDailySpending(
   year: number,
   month: number,

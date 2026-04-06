@@ -131,6 +131,59 @@ export async function exportBackup(): Promise<void> {
   });
 }
 
+/**
+ * Core restore logic — applies a parsed backup JSON to the database.
+ * Wrapped in a SQLite transaction for atomicity.
+ */
+async function restoreData(
+  data: Record<string, unknown[]>,
+): Promise<{ success: boolean; error?: string }> {
+  await db.run(sql`BEGIN TRANSACTION`);
+  try {
+    // Clear existing data (order matters for foreign keys)
+    await db.delete(transactionSubcategories);
+    await db.delete(recurringSubcategories);
+    await db.delete(cashbackRules);
+    await db.delete(transactions);
+    await db.delete(recurringTransactions);
+    await db.delete(subcategories);
+    await db.delete(categories);
+    await db.delete(accounts);
+    await db.delete(themes);
+    await db.delete(settings);
+
+    // Restore data — skip missing keys gracefully for forward compatibility
+    if (data.accounts?.length) await db.insert(accounts).values(data.accounts as never[]);
+    if (data.categories?.length) await db.insert(categories).values(data.categories as never[]);
+    if (data.subcategories?.length)
+      await db.insert(subcategories).values(data.subcategories as never[]);
+    if (data.transactions?.length)
+      await db.insert(transactions).values(data.transactions as never[]);
+    if (data.transactionSubcategories?.length)
+      await db.insert(transactionSubcategories).values(data.transactionSubcategories as never[]);
+    if (data.recurringTransactions?.length)
+      await db.insert(recurringTransactions).values(data.recurringTransactions as never[]);
+    if (data.recurringSubcategories?.length)
+      await db.insert(recurringSubcategories).values(data.recurringSubcategories as never[]);
+    if (data.cashbackRules?.length)
+      await db.insert(cashbackRules).values(data.cashbackRules as never[]);
+    if (data.themes?.length) await db.insert(themes).values(data.themes as never[]);
+    if (data.settings?.length) await db.insert(settings).values(data.settings as never[]);
+
+    await db.run(sql`COMMIT`);
+    return { success: true };
+  } catch (e) {
+    await db.run(sql`ROLLBACK`);
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Restore failed — data was not modified",
+    };
+  }
+}
+
+/**
+ * Import from an external file (picked by user via document picker).
+ */
 export async function importBackup(): Promise<{ success: boolean; error?: string }> {
   try {
     const result = await DocumentPicker.getDocumentAsync({
@@ -149,47 +202,32 @@ export async function importBackup(): Promise<{ success: boolean; error?: string
       return { success: false, error: "Invalid backup file format" };
     }
 
-    // Run entire import inside a transaction for atomicity.
-    // If anything fails, all changes are rolled back — no data loss.
-    await db.run(sql`BEGIN TRANSACTION`);
-    try {
-      // Clear existing data (order matters for foreign keys)
-      await db.delete(transactionSubcategories);
-      await db.delete(recurringSubcategories);
-      await db.delete(cashbackRules);
-      await db.delete(transactions);
-      await db.delete(recurringTransactions);
-      await db.delete(subcategories);
-      await db.delete(categories);
-      await db.delete(accounts);
-      await db.delete(themes);
-      await db.delete(settings);
+    return restoreData(data);
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
+  }
+}
 
-      // Restore data — skip missing keys gracefully for forward compatibility
-      if (data.accounts?.length) await db.insert(accounts).values(data.accounts);
-      if (data.categories?.length) await db.insert(categories).values(data.categories);
-      if (data.subcategories?.length) await db.insert(subcategories).values(data.subcategories);
-      if (data.transactions?.length) await db.insert(transactions).values(data.transactions);
-      if (data.transactionSubcategories?.length)
-        await db.insert(transactionSubcategories).values(data.transactionSubcategories);
-      if (data.recurringTransactions?.length)
-        await db.insert(recurringTransactions).values(data.recurringTransactions);
-      if (data.recurringSubcategories?.length)
-        await db.insert(recurringSubcategories).values(data.recurringSubcategories);
-      if (data.cashbackRules?.length) await db.insert(cashbackRules).values(data.cashbackRules);
-      if (data.themes?.length) await db.insert(themes).values(data.themes);
-      if (data.settings?.length) await db.insert(settings).values(data.settings);
-
-      await db.run(sql`COMMIT`);
-      return { success: true };
-    } catch (e) {
-      // Rollback — original data is preserved
-      await db.run(sql`ROLLBACK`);
-      return {
-        success: false,
-        error: e instanceof Error ? e.message : "Import failed — data was not modified",
-      };
+/**
+ * Restore from an internal backup file (from the backups list).
+ */
+export async function restoreFromBackup(
+  filePath: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const info = await getInfoAsync(filePath);
+    if (!info.exists) {
+      return { success: false, error: "Backup file not found" };
     }
+
+    const content = await readAsStringAsync(filePath);
+    const data = JSON.parse(content);
+
+    if (!data.version || !data.accounts || !data.transactions) {
+      return { success: false, error: "Invalid backup file format" };
+    }
+
+    return restoreData(data);
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
   }

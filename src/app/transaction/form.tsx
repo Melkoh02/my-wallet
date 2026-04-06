@@ -6,7 +6,11 @@ import { TransactionForm, type TransactionFormData } from "@/components/organism
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
-import { createTransaction, getTransactionById } from "@/db/queries/transactions";
+import {
+  createTransaction,
+  getTransactionById,
+  deleteTransaction,
+} from "@/db/queries/transactions";
 import { updateAccountBalance } from "@/db/queries/accounts";
 import { db } from "@/db/client";
 import { settings, transactions, transactionSubcategories } from "@/db/schema";
@@ -60,6 +64,10 @@ export default function TransactionFormScreen() {
       const existingId = parseInt(params.id, 10);
       const existing = await getTransactionById(existingId);
       if (existing) {
+        // Clean up old linked cashback transaction if present
+        if (existing.linkedTransactionId) {
+          await deleteTransaction(existing.linkedTransactionId);
+        }
         // Reverse old balance
         await updateAccountBalance(
           existing.accountId,
@@ -123,7 +131,7 @@ export default function TransactionFormScreen() {
           {
             type: "income",
             amount: data.cashbackAmount,
-            description: `Cashback: ${data.description}`.trim(),
+            description: `${t("settings.cashback")}: ${data.description}`.trim(),
             accountId: data.cashbackAccountId,
             date: data.date,
             time: data.time,

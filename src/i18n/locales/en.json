@@ -126,7 +126,11 @@
     "instantCashback": "Instant cashback",
     "confirmCashback": "Confirm Cashback Received",
     "cashbackConfirmed": "Cashback received",
-    "cashbackPending": "Cashback pending"
+    "cashbackPending": "Cashback pending",
+    "location": "Location",
+    "flat": "Flat",
+    "cashbackPercentPlaceholder": "e.g. 3",
+    "cashbackFlatPlaceholder": "e.g. 5.00"
   },
   "recurring": {
     "title": "Recurring",

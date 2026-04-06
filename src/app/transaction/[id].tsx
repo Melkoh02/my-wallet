@@ -33,6 +33,7 @@ export default function TransactionDetailScreen() {
   const { invalidate, revisions } = useDataRefresh();
   const [txn, setTxn] = useState<TransactionWithRelations | null>(null);
   const [showDelete, setShowDelete] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -47,6 +48,9 @@ export default function TransactionDetailScreen() {
 
   const handleDelete = async () => {
     setShowDelete(false);
+    if (txn.linkedTransactionId) {
+      await deleteTransaction(txn.linkedTransactionId);
+    }
     await deleteTransaction(txn.id);
     invalidate("transactions", "accounts");
     router.back();
@@ -54,26 +58,30 @@ export default function TransactionDetailScreen() {
 
   const handleConfirmCashback = async () => {
     if (!txn.cashbackAmount || !txn.cashbackAccountId) return;
+    setConfirming(true);
+    try {
+      const cashbackTxn = await createTransaction(
+        {
+          type: "income",
+          amount: txn.cashbackAmount,
+          description: `${t("settings.cashback")}: ${txn.description}`.trim(),
+          accountId: txn.cashbackAccountId,
+          date: new Date().toISOString().slice(0, 10),
+          time: new Date().toTimeString().slice(0, 5),
+          linkedTransactionId: txn.id,
+        },
+        [],
+      );
 
-    const cashbackTxn = await createTransaction(
-      {
-        type: "income",
-        amount: txn.cashbackAmount,
-        description: `Cashback: ${txn.description}`.trim(),
-        accountId: txn.cashbackAccountId,
-        date: new Date().toISOString().slice(0, 10),
-        time: new Date().toTimeString().slice(0, 5),
-        linkedTransactionId: txn.id,
-      },
-      [],
-    );
+      await db
+        .update(transactions)
+        .set({ linkedTransactionId: cashbackTxn.id })
+        .where(eq(transactions.id, txn.id));
 
-    await db
-      .update(transactions)
-      .set({ linkedTransactionId: cashbackTxn.id })
-      .where(eq(transactions.id, txn.id));
-
-    invalidate("transactions", "accounts");
+      invalidate("transactions", "accounts");
+    } finally {
+      setConfirming(false);
+    }
   };
 
   return (
@@ -112,7 +120,7 @@ export default function TransactionDetailScreen() {
             <DetailRow label={t("transactionForm.contact")} value={txn.contactName} />
           )}
           {txn.locationName && (
-            <DetailRow label={t("transactionForm.addLocation")} value={txn.locationName} />
+            <DetailRow label={t("transactionForm.location")} value={txn.locationName} />
           )}
           {txn.notes && <DetailRow label={t("transactionForm.notes")} value={txn.notes} />}
         </View>
@@ -162,6 +170,7 @@ export default function TransactionDetailScreen() {
                 variant="secondary"
                 icon="check"
                 onPress={handleConfirmCashback}
+                disabled={confirming}
               />
             )}
           </View>

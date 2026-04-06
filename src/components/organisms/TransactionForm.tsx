@@ -222,7 +222,9 @@ export function TransactionForm({
   };
 
   const isValid =
-    parseFloat(amount) > 0 && accountId !== null && (type !== "transfer" || toAccountId !== null);
+    parseFloat(amount) > 0 &&
+    accountId !== null &&
+    (type !== "transfer" || (toAccountId !== null && toAccountId !== accountId));
 
   return (
     <ScrollView
@@ -463,7 +465,7 @@ export function TransactionForm({
                     variant="label"
                     color={cashbackMode === "flat" ? colors.primary : colors.textSecondary}
                   >
-                    $
+                    {t("transactionForm.flat")}
                   </AppText>
                 </Pressable>
                 <View style={styles.flex}>
@@ -471,7 +473,11 @@ export function TransactionForm({
                     value={cashbackValue}
                     onChangeText={setCashbackValue}
                     keyboardType="decimal-pad"
-                    placeholder={cashbackMode === "percent" ? "e.g. 3" : "e.g. 5.00"}
+                    placeholder={
+                      cashbackMode === "percent"
+                        ? t("transactionForm.cashbackPercentPlaceholder")
+                        : t("transactionForm.cashbackFlatPlaceholder")
+                    }
                   />
                 </View>
               </View>

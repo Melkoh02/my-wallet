@@ -35,26 +35,31 @@ export async function archiveAccount(id: number): Promise<void> {
   await db.update(accounts).set({ isActive: false }).where(eq(accounts.id, id));
 }
 
+/**
+ * Update account balance after a transaction.
+ *
+ * For ALL account types (including credit cards), balance represents
+ * the account's value from the user's perspective:
+ * - Debit/cash/wallet/savings: balance = funds available
+ * - Credit cards: balance = available credit
+ *
+ * Expense always decreases balance. Income always increases it.
+ * Debt on credit cards = creditLimit - balance (computed, not stored).
+ */
 export async function updateAccountBalance(
   accountId: number,
   amount: number,
   type: "income" | "expense" | "transfer",
   isSource: boolean,
 ): Promise<void> {
-  const account = await getAccountById(accountId);
-  if (!account) return;
-
-  const isDebtAccount = account.type === "credit";
   let delta: number;
 
   if (type === "transfer") {
-    // Source loses money, destination gains
     delta = isSource ? -amount : amount;
   } else if (type === "expense") {
-    delta = isDebtAccount ? amount : -amount; // Credit cards: expense increases debt
+    delta = -amount;
   } else {
-    // income
-    delta = isDebtAccount ? -amount : amount; // Credit cards: income reduces debt
+    delta = amount;
   }
 
   await db
@@ -63,6 +68,12 @@ export async function updateAccountBalance(
     .where(eq(accounts.id, accountId));
 }
 
+/**
+ * Get account totals with currency conversion.
+ *
+ * For credit cards, liability = creditLimit - balance (the debt portion).
+ * A credit card with limit=12M and available=5M has debt=7M.
+ */
 export async function getAccountsTotals(
   convertFn?: (amount: number, currency: string) => Promise<number>,
 ): Promise<{
@@ -75,10 +86,14 @@ export async function getAccountsTotals(
   let totalLiabilities = 0;
 
   for (const acc of allAccounts) {
-    const converted = convertFn ? await convertFn(acc.balance, acc.currency) : acc.balance;
     if (acc.type === "credit") {
-      totalLiabilities += converted;
+      const debt = (acc.creditLimit ?? 0) - acc.balance;
+      if (debt > 0) {
+        const converted = convertFn ? await convertFn(debt, acc.currency) : debt;
+        totalLiabilities += converted;
+      }
     } else {
+      const converted = convertFn ? await convertFn(acc.balance, acc.currency) : acc.balance;
       totalAssets += converted;
     }
   }

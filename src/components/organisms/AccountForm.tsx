@@ -21,39 +21,39 @@ const ACCOUNT_TYPE_DEFS: { value: AccountType; key: string; icon: string }[] = [
 ];
 
 const CURRENCIES = [
-  "USD",
+  "AED",
+  "ARS",
+  "AUD",
+  "BRL",
+  "CAD",
+  "CHF",
+  "CLP",
+  "CNY",
+  "COP",
+  "CZK",
+  "DKK",
   "EUR",
   "GBP",
-  "JPY",
-  "CAD",
-  "AUD",
-  "CHF",
-  "CNY",
-  "BRL",
-  "ARS",
-  "PYG",
-  "MXN",
-  "COP",
-  "CLP",
-  "PEN",
-  "INR",
-  "KRW",
-  "TWD",
-  "THB",
-  "SGD",
   "HKD",
-  "NZD",
-  "SEK",
-  "NOK",
-  "DKK",
-  "PLN",
-  "CZK",
   "HUF",
-  "TRY",
-  "ZAR",
   "ILS",
-  "AED",
+  "INR",
+  "JPY",
+  "KRW",
+  "MXN",
+  "NOK",
+  "NZD",
+  "PEN",
+  "PLN",
+  "PYG",
   "SAR",
+  "SEK",
+  "SGD",
+  "THB",
+  "TRY",
+  "TWD",
+  "USD",
+  "ZAR",
 ];
 
 const COLORS = [
@@ -208,10 +208,11 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       </Modal>
 
       <AppInput
-        label={t("accounts.initialBalance")}
+        label={type === "credit" ? t("accounts.availableCredit") : t("accounts.initialBalance")}
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"
+        selectTextOnFocus
         placeholder="0.00"
       />
 

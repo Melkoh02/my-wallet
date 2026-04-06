@@ -13,6 +13,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getAccountById } from "@/db/queries/accounts";
 import { getTransactions, type TransactionWithRelations } from "@/db/queries/transactions";
+import { formatCurrency } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
 import type { Account } from "@/db/schema";
 
@@ -49,14 +50,22 @@ export default function AccountDetailScreen() {
         ListHeaderComponent={
           <View style={styles.balanceSection}>
             <AppText variant="caption" color={colors.textSecondary}>
-              {t("accounts.currentBalance")}
+              {account.type === "credit"
+                ? t("accounts.availableCredit")
+                : t("accounts.currentBalance")}
             </AppText>
             <AmountDisplay
               amount={account.balance}
               currency={account.currency}
               variant="amountLarge"
-              type={account.type === "credit" && account.balance > 0 ? "expense" : "neutral"}
+              type={account.type === "credit" && account.balance < 0 ? "expense" : "neutral"}
             />
+            {account.type === "credit" && account.creditLimit != null && (
+              <AppText variant="bodySmall" color={colors.expense}>
+                {t("accounts.debt")}:{" "}
+                {formatCurrency((account.creditLimit ?? 0) - account.balance, account.currency)}
+              </AppText>
+            )}
             {account.institution ? (
               <AppText variant="bodySmall" color={colors.textTertiary}>
                 {account.institution}

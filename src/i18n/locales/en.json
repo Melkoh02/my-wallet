@@ -65,6 +65,8 @@
     "noAccounts": "No accounts yet",
     "addFirst": "Add your first account to get started",
     "currentBalance": "Current Balance",
+    "availableCredit": "Available Credit",
+    "debt": "Debt",
     "newAccount": "New Account",
     "editAccount": "Edit Account",
     "accountName": "Account Name",

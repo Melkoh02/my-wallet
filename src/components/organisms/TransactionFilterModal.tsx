@@ -9,6 +9,7 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { DatePicker } from "@/components/molecules/DatePicker";
+import { CategoryPicker } from "@/components/organisms/CategoryPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
@@ -45,7 +46,6 @@ export function TransactionFilterModal({
   const [fromAccountIds, setFromAccountIds] = useState<number[]>(filters.fromAccountIds ?? []);
   const [toAccountIds, setToAccountIds] = useState<number[]>(filters.toAccountIds ?? []);
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>(filters.subcategoryIds ?? []);
-  const [expandedCatId, setExpandedCatId] = useState<number | null>(null);
   const [fromAccountsExpanded, setFromAccountsExpanded] = useState(false);
   const [toAccountsExpanded, setToAccountsExpanded] = useState(false);
 
@@ -309,56 +309,13 @@ export function TransactionFilterModal({
             )}
           </Section>
 
-          {/* Categories / Subcategories — collapsible */}
-          <Section title={t("transactions.categories")} colors={colors}>
-            {categories.map((cat) => {
-              const selectedCount = cat.subcategories.filter((s) =>
-                subcategoryIds.includes(s.id),
-              ).length;
-              const isExpanded = expandedCatId === cat.id;
-              return (
-                <View key={cat.id}>
-                  <Pressable
-                    onPress={() => setExpandedCatId(isExpanded ? null : cat.id)}
-                    style={styles.catRow}
-                  >
-                    <View style={[styles.catDot, { backgroundColor: cat.color }]} />
-                    <AppText variant="label" style={styles.catName}>
-                      {cat.name}
-                    </AppText>
-                    {selectedCount > 0 && (
-                      <View style={[styles.catBadge, { backgroundColor: colors.primary }]}>
-                        <AppText
-                          variant="caption"
-                          color={colors.textInverse}
-                          style={styles.catBadgeText}
-                        >
-                          {selectedCount}
-                        </AppText>
-                      </View>
-                    )}
-                    <AppIcon
-                      name={isExpanded ? "chevron-up" : "chevron-down"}
-                      size={18}
-                      color={colors.iconSecondary}
-                    />
-                  </Pressable>
-                  {isExpanded && (
-                    <View style={styles.catSubs}>
-                      {cat.subcategories.map((sub) => (
-                        <Chip
-                          key={sub.id}
-                          label={sub.name}
-                          selected={subcategoryIds.includes(sub.id)}
-                          onPress={() => toggleId(subcategoryIds, sub.id, setSubcategoryIds)}
-                        />
-                      ))}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </Section>
+          {/* Categories / Subcategories — reuse CategoryPicker */}
+          <CategoryPicker
+            categories={categories}
+            selected={subcategoryIds}
+            onSelectionChange={setSubcategoryIds}
+            label={t("transactions.categories")}
+          />
         </ScrollView>
 
         <View style={styles.footer}>

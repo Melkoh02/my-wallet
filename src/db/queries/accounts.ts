@@ -35,6 +35,14 @@ export async function archiveAccount(id: number): Promise<void> {
   await db.update(accounts).set({ isActive: false }).where(eq(accounts.id, id));
 }
 
+export async function unarchiveAccount(id: number): Promise<void> {
+  await db.update(accounts).set({ isActive: true }).where(eq(accounts.id, id));
+}
+
+export async function deleteAccountPermanently(id: number): Promise<void> {
+  await db.delete(accounts).where(eq(accounts.id, id));
+}
+
 /**
  * Update account balance after a transaction.
  *

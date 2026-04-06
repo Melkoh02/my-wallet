@@ -74,7 +74,7 @@ const COLORS = [
 type AccountFormProps = {
   initial?: Account;
   onSubmit: (data: NewAccount) => void;
-  onDelete?: () => void;
+  onDelete?: (mode: "archive" | "delete") => void;
 };
 
 export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
@@ -337,12 +337,20 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
           disabled={!isValid}
         />
         {initial && onDelete && (
-          <AppButton
-            title={t("accounts.archiveAccount")}
-            onPress={onDelete}
-            variant="danger"
-            icon="archive"
-          />
+          <>
+            <AppButton
+              title={t("accounts.archiveAccount")}
+              onPress={() => onDelete("archive")}
+              variant="secondary"
+              icon="archive"
+            />
+            <AppButton
+              title={t("accounts.deleteAccount")}
+              onPress={() => onDelete("delete")}
+              variant="danger"
+              icon="delete"
+            />
+          </>
         )}
       </View>
     </ScrollView>

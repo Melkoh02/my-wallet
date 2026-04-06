@@ -131,7 +131,6 @@ export function TransactionForm({
   const [date, setDate] = useState(initialData?.date ?? todayDateString());
   const [time, setTime] = useState(initialData?.time ?? nowTimeString());
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>(initialData?.subcategoryIds ?? []);
-  const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [contact, setContact] = useState<{ id: string; name: string } | null>(
     initialData?.contactId
       ? { id: initialData.contactId, name: initialData.contactName ?? "" }
@@ -204,7 +203,7 @@ export function TransactionForm({
         toAccountId: type === "transfer" ? toAccountId : null,
         date,
         time,
-        notes: notes.trim() || null,
+        notes: null,
         contactId: contact?.id ?? null,
         contactName: contact?.name ?? null,
         latitude: location?.latitude ?? null,
@@ -402,15 +401,6 @@ export function TransactionForm({
           )}
         </View>
       )}
-
-      <AppInput
-        label={t("transactionForm.notes")}
-        value={notes}
-        onChangeText={setNotes}
-        placeholder={t("transactionForm.notesPlaceholder")}
-        multiline
-        numberOfLines={3}
-      />
 
       {/* Cashback — expense only */}
       {type === "expense" && accounts.length > 0 && (

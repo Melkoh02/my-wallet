@@ -9,10 +9,12 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import {
   searchContacts,
+  getAllContacts,
   requestContactsPermission,
   hasContactsPermission,
   type SimpleContact,
 } from "@/services/contacts.service";
+import { getFrequentContacts, getLastUsedContact } from "@/db/queries/transactions";
 
 type ContactPickerProps = {
   selected: { id: string; name: string } | null;
@@ -24,7 +26,9 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SimpleContact[]>([]);
+  const [allContacts, setAllContacts] = useState<SimpleContact[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<SimpleContact[]>([]);
+  const [frequents, setFrequents] = useState<{ id: string; name: string }[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   const openPicker = useCallback(async () => {
@@ -33,18 +37,70 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
       perm = await requestContactsPermission();
     }
     setHasPermission(perm);
-    if (perm) setVisible(true);
+    if (!perm) return;
+
+    // Load frequents + all contacts in parallel
+    const [frequent, lastUsed, contacts] = await Promise.all([
+      getFrequentContacts(5),
+      getLastUsedContact(),
+      getAllContacts(50),
+    ]);
+
+    // Build unique frequents list: top 4 frequent + last used if different
+    const seen = new Set<string>();
+    const freqList: { id: string; name: string }[] = [];
+    for (const f of frequent.slice(0, 4)) {
+      if (!seen.has(f.id)) {
+        seen.add(f.id);
+        freqList.push({ id: f.id, name: f.name });
+      }
+    }
+    if (lastUsed && !seen.has(lastUsed.id) && freqList.length < 5) {
+      freqList.push(lastUsed);
+    }
+
+    setFrequents(freqList);
+    setAllContacts(contacts);
+    setFilteredContacts(contacts);
+    setQuery("");
+    setVisible(true);
   }, []);
 
-  const handleSearch = useCallback(async (text: string) => {
-    setQuery(text);
-    if (text.length >= 2) {
-      const contacts = await searchContacts(text);
-      setResults(contacts);
-    } else {
-      setResults([]);
-    }
-  }, []);
+  const handleSearch = useCallback(
+    async (text: string) => {
+      setQuery(text);
+      if (text.length >= 2) {
+        const contacts = await searchContacts(text);
+        setFilteredContacts(contacts);
+      } else {
+        setFilteredContacts(allContacts);
+      }
+    },
+    [allContacts],
+  );
+
+  const handleSelect = useCallback(
+    (item: { id: string; name: string }) => {
+      onSelect(item);
+      setVisible(false);
+      setQuery("");
+      setFilteredContacts([]);
+    },
+    [onSelect],
+  );
+
+  const renderContactRow = useCallback(
+    (item: { id: string; name: string }) => (
+      <Pressable
+        onPress={() => handleSelect(item)}
+        style={[styles.contactRow, { borderBottomColor: colors.borderLight }]}
+      >
+        <AppIcon name="account-circle" size={32} color={colors.iconSecondary} />
+        <AppText variant="body">{item.name}</AppText>
+      </Pressable>
+    ),
+    [handleSelect, colors],
+  );
 
   return (
     <View style={styles.container}>
@@ -101,32 +157,38 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
             />
           </View>
           <FlatList
-            data={results}
+            data={filteredContacts}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => {
-                  onSelect(item);
-                  setVisible(false);
-                  setQuery("");
-                  setResults([]);
-                }}
-                style={[styles.contactRow, { borderBottomColor: colors.borderLight }]}
-              >
-                <AppIcon name="account-circle" size={32} color={colors.iconSecondary} />
-                <AppText variant="body">{item.name}</AppText>
-              </Pressable>
-            )}
+            ListHeaderComponent={
+              frequents.length > 0 ? (
+                <View>
+                  <AppText
+                    variant="label"
+                    color={colors.textSecondary}
+                    style={styles.sectionHeader}
+                  >
+                    {t("contacts.frequents")}
+                  </AppText>
+                  {frequents.map((item) => (
+                    <View key={item.id}>{renderContactRow(item)}</View>
+                  ))}
+                  <AppText
+                    variant="label"
+                    color={colors.textSecondary}
+                    style={styles.sectionHeader}
+                  >
+                    {t("contacts.allContacts")}
+                  </AppText>
+                </View>
+              ) : null
+            }
+            renderItem={({ item }) => renderContactRow(item)}
             ListEmptyComponent={
               query.length >= 2 ? (
                 <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
                   {t("contacts.noContacts")}
                 </AppText>
-              ) : (
-                <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
-                  {t("contacts.typeToSearch")}
-                </AppText>
-              )
+              ) : null
             }
           />
         </SafeAreaView>
@@ -157,6 +219,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   searchWrap: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  sectionHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
   contactRow: {
     flexDirection: "row",
     alignItems: "center",

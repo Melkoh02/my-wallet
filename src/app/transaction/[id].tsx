@@ -8,11 +8,19 @@ import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { CategoryPill } from "@/components/molecules/CategoryPill";
 import { AppText } from "@/components/atoms/AppText";
 import { AppButton } from "@/components/atoms/AppButton";
+import { AppIcon } from "@/components/atoms/AppIcon";
 import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
-import { getTransactionById, deleteTransaction } from "@/db/queries/transactions";
+import {
+  getTransactionById,
+  deleteTransaction,
+  createTransaction,
+} from "@/db/queries/transactions";
+import { db } from "@/db/client";
+import { transactions } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { formatDate, formatTime } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
@@ -22,17 +30,20 @@ export default function TransactionDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { invalidate } = useDataRefresh();
+  const { invalidate, revisions } = useDataRefresh();
   const [txn, setTxn] = useState<TransactionWithRelations | null>(null);
   const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
     if (id) {
-      getTransactionById(parseInt(id, 10)).then((t) => setTxn(t ?? null));
+      getTransactionById(parseInt(id, 10)).then((result) => setTxn(result ?? null));
     }
-  }, [id]);
+  }, [id, revisions.transactions]);
 
   if (!txn) return null;
+
+  const hasCashback = (txn.cashbackAmount ?? 0) > 0;
+  const cashbackFulfilled = hasCashback && txn.linkedTransactionId != null;
 
   const handleDelete = async () => {
     setShowDelete(false);
@@ -41,13 +52,42 @@ export default function TransactionDetailScreen() {
     router.back();
   };
 
+  const handleConfirmCashback = async () => {
+    if (!txn.cashbackAmount || !txn.cashbackAccountId) return;
+
+    const cashbackTxn = await createTransaction(
+      {
+        type: "income",
+        amount: txn.cashbackAmount,
+        description: `Cashback: ${txn.description}`.trim(),
+        accountId: txn.cashbackAccountId,
+        date: new Date().toISOString().slice(0, 10),
+        time: new Date().toTimeString().slice(0, 5),
+        linkedTransactionId: txn.id,
+      },
+      [],
+    );
+
+    await db
+      .update(transactions)
+      .set({ linkedTransactionId: cashbackTxn.id })
+      .where(eq(transactions.id, txn.id));
+
+    invalidate("transactions", "accounts");
+  };
+
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title={t("transactions.transaction")} onBack={() => router.back()} />
+      <HeaderBar
+        title={t("transactions.transaction")}
+        onBack={() => router.back()}
+        rightIcon="pencil"
+        onRightPress={() => router.push(`/transaction/form?id=${txn.id}`)}
+      />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.amountSection}>
           <AppText variant="caption" color={colors.textSecondary}>
-            {txn.type.charAt(0).toUpperCase() + txn.type.slice(1)}
+            {t(`transactionForm.${txn.type}`)}
           </AppText>
           <AmountDisplay
             amount={txn.amount}
@@ -86,12 +126,44 @@ export default function TransactionDetailScreen() {
               {txn.subcategoryList.map((sub) => (
                 <CategoryPill
                   key={sub.id}
-                  name={`${sub.categoryName} › ${sub.name}`}
+                  name={`${sub.categoryName} \u203A ${sub.name}`}
                   icon={sub.categoryIcon}
                   color={sub.categoryColor}
                 />
               ))}
             </View>
+          </View>
+        )}
+
+        {hasCashback && (
+          <View
+            style={[
+              styles.cashbackSection,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.cashbackRow}>
+              <AppIcon name="cash-refund" size={20} color={colors.income} />
+              <AppText variant="label" style={styles.flex}>
+                {t("settings.cashback")}
+              </AppText>
+              <AmountDisplay amount={txn.cashbackAmount!} type="income" variant="label" />
+            </View>
+            {cashbackFulfilled ? (
+              <View style={styles.cashbackRow}>
+                <AppIcon name="check-circle" size={18} color={colors.success} />
+                <AppText variant="bodySmall" color={colors.success}>
+                  {t("transactionForm.cashbackConfirmed")}
+                </AppText>
+              </View>
+            ) : (
+              <AppButton
+                title={t("transactionForm.confirmCashback")}
+                variant="secondary"
+                icon="check"
+                onPress={handleConfirmCashback}
+              />
+            )}
           </View>
         )}
 
@@ -146,6 +218,18 @@ const styles = StyleSheet.create({
   pills: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  flex: { flex: 1 },
+  cashbackSection: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  cashbackRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
 });

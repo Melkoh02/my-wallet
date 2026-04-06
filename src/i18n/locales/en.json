@@ -21,7 +21,8 @@
     "success": "Success",
     "error": "Error",
     "working": "Working...",
-    "noResults": "No results"
+    "noResults": "No results",
+    "select": "Select..."
   },
   "home": {
     "title": "My Wallet",
@@ -101,6 +102,7 @@
   },
   "transactionForm": {
     "newTransaction": "New Transaction",
+    "editTransaction": "Edit Transaction",
     "expense": "Expense",
     "income": "Income",
     "transfer": "Transfer",
@@ -120,7 +122,11 @@
     "locationFailed": "Could not get location. Make sure location services are enabled.",
     "contact": "Contact",
     "selectContact": "Select contact...",
-    "noAccounts": "Add an account first to create transactions"
+    "noAccounts": "Add an account first to create transactions",
+    "instantCashback": "Instant cashback",
+    "confirmCashback": "Confirm Cashback Received",
+    "cashbackConfirmed": "Cashback received",
+    "cashbackPending": "Cashback pending"
   },
   "recurring": {
     "title": "Recurring",

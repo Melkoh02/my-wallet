@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { View, ScrollView, StyleSheet, Pressable } from "react-native";
+import { View, ScrollView, Switch, Modal, FlatList, Pressable, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
-import { Chip } from "@/components/atoms/Chip";
 import { DatePicker } from "@/components/molecules/DatePicker";
 import { TimePicker } from "@/components/molecules/TimePicker";
 import { CategoryPicker } from "@/components/organisms/CategoryPicker";
@@ -18,53 +18,176 @@ import type { Account, NewTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 import type { TransactionType } from "@/types";
 
+export type TransactionFormData = NewTransaction & {
+  /** Cashback info — null if no cashback */
+  cashbackEnabled: boolean;
+  cashbackMode: "percent" | "flat";
+  cashbackValue: number;
+  instantCashback: boolean;
+};
+
 type TransactionFormProps = {
   accounts: Account[];
   categories: CategoryWithSubs[];
-  onSubmit: (data: NewTransaction, subcategoryIds: number[]) => void;
+  onSubmit: (data: TransactionFormData, subcategoryIds: number[]) => void;
   initialType?: TransactionType;
+  initialData?: TransactionFormData & { subcategoryIds: number[] };
   locationEnabled?: boolean;
 };
 
+/* ---------- Account Picker Modal ---------- */
+function AccountPickerModal({
+  visible,
+  accounts,
+  selected,
+  onSelect,
+  onClose,
+  title,
+}: {
+  visible: boolean;
+  accounts: Account[];
+  selected: number | null;
+  onSelect: (id: number) => void;
+  onClose: () => void;
+  title: string;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={[modalStyles.container, { backgroundColor: colors.background }]}>
+        <View style={modalStyles.header}>
+          <AppText variant="h3">{title}</AppText>
+          <Pressable onPress={onClose}>
+            <AppIcon name="close" size={24} color={colors.icon} />
+          </Pressable>
+        </View>
+        <FlatList
+          data={accounts}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => {
+                onSelect(item.id);
+                onClose();
+              }}
+              style={({ pressed }) => [
+                modalStyles.row,
+                {
+                  backgroundColor: pressed
+                    ? colors.borderLight
+                    : item.id === selected
+                      ? colors.surface
+                      : "transparent",
+                },
+              ]}
+            >
+              <View style={[modalStyles.iconWrap, { backgroundColor: item.color + "20" }]}>
+                <AppIcon name={item.icon} size={20} color={item.color} />
+              </View>
+              <View style={modalStyles.rowInfo}>
+                <AppText variant="body">{item.name}</AppText>
+                {item.institution ? (
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    {item.institution}
+                  </AppText>
+                ) : null}
+              </View>
+              {item.id === selected && <AppIcon name="check" size={20} color={colors.primary} />}
+            </Pressable>
+          )}
+        />
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+/* ---------- Main Form ---------- */
 export function TransactionForm({
   accounts,
   categories,
   onSubmit,
   initialType = "expense",
+  initialData,
   locationEnabled = false,
 }: TransactionFormProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const [type, setType] = useState<TransactionType>(initialType);
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [accountId, setAccountId] = useState<number | null>(accounts[0]?.id ?? null);
-  const [toAccountId, setToAccountId] = useState<number | null>(null);
-  const [date, setDate] = useState(todayDateString());
-  const [time, setTime] = useState(nowTimeString());
-  const [subcategoryIds, setSubcategoryIds] = useState<number[]>([]);
-  const [notes, setNotes] = useState("");
-  const [cashbackPercent, setCashbackPercent] = useState("");
-  const [cashbackAccountId, setCashbackAccountId] = useState<number | null>(null);
-  const [contact, setContact] = useState<{ id: string; name: string } | null>(null);
+
+  // Core fields
+  const [type, setType] = useState<TransactionType>(
+    (initialData?.type as TransactionType) ?? initialType,
+  );
+  const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [accountId, setAccountId] = useState<number | null>(
+    initialData?.accountId ?? accounts[0]?.id ?? null,
+  );
+  const [toAccountId, setToAccountId] = useState<number | null>(initialData?.toAccountId ?? null);
+  const [date, setDate] = useState(initialData?.date ?? todayDateString());
+  const [time, setTime] = useState(initialData?.time ?? nowTimeString());
+  const [subcategoryIds, setSubcategoryIds] = useState<number[]>(initialData?.subcategoryIds ?? []);
+  const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [contact, setContact] = useState<{ id: string; name: string } | null>(
+    initialData?.contactId
+      ? { id: initialData.contactId, name: initialData.contactName ?? "" }
+      : null,
+  );
+
+  // Cashback
+  const [cashbackEnabled, setCashbackEnabled] = useState(initialData?.cashbackEnabled ?? false);
+  const [cashbackMode, setCashbackMode] = useState<"percent" | "flat">(
+    initialData?.cashbackMode ?? "percent",
+  );
+  const [cashbackValue, setCashbackValue] = useState(initialData?.cashbackValue?.toString() ?? "");
+  const [cashbackAccountId, setCashbackAccountId] = useState<number | null>(
+    initialData?.cashbackAccountId ?? null,
+  );
+  const [instantCashback, setInstantCashback] = useState(initialData?.instantCashback ?? false);
+
+  // Location
   const [locationLoading, setLocationLoading] = useState(false);
   const [location, setLocation] = useState<{
     latitude: number;
     longitude: number;
     name?: string;
-  } | null>(null);
-
+  } | null>(
+    initialData?.latitude != null
+      ? {
+          latitude: initialData.latitude,
+          longitude: initialData.longitude!,
+          name: initialData.locationName ?? undefined,
+        }
+      : null,
+  );
   const [locationError, setLocationError] = useState("");
+
+  // Account picker modals
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [showToAccountPicker, setShowToAccountPicker] = useState(false);
+  const [showCashbackAccountPicker, setShowCashbackAccountPicker] = useState(false);
+
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const selectedToAccount = accounts.find((a) => a.id === toAccountId);
+  const selectedCashbackAccount = accounts.find((a) => a.id === cashbackAccountId);
+
+  const computedCashback = (() => {
+    const amt = parseFloat(amount) || 0;
+    const val = parseFloat(cashbackValue) || 0;
+    if (!cashbackEnabled || val <= 0 || amt <= 0) return 0;
+    return cashbackMode === "percent" ? Math.round((val / 100) * amt * 100) / 100 : val;
+  })();
 
   const handleAddLocation = async () => {
     setLocationLoading(true);
     setLocationError("");
     const loc = await getCurrentLocation();
-    if (loc) {
-      setLocation(loc);
-    } else {
-      setLocationError(t("transactionForm.locationFailed"));
-    }
+    if (loc) setLocation(loc);
+    else setLocationError(t("transactionForm.locationFailed"));
     setLocationLoading(false);
   };
 
@@ -82,16 +205,17 @@ export function TransactionForm({
         date,
         time,
         notes: notes.trim() || null,
-        cashbackAmount:
-          type === "expense" && cashbackPercent
-            ? Math.round(((parseFloat(cashbackPercent) || 0) / 100) * parsed * 100) / 100
-            : null,
-        cashbackAccountId: type === "expense" ? cashbackAccountId : null,
         contactId: contact?.id ?? null,
         contactName: contact?.name ?? null,
         latitude: location?.latitude ?? null,
         longitude: location?.longitude ?? null,
         locationName: location?.name ?? null,
+        cashbackAmount: cashbackEnabled && computedCashback > 0 ? computedCashback : null,
+        cashbackAccountId: cashbackEnabled ? cashbackAccountId : null,
+        cashbackEnabled,
+        cashbackMode,
+        cashbackValue: parseFloat(cashbackValue) || 0,
+        instantCashback,
       },
       subcategoryIds,
     );
@@ -125,11 +249,7 @@ export function TransactionForm({
               ]}
             >
               <AppText variant="label" color={isActive ? tColor : colors.textSecondary}>
-                {tp === "expense"
-                  ? t("transactionForm.expense")
-                  : tp === "income"
-                    ? t("transactionForm.income")
-                    : t("transactionForm.transfer")}
+                {t(`transactionForm.${tp}`)}
               </AppText>
             </Pressable>
           );
@@ -143,7 +263,6 @@ export function TransactionForm({
         keyboardType="decimal-pad"
         placeholder="0.00"
       />
-
       <AppInput
         label={t("transactionForm.description")}
         value={description}
@@ -151,7 +270,7 @@ export function TransactionForm({
         placeholder={t("transactionForm.descriptionPlaceholder")}
       />
 
-      {/* Account selector */}
+      {/* Account selector — modal based */}
       {accounts.length === 0 ? (
         <View
           style={[
@@ -166,42 +285,62 @@ export function TransactionForm({
         </View>
       ) : (
         <>
-          <View style={styles.section}>
-            <AppText variant="label" color={colors.textSecondary}>
+          <Pressable
+            onPress={() => setShowAccountPicker(true)}
+            style={[
+              styles.selectInput,
+              { borderColor: colors.border, backgroundColor: colors.surface },
+            ]}
+          >
+            <AppText variant="label" color={colors.textSecondary} style={styles.selectLabel}>
               {type === "transfer"
                 ? t("transactionForm.fromAccount")
                 : t("transactionForm.account")}
             </AppText>
-            <View style={styles.chipRow}>
-              {accounts.map((acc) => (
-                <Chip
-                  key={acc.id}
-                  label={acc.name}
-                  selected={accountId === acc.id}
-                  onPress={() => setAccountId(acc.id)}
-                />
-              ))}
+            <View style={styles.selectValue}>
+              {selectedAccount ? (
+                <>
+                  <AppIcon name={selectedAccount.icon} size={18} color={selectedAccount.color} />
+                  <AppText variant="body">{selectedAccount.name}</AppText>
+                </>
+              ) : (
+                <AppText variant="body" color={colors.placeholder}>
+                  {t("common.select")}
+                </AppText>
+              )}
+              <AppIcon name="chevron-down" size={18} color={colors.iconSecondary} />
             </View>
-          </View>
+          </Pressable>
 
           {type === "transfer" && (
-            <View style={styles.section}>
-              <AppText variant="label" color={colors.textSecondary}>
+            <Pressable
+              onPress={() => setShowToAccountPicker(true)}
+              style={[
+                styles.selectInput,
+                { borderColor: colors.border, backgroundColor: colors.surface },
+              ]}
+            >
+              <AppText variant="label" color={colors.textSecondary} style={styles.selectLabel}>
                 {t("transactionForm.toAccount")}
               </AppText>
-              <View style={styles.chipRow}>
-                {accounts
-                  .filter((a) => a.id !== accountId)
-                  .map((acc) => (
-                    <Chip
-                      key={acc.id}
-                      label={acc.name}
-                      selected={toAccountId === acc.id}
-                      onPress={() => setToAccountId(acc.id)}
+              <View style={styles.selectValue}>
+                {selectedToAccount ? (
+                  <>
+                    <AppIcon
+                      name={selectedToAccount.icon}
+                      size={18}
+                      color={selectedToAccount.color}
                     />
-                  ))}
+                    <AppText variant="body">{selectedToAccount.name}</AppText>
+                  </>
+                ) : (
+                  <AppText variant="body" color={colors.placeholder}>
+                    {t("common.select")}
+                  </AppText>
+                )}
+                <AppIcon name="chevron-down" size={18} color={colors.iconSecondary} />
               </View>
-            </View>
+            </Pressable>
           )}
         </>
       )}
@@ -213,11 +352,8 @@ export function TransactionForm({
           onSelectionChange={setSubcategoryIds}
         />
       )}
-
-      {/* Contact - only for income/expense */}
       {type !== "transfer" && <ContactPicker selected={contact} onSelect={setContact} />}
 
-      {/* Date & Time */}
       <View style={styles.row}>
         <View style={styles.halfInput}>
           <DatePicker label={t("transactionForm.date")} value={date} onChange={setDate} />
@@ -227,13 +363,12 @@ export function TransactionForm({
         </View>
       </View>
 
-      {/* Location stamp */}
       {locationEnabled && (
         <View style={styles.section}>
           {location ? (
             <View style={styles.locationRow}>
               <AppText variant="bodySmall" color={colors.textSecondary} style={styles.locationText}>
-                📍{" "}
+                {"📍 "}
                 {location.name ||
                   `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
               </AppText>
@@ -277,63 +412,181 @@ export function TransactionForm({
 
       {/* Cashback — expense only */}
       {type === "expense" && accounts.length > 0 && (
-        <View style={styles.section}>
-          <AppText variant="label" color={colors.textSecondary}>
-            {t("settings.cashback")}
-          </AppText>
-          <View style={styles.row}>
-            <View style={styles.halfInput}>
-              <AppInput
-                label={t("settings.cashbackPercentage")}
-                value={cashbackPercent}
-                onChangeText={setCashbackPercent}
-                keyboardType="decimal-pad"
-                placeholder="0"
-              />
-            </View>
-            {cashbackPercent && parseFloat(amount) > 0 ? (
-              <View style={styles.halfInput}>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  {t("settings.cashbackFlat")}
-                </AppText>
-                <AppText variant="body" color={colors.income}>
-                  {formatCurrency(
-                    Math.round(
-                      ((parseFloat(cashbackPercent) || 0) / 100) * (parseFloat(amount) || 0) * 100,
-                    ) / 100,
-                  )}
-                </AppText>
-              </View>
-            ) : null}
+        <View
+          style={[
+            styles.cashbackCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.cashbackHeader}>
+            <AppIcon name="cash-refund" size={20} color={colors.income} />
+            <AppText variant="label" style={styles.flex}>
+              {t("settings.cashback")}
+            </AppText>
+            <Switch value={cashbackEnabled} onValueChange={setCashbackEnabled} />
           </View>
-          {cashbackPercent ? (
-            <View style={styles.section}>
-              <AppText variant="caption" color={colors.textSecondary}>
-                {t("settings.cashbackAccount")}
-              </AppText>
-              <View style={styles.chipRow}>
-                {accounts.map((acc) => (
-                  <Chip
-                    key={acc.id}
-                    label={acc.name}
-                    selected={cashbackAccountId === acc.id}
-                    onPress={() => setCashbackAccountId(acc.id)}
+
+          {cashbackEnabled && (
+            <View style={styles.cashbackBody}>
+              {/* Mode toggle: % or flat */}
+              <View style={styles.modeRow}>
+                <Pressable
+                  onPress={() => setCashbackMode("percent")}
+                  style={[
+                    styles.modeBtn,
+                    {
+                      backgroundColor:
+                        cashbackMode === "percent" ? colors.primary + "18" : colors.background,
+                      borderColor: cashbackMode === "percent" ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <AppText
+                    variant="label"
+                    color={cashbackMode === "percent" ? colors.primary : colors.textSecondary}
+                  >
+                    %
+                  </AppText>
+                </Pressable>
+                <Pressable
+                  onPress={() => setCashbackMode("flat")}
+                  style={[
+                    styles.modeBtn,
+                    {
+                      backgroundColor:
+                        cashbackMode === "flat" ? colors.primary + "18" : colors.background,
+                      borderColor: cashbackMode === "flat" ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <AppText
+                    variant="label"
+                    color={cashbackMode === "flat" ? colors.primary : colors.textSecondary}
+                  >
+                    $
+                  </AppText>
+                </Pressable>
+                <View style={styles.flex}>
+                  <AppInput
+                    value={cashbackValue}
+                    onChangeText={setCashbackValue}
+                    keyboardType="decimal-pad"
+                    placeholder={cashbackMode === "percent" ? "e.g. 3" : "e.g. 5.00"}
                   />
-                ))}
+                </View>
+              </View>
+
+              {/* Computed amount preview */}
+              {computedCashback > 0 && (
+                <AppText variant="bodySmall" color={colors.income}>
+                  {t("settings.cashback")}: {formatCurrency(computedCashback)}
+                </AppText>
+              )}
+
+              {/* Cashback account — modal picker */}
+              <Pressable
+                onPress={() => setShowCashbackAccountPicker(true)}
+                style={[
+                  styles.selectInput,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                ]}
+              >
+                <AppText variant="caption" color={colors.textSecondary} style={styles.selectLabel}>
+                  {t("settings.cashbackAccount")}
+                </AppText>
+                <View style={styles.selectValue}>
+                  {selectedCashbackAccount ? (
+                    <>
+                      <AppIcon
+                        name={selectedCashbackAccount.icon}
+                        size={16}
+                        color={selectedCashbackAccount.color}
+                      />
+                      <AppText variant="bodySmall">{selectedCashbackAccount.name}</AppText>
+                    </>
+                  ) : (
+                    <AppText variant="bodySmall" color={colors.placeholder}>
+                      {t("common.select")}
+                    </AppText>
+                  )}
+                  <AppIcon name="chevron-down" size={16} color={colors.iconSecondary} />
+                </View>
+              </Pressable>
+
+              {/* Instant cashback toggle */}
+              <View style={styles.instantRow}>
+                <AppText variant="bodySmall" color={colors.textSecondary} style={styles.flex}>
+                  {t("transactionForm.instantCashback")}
+                </AppText>
+                <Switch value={instantCashback} onValueChange={setInstantCashback} />
               </View>
             </View>
-          ) : null}
+          )}
         </View>
       )}
 
       <AppButton
-        title={t("transactionForm.saveTransaction")}
+        title={initialData ? t("accounts.saveChanges") : t("transactionForm.saveTransaction")}
         onPress={handleSubmit}
         disabled={!isValid}
+      />
+
+      {/* Account picker modals */}
+      <AccountPickerModal
+        visible={showAccountPicker}
+        accounts={accounts}
+        selected={accountId}
+        onSelect={setAccountId}
+        onClose={() => setShowAccountPicker(false)}
+        title={
+          type === "transfer" ? t("transactionForm.fromAccount") : t("transactionForm.account")
+        }
+      />
+      <AccountPickerModal
+        visible={showToAccountPicker}
+        accounts={accounts.filter((a) => a.id !== accountId)}
+        selected={toAccountId}
+        onSelect={setToAccountId}
+        onClose={() => setShowToAccountPicker(false)}
+        title={t("transactionForm.toAccount")}
+      />
+      <AccountPickerModal
+        visible={showCashbackAccountPicker}
+        accounts={accounts}
+        selected={cashbackAccountId}
+        onSelect={setCashbackAccountId}
+        onClose={() => setShowCashbackAccountPicker(false)}
+        title={t("settings.cashbackAccount")}
       />
     </ScrollView>
   );
 }
+
+const modalStyles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowInfo: { flex: 1, gap: 2 },
+});
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
@@ -350,18 +603,36 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   row: { flexDirection: "row", gap: spacing.md },
   halfInput: { flex: 1 },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  locationText: { flex: 1 },
+  flex: { flex: 1 },
   noAccountsCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
     padding: spacing.lg,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  selectInput: {
     borderWidth: 1,
     borderRadius: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
+  selectLabel: { marginBottom: 2 },
+  selectValue: { flexDirection: "row", alignItems: "center", gap: spacing.sm, minHeight: 32 },
+  locationRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  locationText: { flex: 1 },
+  cashbackCard: { borderWidth: 1, borderRadius: 12, padding: spacing.md, gap: spacing.md },
+  cashbackHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  cashbackBody: { gap: spacing.md },
+  modeRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  modeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  instantRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
 });

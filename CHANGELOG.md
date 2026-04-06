@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-04-06
+
+### Fixed
+- Release APK no longer connects to Metro when dev build was previously used on the same device (separate URL schemes: `mywallet` for release, `mywallet-dev` for dev)
+- Both dev and release builds can coexist on the same device without interference
+
+### Changed
+- Backup list: each backup now has a visible restore button (replaces hidden long-press)
+- Backup list: each backup has a visible delete button
+- Replaced raw backup directory path with explanatory note about private storage
+- Extracted shared `restoreData()` function for atomic backup restoration
+- Added `npm run android:release` script for one-command release builds
+
 ## [1.0.1] - 2026-04-06
 
 ### Fixed
@@ -202,5 +215,6 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.0.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.0

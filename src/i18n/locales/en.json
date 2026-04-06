@@ -231,7 +231,10 @@
     "noBackups": "No backups yet",
     "auto": "Auto",
     "manual": "Manual",
-    "storageNote": "Backups are stored in the app\u2019s private storage. Use Export to save a copy to your device or share it."
+    "storageNote": "Backups are stored in the app\u2019s private storage. Use Export to save a copy to your device or share it.",
+    "restore": "Restore",
+    "restoreTitle": "Restore Backup",
+    "restoreMessage": "This will replace ALL current data with this backup. Are you sure?"
   },
   "contacts": {
     "selectContact": "Select Contact",

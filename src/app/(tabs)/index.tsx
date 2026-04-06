@@ -58,18 +58,12 @@ export default function HomeScreen() {
 
       {/* Balance card with eye toggle */}
       <View style={[styles.balanceCard, { backgroundColor: colors.primary + "10" }]}>
-        <View style={styles.balanceHeader}>
-          <AppText variant="caption" color={colors.textSecondary}>
-            {t("home.netWorth")} ({totals.displayCurrency})
-          </AppText>
-          <Pressable onPress={toggleHideAmounts} hitSlop={8}>
-            <AppIcon
-              name={hideAmounts ? "eye-off" : "eye"}
-              size={20}
-              color={colors.iconSecondary}
-            />
-          </Pressable>
-        </View>
+        <AppText variant="caption" color={colors.textSecondary}>
+          {t("home.netWorth")} ({totals.displayCurrency})
+        </AppText>
+        <Pressable onPress={toggleHideAmounts} hitSlop={8} style={styles.eyeButton}>
+          <AppIcon name={hideAmounts ? "eye-off" : "eye"} size={20} color={colors.iconSecondary} />
+        </Pressable>
         <AmountDisplay
           amount={totals.netWorth}
           currency={totals.displayCurrency}
@@ -190,10 +184,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: spacing.xs,
   },
-  balanceHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+  eyeButton: {
+    position: "absolute",
+    top: spacing.lg,
+    right: spacing.lg,
   },
   summaryRow: {
     flexDirection: "row",

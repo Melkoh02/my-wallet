@@ -1,4 +1,4 @@
-import { TextInput, View, StyleSheet, type TextInputProps } from "react-native";
+import { TextInput, View, StyleSheet, type TextInputProps, type ViewStyle } from "react-native";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppText } from "./AppText";
 import { spacing } from "@/theme/spacing";
@@ -7,13 +7,14 @@ import { typography } from "@/theme/typography";
 type AppInputProps = TextInputProps & {
   label?: string;
   error?: string;
+  containerStyle?: ViewStyle;
 };
 
-export function AppInput({ label, error, style, ...props }: AppInputProps) {
+export function AppInput({ label, error, style, containerStyle, ...props }: AppInputProps) {
   const { colors } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {label && (
         <AppText variant="label" color={colors.textSecondary}>
           {label}

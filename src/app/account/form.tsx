@@ -1,5 +1,6 @@
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
+import { Alert } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ModalLayout } from "@/components/templates/ModalLayout";
 import { AccountForm } from "@/components/organisms/AccountForm";
@@ -9,6 +10,7 @@ import {
   updateAccount,
   getAccountById,
   archiveAccount,
+  deleteAccountPermanently,
 } from "@/db/queries/accounts";
 import type { Account, NewAccount } from "@/db/schema";
 
@@ -39,11 +41,34 @@ export default function AccountFormScreen() {
     router.back();
   };
 
-  const handleDelete = async () => {
-    if (initial) {
-      await archiveAccount(initial.id);
-      invalidate("accounts", "transactions");
-      router.back();
+  const handleDelete = (mode: "archive" | "delete") => {
+    if (!initial) return;
+
+    if (mode === "archive") {
+      Alert.alert(t("accounts.archiveAccount"), t("accounts.archiveMessage"), [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("accounts.archiveAccount"),
+          onPress: async () => {
+            await archiveAccount(initial.id);
+            invalidate("accounts", "transactions");
+            router.back();
+          },
+        },
+      ]);
+    } else {
+      Alert.alert(t("accounts.deleteAccount"), t("accounts.deleteMessage"), [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            await deleteAccountPermanently(initial.id);
+            invalidate("accounts", "transactions");
+            router.back();
+          },
+        },
+      ]);
     }
   };
 

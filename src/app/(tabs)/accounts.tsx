@@ -1,47 +1,81 @@
-import { FlatList, StyleSheet } from "react-native";
+import { useState } from "react";
+import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AccountCard } from "@/components/organisms/AccountCard";
-import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
+import { AppText } from "@/components/atoms/AppText";
+import { AppIcon } from "@/components/atoms/AppIcon";
 import { FAB } from "@/components/atoms/FAB";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useTheme } from "@/providers/ThemeProvider";
+import { useDataRefresh } from "@/providers/DataRefreshProvider";
+import { unarchiveAccount } from "@/db/queries/accounts";
 import { spacing } from "@/theme/spacing";
 
 export default function AccountsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { accounts, totals, loading } = useAccounts();
+  const { colors } = useTheme();
+  const { invalidate } = useDataRefresh();
+  const [showArchived, setShowArchived] = useState(false);
+  const { accounts: activeAccounts, loading } = useAccounts(true);
+  const { accounts: allAccounts } = useAccounts(false);
+  const archivedAccounts = allAccounts.filter((a) => !a.isActive);
+
+  const handleUnarchive = async (id: number) => {
+    await unarchiveAccount(id);
+    invalidate("accounts");
+  };
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title={t("accounts.title")} />
+      <HeaderBar
+        title={t("accounts.title")}
+        rightIcon={
+          archivedAccounts.length > 0 ? (showArchived ? "archive-off" : "archive") : undefined
+        }
+        onRightPress={archivedAccounts.length > 0 ? () => setShowArchived((p) => !p) : undefined}
+      />
       <FlatList
-        data={accounts}
+        data={showArchived ? archivedAccounts : activeAccounts}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
+        renderItem={({ item }) =>
+          showArchived ? (
+            <View style={[styles.archivedRow, { borderColor: colors.border }]}>
+              <AccountCard account={item} onPress={() => router.push(`/account/${item.id}`)} />
+              <Pressable onPress={() => handleUnarchive(item.id)} style={styles.unarchiveBtn}>
+                <AppIcon name="archive-arrow-up" size={20} color={colors.primary} />
+                <AppText variant="caption" color={colors.primary}>
+                  {t("accounts.unarchive")}
+                </AppText>
+              </Pressable>
+            </View>
+          ) : (
+            <AccountCard account={item} onPress={() => router.push(`/account/${item.id}`)} />
+          )
+        }
         ListHeaderComponent={
-          accounts.length > 0 ? (
-            <AmountDisplay amount={totals.netWorth} variant="amountLarge" style={styles.netWorth} />
+          showArchived ? (
+            <AppText variant="bodySmall" color={colors.textSecondary} style={styles.archivedHint}>
+              {t("accounts.archivedHint")}
+            </AppText>
           ) : null
         }
-        renderItem={({ item }) => (
-          <AccountCard account={item} onPress={() => router.push(`/account/${item.id}`)} />
-        )}
         ListEmptyComponent={
           loading ? null : (
             <EmptyState
-              icon="wallet"
-              title={t("accounts.noAccounts")}
-              description={t("accounts.addFirst")}
+              icon={showArchived ? "archive" : "wallet"}
+              title={showArchived ? t("accounts.noArchived") : t("accounts.noAccounts")}
+              description={showArchived ? undefined : t("accounts.addFirst")}
             />
           )
         }
-        ItemSeparatorComponent={() => <></>}
       />
-      <FAB onPress={() => router.push("/account/form")} />
+      {!showArchived && <FAB onPress={() => router.push("/account/form")} />}
     </ScreenLayout>
   );
 }
@@ -51,8 +85,18 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  netWorth: {
+  archivedRow: {
+    gap: spacing.xs,
+  },
+  unarchiveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  archivedHint: {
     textAlign: "center",
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
 });

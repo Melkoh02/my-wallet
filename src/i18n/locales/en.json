@@ -65,6 +65,8 @@
     "noAccounts": "No accounts yet",
     "addFirst": "Add your first account to get started",
     "currentBalance": "Current Balance",
+    "availableCredit": "Available Credit",
+    "debt": "Debt",
     "newAccount": "New Account",
     "editAccount": "Edit Account",
     "accountName": "Account Name",
@@ -79,6 +81,12 @@
     "saveChanges": "Save Changes",
     "createAccount": "Create Account",
     "archiveAccount": "Archive Account",
+    "archiveMessage": "Archived accounts are hidden from the main list but can be restored. Transactions are kept.",
+    "deleteAccount": "Delete Account",
+    "deleteMessage": "This will permanently delete the account and cannot be undone. Transactions referencing this account will remain but may show as 'Unknown'.",
+    "unarchive": "Restore",
+    "archivedHint": "These accounts are archived. Tap restore to bring them back.",
+    "noArchived": "No archived accounts",
     "credit": "Credit",
     "debit": "Debit",
     "savings": "Savings",
@@ -231,7 +239,9 @@
     "typeToSearch": "Type at least 2 characters to search",
     "permissionDenied": "Contact permission denied",
     "noTransactions": "No transactions",
-    "noTransactionsDesc": "No transactions found with this contact"
+    "noTransactionsDesc": "No transactions found with this contact",
+    "frequents": "Frequents",
+    "allContacts": "All Contacts"
   },
   "categoryPicker": {
     "title": "Select Categories",

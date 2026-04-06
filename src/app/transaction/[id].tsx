@@ -122,7 +122,6 @@ export default function TransactionDetailScreen() {
           {txn.locationName && (
             <DetailRow label={t("transactionForm.location")} value={txn.locationName} />
           )}
-          {txn.notes && <DetailRow label={t("transactionForm.notes")} value={txn.notes} />}
         </View>
 
         {txn.subcategoryList.length > 0 && (

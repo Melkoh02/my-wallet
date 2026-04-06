@@ -24,7 +24,7 @@ import {
   backups,
 } from "@/db/schema";
 import { getSetting } from "@/db/queries/settings";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 const BACKUP_DIR = `${documentDirectory}backups/`;
 const BACKUP_VERSION = 1;
@@ -104,7 +104,6 @@ export async function checkAndRunAutoBackup(): Promise<boolean> {
   const enabled = await getSetting("backup_enabled");
   if (enabled !== "true") return false;
 
-  // Check if we already backed up today
   const today = new Date().toISOString().slice(0, 10);
   const autoBackups = await db
     .select()
@@ -150,34 +149,47 @@ export async function importBackup(): Promise<{ success: boolean; error?: string
       return { success: false, error: "Invalid backup file format" };
     }
 
-    // Clear existing data (order matters for foreign keys)
-    await db.delete(transactionSubcategories);
-    await db.delete(recurringSubcategories);
-    await db.delete(cashbackRules);
-    await db.delete(transactions);
-    await db.delete(recurringTransactions);
-    await db.delete(subcategories);
-    await db.delete(categories);
-    await db.delete(accounts);
-    await db.delete(themes);
-    await db.delete(settings);
+    // Run entire import inside a transaction for atomicity.
+    // If anything fails, all changes are rolled back — no data loss.
+    await db.run(sql`BEGIN TRANSACTION`);
+    try {
+      // Clear existing data (order matters for foreign keys)
+      await db.delete(transactionSubcategories);
+      await db.delete(recurringSubcategories);
+      await db.delete(cashbackRules);
+      await db.delete(transactions);
+      await db.delete(recurringTransactions);
+      await db.delete(subcategories);
+      await db.delete(categories);
+      await db.delete(accounts);
+      await db.delete(themes);
+      await db.delete(settings);
 
-    // Restore data
-    if (data.accounts?.length) await db.insert(accounts).values(data.accounts);
-    if (data.categories?.length) await db.insert(categories).values(data.categories);
-    if (data.subcategories?.length) await db.insert(subcategories).values(data.subcategories);
-    if (data.transactions?.length) await db.insert(transactions).values(data.transactions);
-    if (data.transactionSubcategories?.length)
-      await db.insert(transactionSubcategories).values(data.transactionSubcategories);
-    if (data.recurringTransactions?.length)
-      await db.insert(recurringTransactions).values(data.recurringTransactions);
-    if (data.recurringSubcategories?.length)
-      await db.insert(recurringSubcategories).values(data.recurringSubcategories);
-    if (data.cashbackRules?.length) await db.insert(cashbackRules).values(data.cashbackRules);
-    if (data.themes?.length) await db.insert(themes).values(data.themes);
-    if (data.settings?.length) await db.insert(settings).values(data.settings);
+      // Restore data — skip missing keys gracefully for forward compatibility
+      if (data.accounts?.length) await db.insert(accounts).values(data.accounts);
+      if (data.categories?.length) await db.insert(categories).values(data.categories);
+      if (data.subcategories?.length) await db.insert(subcategories).values(data.subcategories);
+      if (data.transactions?.length) await db.insert(transactions).values(data.transactions);
+      if (data.transactionSubcategories?.length)
+        await db.insert(transactionSubcategories).values(data.transactionSubcategories);
+      if (data.recurringTransactions?.length)
+        await db.insert(recurringTransactions).values(data.recurringTransactions);
+      if (data.recurringSubcategories?.length)
+        await db.insert(recurringSubcategories).values(data.recurringSubcategories);
+      if (data.cashbackRules?.length) await db.insert(cashbackRules).values(data.cashbackRules);
+      if (data.themes?.length) await db.insert(themes).values(data.themes);
+      if (data.settings?.length) await db.insert(settings).values(data.settings);
 
-    return { success: true };
+      await db.run(sql`COMMIT`);
+      return { success: true };
+    } catch (e) {
+      // Rollback — original data is preserved
+      await db.run(sql`ROLLBACK`);
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : "Import failed — data was not modified",
+      };
+    }
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
   }

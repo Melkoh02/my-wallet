@@ -238,7 +238,7 @@ export function TransactionFilterModal({
           )}
 
           {/* From Accounts — collapsible */}
-          <Section title={t("transactions.fromAccounts")} colors={colors}>
+          <Section title="" colors={colors}>
             <Pressable
               onPress={() => setFromAccountsExpanded((p) => !p)}
               style={styles.collapsibleHeader}
@@ -274,7 +274,7 @@ export function TransactionFilterModal({
           </Section>
 
           {/* To Accounts — collapsible */}
-          <Section title={t("transactions.toAccounts")} colors={colors}>
+          <Section title="" colors={colors}>
             <Pressable
               onPress={() => setToAccountsExpanded((p) => !p)}
               style={styles.collapsibleHeader}
@@ -390,9 +390,11 @@ function Section({
 }) {
   return (
     <View style={styles.section}>
-      <AppText variant="label" color={colors.textSecondary}>
-        {title}
-      </AppText>
+      {title ? (
+        <AppText variant="label" color={colors.textSecondary}>
+          {title}
+        </AppText>
+      ) : null}
       {children}
       <Divider />
     </View>

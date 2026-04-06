@@ -54,8 +54,6 @@ export function TransactionForm({
     name?: string;
   } | null>(null);
 
-  const filteredCategories = categories;
-
   const [locationError, setLocationError] = useState("");
 
   const handleAddLocation = async () => {
@@ -210,7 +208,7 @@ export function TransactionForm({
 
       {type !== "transfer" && (
         <CategoryPicker
-          categories={filteredCategories}
+          categories={categories}
           selected={subcategoryIds}
           onSelectionChange={setSubcategoryIds}
         />

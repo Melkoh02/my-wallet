@@ -38,6 +38,22 @@ const CURRENCIES = [
   "PEN",
   "INR",
   "KRW",
+  "TWD",
+  "THB",
+  "SGD",
+  "HKD",
+  "NZD",
+  "SEK",
+  "NOK",
+  "DKK",
+  "PLN",
+  "CZK",
+  "HUF",
+  "TRY",
+  "ZAR",
+  "ILS",
+  "AED",
+  "SAR",
 ];
 
 const COLORS = [

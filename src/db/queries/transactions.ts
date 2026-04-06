@@ -285,7 +285,13 @@ export async function getCategorySummary(
     .innerJoin(categories, eq(subcategories.categoryId, categories.id))
     .where(inArray(transactionSubcategories.transactionId, txnIds));
 
-  // Group by category and sum amounts
+  // Count how many category links each transaction has to avoid double-counting
+  const linkCountMap = new Map<number, number>();
+  for (const link of links) {
+    linkCountMap.set(link.transactionId, (linkCountMap.get(link.transactionId) ?? 0) + 1);
+  }
+
+  // Group by category and sum amounts, dividing by link count
   const categoryMap = new Map<
     string,
     { categoryName: string; categoryColor: string; categoryIcon: string; total: number }
@@ -293,15 +299,16 @@ export async function getCategorySummary(
 
   for (const link of links) {
     const amount = amountMap.get(link.transactionId) ?? 0;
+    const linkCount = linkCountMap.get(link.transactionId) ?? 1;
     const existing = categoryMap.get(link.categoryName);
     if (existing) {
-      existing.total += amount;
+      existing.total += amount / linkCount;
     } else {
       categoryMap.set(link.categoryName, {
         categoryName: link.categoryName,
         categoryColor: link.categoryColor,
         categoryIcon: link.categoryIcon,
-        total: amount,
+        total: amount / linkCount,
       });
     }
   }
@@ -315,8 +322,8 @@ export async function getCategorySummary(
     }
   }
   if (uncategorizedTotal > 0) {
-    categoryMap.set("Uncategorized", {
-      categoryName: "Uncategorized",
+    categoryMap.set("__uncategorized__", {
+      categoryName: "__uncategorized__",
       categoryColor: "#9CA3AF",
       categoryIcon: "help-circle",
       total: uncategorizedTotal,

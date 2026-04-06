@@ -13,30 +13,14 @@ import { getMonthSummary, getDailySpending, getCategorySummary } from "@/db/quer
 import { formatCurrency } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
 
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
 export default function AnalyticsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { hideAmounts } = usePrivacy();
+  const { hideAmounts, maskAmount } = usePrivacy();
   const { revisions } = useDataRefresh();
 
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
 
   const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [categoryData, setCategoryData] = useState<
@@ -91,7 +75,7 @@ export default function AnalyticsScreen() {
           <AppIcon name="chevron-left" size={28} color={colors.primary} />
         </Pressable>
         <AppText variant="h3">
-          {MONTH_NAMES[month - 1]} {year}
+          {new Date(year, month - 1).toLocaleDateString(undefined, { month: "short" })} {year}
         </AppText>
         <Pressable onPress={goToNextMonth} hitSlop={12}>
           <AppIcon name="chevron-right" size={28} color={colors.primary} />
@@ -113,7 +97,7 @@ export default function AnalyticsScreen() {
                   {t("home.income")}
                 </AppText>
                 <AppText variant="label" color={colors.income}>
-                  {hideAmounts ? "••••" : formatCurrency(summary.income)}
+                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.income))}
                 </AppText>
               </View>
               <View style={styles.overviewRow}>
@@ -121,7 +105,7 @@ export default function AnalyticsScreen() {
                   {t("home.expenses")}
                 </AppText>
                 <AppText variant="label" color={colors.expense}>
-                  {hideAmounts ? "••••" : formatCurrency(summary.expense)}
+                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.expense))}
                 </AppText>
               </View>
               <View style={[styles.overviewRow, styles.netRow, { borderTopColor: colors.border }]}>
@@ -129,7 +113,7 @@ export default function AnalyticsScreen() {
                   {t("analytics.net")}
                 </AppText>
                 <AppText variant="label" color={summary.net >= 0 ? colors.income : colors.expense}>
-                  {hideAmounts ? "••••" : formatCurrency(summary.net)}
+                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.net))}
                 </AppText>
               </View>
             </View>
@@ -159,11 +143,13 @@ export default function AnalyticsScreen() {
                           />
                           <AppIcon name={cat.categoryIcon} size={18} color={cat.categoryColor} />
                           <AppText variant="body" numberOfLines={1} style={styles.categoryName}>
-                            {cat.categoryName}
+                            {cat.categoryName === "__uncategorized__"
+                              ? t("analytics.uncategorized")
+                              : cat.categoryName}
                           </AppText>
                         </View>
                         <AppText variant="label" color={colors.text}>
-                          {hideAmounts ? "••••" : formatCurrency(cat.total)}
+                          {hideAmounts ? "••••" : formatCurrency(maskAmount(cat.total))}
                         </AppText>
                       </View>
                       <View style={[styles.barBackground, { backgroundColor: colors.borderLight }]}>
@@ -225,7 +211,7 @@ export default function AnalyticsScreen() {
                         </View>
                       </View>
                       <AppText variant="caption" color={colors.text} style={styles.dailyAmount}>
-                        {hideAmounts ? "••••" : formatCurrency(day.total)}
+                        {hideAmounts ? "••••" : formatCurrency(maskAmount(day.total))}
                       </AppText>
                     </View>
                   );

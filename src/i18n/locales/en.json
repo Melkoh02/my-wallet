@@ -233,7 +233,8 @@
     "categoryBreakdown": "Category Breakdown",
     "dailySpending": "Daily Spending",
     "noData": "No data for this period",
-    "net": "Net"
+    "net": "Net",
+    "uncategorized": "Uncategorized"
   },
   "iconPicker": {
     "title": "Choose Icon",

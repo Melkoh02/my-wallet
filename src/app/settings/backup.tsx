@@ -66,15 +66,21 @@ export default function BackupScreen() {
 
   const handleManualBackup = async () => {
     setLoading(true);
-    await createBackup(false);
-    await loadData();
-    setLoading(false);
+    try {
+      await createBackup(false);
+      await loadData();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExport = async () => {
     setLoading(true);
-    await exportBackup();
-    setLoading(false);
+    try {
+      await exportBackup();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const confirmImport = async () => {

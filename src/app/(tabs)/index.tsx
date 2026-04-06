@@ -23,14 +23,6 @@ import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
 import type { RecurringTransaction } from "@/db/schema";
 
-const FREQ_LABELS: Record<string, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  biweekly: "Biweekly",
-  monthly: "Monthly",
-  yearly: "Yearly",
-};
-
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -136,7 +128,7 @@ export default function HomeScreen() {
                       {item.description}
                     </AppText>
                     <AppText variant="caption" color={colors.textTertiary}>
-                      {FREQ_LABELS[item.frequency]} · {formatDate(item.nextDate)}
+                      {t("recurring." + item.frequency)} · {formatDate(item.nextDate)}
                     </AppText>
                   </View>
                   <AmountDisplay

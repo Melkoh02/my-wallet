@@ -1,8 +1,10 @@
 import { Tabs } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/providers/ThemeProvider";
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
 
   return (
@@ -46,6 +48,15 @@ export default function TabLayout() {
           title: "Categories",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="shape" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: t("analytics.title"),
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="chart-bar" color={color} size={size} />
           ),
         }}
       />

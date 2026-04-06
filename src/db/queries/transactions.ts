@@ -235,3 +235,93 @@ export async function getMonthSummary(
 export async function getRecentTransactions(limit = 5): Promise<TransactionWithRelations[]> {
   return getTransactions({ limit, offset: 0 });
 }
+
+export async function getDailySpending(
+  year: number,
+  month: number,
+): Promise<{ date: string; total: number }[]> {
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+
+  const rows = await db
+    .select({
+      date: transactions.date,
+      total: sql<number>`SUM(${transactions.amount})`,
+    })
+    .from(transactions)
+    .where(and(like(transactions.date, `${monthStr}%`), eq(transactions.type, "expense")))
+    .groupBy(transactions.date)
+    .orderBy(transactions.date);
+
+  return rows;
+}
+
+export async function getCategorySummary(
+  year: number,
+  month: number,
+): Promise<{ categoryName: string; categoryColor: string; categoryIcon: string; total: number }[]> {
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+
+  // Get all expense transaction IDs for this month
+  const expenseTxns = await db
+    .select({ id: transactions.id, amount: transactions.amount })
+    .from(transactions)
+    .where(and(like(transactions.date, `${monthStr}%`), eq(transactions.type, "expense")));
+
+  if (expenseTxns.length === 0) return [];
+
+  const txnIds = expenseTxns.map((t) => t.id);
+  const amountMap = new Map(expenseTxns.map((t) => [t.id, t.amount]));
+
+  // Get subcategory-transaction links with category info
+  const links = await db
+    .select({
+      transactionId: transactionSubcategories.transactionId,
+      categoryName: categories.name,
+      categoryColor: categories.color,
+      categoryIcon: categories.icon,
+    })
+    .from(transactionSubcategories)
+    .innerJoin(subcategories, eq(transactionSubcategories.subcategoryId, subcategories.id))
+    .innerJoin(categories, eq(subcategories.categoryId, categories.id))
+    .where(inArray(transactionSubcategories.transactionId, txnIds));
+
+  // Group by category and sum amounts
+  const categoryMap = new Map<
+    string,
+    { categoryName: string; categoryColor: string; categoryIcon: string; total: number }
+  >();
+
+  for (const link of links) {
+    const amount = amountMap.get(link.transactionId) ?? 0;
+    const existing = categoryMap.get(link.categoryName);
+    if (existing) {
+      existing.total += amount;
+    } else {
+      categoryMap.set(link.categoryName, {
+        categoryName: link.categoryName,
+        categoryColor: link.categoryColor,
+        categoryIcon: link.categoryIcon,
+        total: amount,
+      });
+    }
+  }
+
+  // Handle uncategorized transactions
+  const categorizedTxnIds = new Set(links.map((l) => l.transactionId));
+  let uncategorizedTotal = 0;
+  for (const txn of expenseTxns) {
+    if (!categorizedTxnIds.has(txn.id)) {
+      uncategorizedTotal += txn.amount;
+    }
+  }
+  if (uncategorizedTotal > 0) {
+    categoryMap.set("Uncategorized", {
+      categoryName: "Uncategorized",
+      categoryColor: "#9CA3AF",
+      categoryIcon: "help-circle",
+      total: uncategorizedTotal,
+    });
+  }
+
+  return Array.from(categoryMap.values()).sort((a, b) => b.total - a.total);
+}

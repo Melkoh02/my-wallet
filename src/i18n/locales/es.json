@@ -40,7 +40,8 @@
     "addFirst": "Agrega tu primera transacci\u00f3n para empezar a registrar",
     "deleteTitle": "Eliminar Transacci\u00f3n",
     "deleteMessage": "Esta acci\u00f3n no se puede deshacer.",
-    "transaction": "Transacci\u00f3n"
+    "transaction": "Transacci\u00f3n",
+    "notSet": "Sin definir"
   },
   "accounts": {
     "title": "Cuentas",
@@ -102,7 +103,8 @@
     "gettingLocation": "Obteniendo ubicaci\u00f3n...",
     "locationFailed": "No se pudo obtener la ubicaci\u00f3n. Aseg\u00farate de que los servicios de ubicaci\u00f3n est\u00e9n activados.",
     "contact": "Contacto",
-    "selectContact": "Seleccionar contacto..."
+    "selectContact": "Seleccionar contacto...",
+    "noAccounts": "Agrega una cuenta primero para crear transacciones"
   },
   "recurring": {
     "title": "Recurrentes",
@@ -194,6 +196,14 @@
   "categoryPicker": {
     "title": "Seleccionar Categor\u00edas",
     "selectPlaceholder": "Seleccionar categor\u00edas..."
+  },
+  "analytics": {
+    "title": "Estadísticas",
+    "monthlyOverview": "Resumen Mensual",
+    "categoryBreakdown": "Desglose por Categoría",
+    "dailySpending": "Gastos Diarios",
+    "noData": "Sin datos para este período",
+    "net": "Neto"
   },
   "iconPicker": {
     "title": "Elegir \u00cdcono",

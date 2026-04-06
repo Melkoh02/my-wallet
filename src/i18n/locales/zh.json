@@ -40,7 +40,8 @@
     "addFirst": "\u6dfb\u52a0\u7b2c\u4e00\u7b14\u4ea4\u6613\u5f00\u59cb\u8bb0\u8d26",
     "deleteTitle": "\u5220\u9664\u4ea4\u6613",
     "deleteMessage": "\u6b64\u64cd\u4f5c\u65e0\u6cd5\u64a4\u9500\u3002",
-    "transaction": "\u4ea4\u6613"
+    "transaction": "\u4ea4\u6613",
+    "notSet": "\u672a\u8bbe\u7f6e"
   },
   "accounts": {
     "title": "\u8d26\u6237",
@@ -102,7 +103,8 @@
     "gettingLocation": "\u6b63\u5728\u83b7\u53d6\u4f4d\u7f6e...",
     "locationFailed": "\u65e0\u6cd5\u83b7\u53d6\u4f4d\u7f6e\u3002\u8bf7\u786e\u4fdd\u4f4d\u7f6e\u670d\u52a1\u5df2\u542f\u7528\u3002",
     "contact": "\u8054\u7cfb\u4eba",
-    "selectContact": "\u9009\u62e9\u8054\u7cfb\u4eba..."
+    "selectContact": "\u9009\u62e9\u8054\u7cfb\u4eba...",
+    "noAccounts": "\u8bf7\u5148\u6dfb\u52a0\u8d26\u6237\u4ee5\u521b\u5efa\u4ea4\u6613"
   },
   "recurring": {
     "title": "\u5b9a\u671f\u4ea4\u6613",
@@ -194,6 +196,14 @@
   "categoryPicker": {
     "title": "\u9009\u62e9\u5206\u7c7b",
     "selectPlaceholder": "\u9009\u62e9\u5206\u7c7b..."
+  },
+  "analytics": {
+    "title": "统计分析",
+    "monthlyOverview": "月度概览",
+    "categoryBreakdown": "分类明细",
+    "dailySpending": "每日支出",
+    "noData": "该时段暂无数据",
+    "net": "净额"
   },
   "iconPicker": {
     "title": "\u9009\u62e9\u56fe\u6807",

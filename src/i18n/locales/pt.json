@@ -40,7 +40,8 @@
     "addFirst": "Adicione sua primeira transa\u00e7\u00e3o para come\u00e7ar a registrar",
     "deleteTitle": "Excluir Transa\u00e7\u00e3o",
     "deleteMessage": "Esta a\u00e7\u00e3o n\u00e3o pode ser desfeita.",
-    "transaction": "Transa\u00e7\u00e3o"
+    "transaction": "Transa\u00e7\u00e3o",
+    "notSet": "N\u00e3o definido"
   },
   "accounts": {
     "title": "Contas",
@@ -102,7 +103,8 @@
     "gettingLocation": "Obtendo localiza\u00e7\u00e3o...",
     "locationFailed": "N\u00e3o foi poss\u00edvel obter a localiza\u00e7\u00e3o. Verifique se os servi\u00e7os de localiza\u00e7\u00e3o est\u00e3o ativados.",
     "contact": "Contato",
-    "selectContact": "Selecionar contato..."
+    "selectContact": "Selecionar contato...",
+    "noAccounts": "Adicione uma conta primeiro para criar transa\u00e7\u00f5es"
   },
   "recurring": {
     "title": "Recorrentes",
@@ -194,6 +196,14 @@
   "categoryPicker": {
     "title": "Selecionar Categorias",
     "selectPlaceholder": "Selecionar categorias..."
+  },
+  "analytics": {
+    "title": "Estatísticas",
+    "monthlyOverview": "Resumo Mensal",
+    "categoryBreakdown": "Detalhamento por Categoria",
+    "dailySpending": "Gastos Diários",
+    "noData": "Sem dados para este período",
+    "net": "Líquido"
   },
   "iconPicker": {
     "title": "Escolher \u00cdcone",

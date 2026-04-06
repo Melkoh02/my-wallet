@@ -12,7 +12,7 @@ import { CategoryPicker } from "@/components/organisms/CategoryPicker";
 import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
-import { todayDateString, nowTimeString } from "@/utils/format";
+import { todayDateString, nowTimeString, formatCurrency } from "@/utils/format";
 import { getCurrentLocation } from "@/services/location.service";
 import type { Account, NewTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
@@ -44,6 +44,8 @@ export function TransactionForm({
   const [time, setTime] = useState(nowTimeString());
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>([]);
   const [notes, setNotes] = useState("");
+  const [cashbackPercent, setCashbackPercent] = useState("");
+  const [cashbackAccountId, setCashbackAccountId] = useState<number | null>(null);
   const [contact, setContact] = useState<{ id: string; name: string } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [location, setLocation] = useState<{
@@ -82,6 +84,11 @@ export function TransactionForm({
         date,
         time,
         notes: notes.trim() || null,
+        cashbackAmount:
+          type === "expense" && cashbackPercent
+            ? Math.round(((parseFloat(cashbackPercent) || 0) / 100) * parsed * 100) / 100
+            : null,
+        cashbackAccountId: type === "expense" ? cashbackAccountId : null,
         contactId: contact?.id ?? null,
         contactName: contact?.name ?? null,
         latitude: location?.latitude ?? null,
@@ -269,6 +276,57 @@ export function TransactionForm({
         multiline
         numberOfLines={3}
       />
+
+      {/* Cashback — expense only */}
+      {type === "expense" && accounts.length > 0 && (
+        <View style={styles.section}>
+          <AppText variant="label" color={colors.textSecondary}>
+            {t("settings.cashback")}
+          </AppText>
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <AppInput
+                label={t("settings.cashbackPercentage")}
+                value={cashbackPercent}
+                onChangeText={setCashbackPercent}
+                keyboardType="decimal-pad"
+                placeholder="0"
+              />
+            </View>
+            {cashbackPercent && parseFloat(amount) > 0 ? (
+              <View style={styles.halfInput}>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {t("settings.cashbackFlat")}
+                </AppText>
+                <AppText variant="body" color={colors.income}>
+                  {formatCurrency(
+                    Math.round(
+                      ((parseFloat(cashbackPercent) || 0) / 100) * (parseFloat(amount) || 0) * 100,
+                    ) / 100,
+                  )}
+                </AppText>
+              </View>
+            ) : null}
+          </View>
+          {cashbackPercent ? (
+            <View style={styles.section}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                {t("settings.cashbackAccount")}
+              </AppText>
+              <View style={styles.chipRow}>
+                {accounts.map((acc) => (
+                  <Chip
+                    key={acc.id}
+                    label={acc.name}
+                    selected={cashbackAccountId === acc.id}
+                    onPress={() => setCashbackAccountId(acc.id)}
+                  />
+                ))}
+              </View>
+            </View>
+          ) : null}
+        </View>
+      )}
 
       <AppButton
         title={t("transactionForm.saveTransaction")}

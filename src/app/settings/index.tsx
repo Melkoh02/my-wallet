@@ -9,6 +9,7 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { Divider } from "@/components/atoms/Divider";
 import { useTheme } from "@/providers/ThemeProvider";
+import { usePrivacy } from "@/providers/PrivacyProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { refreshExchangeRates, getAccountCurrencies } from "@/services/exchangeRate.service";
@@ -284,7 +285,10 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const { invalidate } = useDataRefresh();
   const { language, changeLanguage } = useLanguage();
+  const { randomNumbers, toggleRandomNumbers } = usePrivacy();
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [hideDefault, setHideDefault] = useState(false);
+  const [randomDefault, setRandomDefault] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [refreshing, setRefreshing] = useState(false);
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
@@ -294,6 +298,8 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     getSetting("location_enabled").then((v) => setLocationEnabled(v === "true"));
+    getSetting("privacy_hide_default").then((v) => setHideDefault(v === "true"));
+    getSetting("privacy_random_default").then((v) => setRandomDefault(v === "true"));
     getSetting("display_currency").then((v) => setDisplayCurrency(v ?? "USD"));
     getSetting("exchange_rates_cache").then((v) => {
       if (v) {
@@ -425,6 +431,42 @@ export default function SettingsScreen() {
         subtitle={t("settings.locationDesc")}
         value={locationEnabled}
         onToggle={handleLocationToggle}
+      />
+      <Divider />
+
+      {/* Privacy */}
+      <View style={styles.row}>
+        <AppIcon name="shield-lock" size={22} color={colors.primary} />
+        <View style={styles.rowText}>
+          <AppText variant="body">{t("settings.privacy")}</AppText>
+        </View>
+      </View>
+      <SettingsToggle
+        icon="eye-off"
+        title={t("settings.hideByDefault")}
+        subtitle={t("settings.hideByDefaultDesc")}
+        value={hideDefault}
+        onToggle={async (v) => {
+          setHideDefault(v);
+          await setSetting("privacy_hide_default", v.toString());
+        }}
+      />
+      <SettingsToggle
+        icon="shuffle-variant"
+        title={t("settings.randomNumbers")}
+        subtitle={t("settings.randomNumbersDesc")}
+        value={randomNumbers}
+        onToggle={toggleRandomNumbers}
+      />
+      <SettingsToggle
+        icon="shuffle-variant"
+        title={t("settings.randomByDefault")}
+        subtitle={t("settings.randomByDefaultDesc")}
+        value={randomDefault}
+        onToggle={async (v) => {
+          setRandomDefault(v);
+          await setSetting("privacy_random_default", v.toString());
+        }}
       />
       <Divider />
 

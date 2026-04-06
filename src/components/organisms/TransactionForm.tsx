@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
+import { AppIcon } from "@/components/atoms/AppIcon";
 import { Chip } from "@/components/atoms/Chip";
 import { DatePicker } from "@/components/molecules/DatePicker";
 import { TimePicker } from "@/components/molecules/TimePicker";
@@ -146,40 +147,58 @@ export function TransactionForm({
       />
 
       {/* Account selector */}
-      <View style={styles.section}>
-        <AppText variant="label" color={colors.textSecondary}>
-          {type === "transfer" ? t("transactionForm.fromAccount") : t("transactionForm.account")}
-        </AppText>
-        <View style={styles.chipRow}>
-          {accounts.map((acc) => (
-            <Chip
-              key={acc.id}
-              label={acc.name}
-              selected={accountId === acc.id}
-              onPress={() => setAccountId(acc.id)}
-            />
-          ))}
-        </View>
-      </View>
-
-      {type === "transfer" && (
-        <View style={styles.section}>
-          <AppText variant="label" color={colors.textSecondary}>
-            {t("transactionForm.toAccount")}
+      {accounts.length === 0 ? (
+        <View
+          style={[
+            styles.noAccountsCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <AppIcon name="wallet-plus" size={28} color={colors.iconSecondary} />
+          <AppText variant="body" color={colors.textSecondary}>
+            {t("transactionForm.noAccounts")}
           </AppText>
-          <View style={styles.chipRow}>
-            {accounts
-              .filter((a) => a.id !== accountId)
-              .map((acc) => (
+        </View>
+      ) : (
+        <>
+          <View style={styles.section}>
+            <AppText variant="label" color={colors.textSecondary}>
+              {type === "transfer"
+                ? t("transactionForm.fromAccount")
+                : t("transactionForm.account")}
+            </AppText>
+            <View style={styles.chipRow}>
+              {accounts.map((acc) => (
                 <Chip
                   key={acc.id}
                   label={acc.name}
-                  selected={toAccountId === acc.id}
-                  onPress={() => setToAccountId(acc.id)}
+                  selected={accountId === acc.id}
+                  onPress={() => setAccountId(acc.id)}
                 />
               ))}
+            </View>
           </View>
-        </View>
+
+          {type === "transfer" && (
+            <View style={styles.section}>
+              <AppText variant="label" color={colors.textSecondary}>
+                {t("transactionForm.toAccount")}
+              </AppText>
+              <View style={styles.chipRow}>
+                {accounts
+                  .filter((a) => a.id !== accountId)
+                  .map((acc) => (
+                    <Chip
+                      key={acc.id}
+                      label={acc.name}
+                      selected={toAccountId === acc.id}
+                      onPress={() => setToAccountId(acc.id)}
+                    />
+                  ))}
+              </View>
+            </View>
+          )}
+        </>
       )}
 
       {type !== "transfer" && (
@@ -281,4 +300,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   locationText: { flex: 1 },
+  noAccountsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderRadius: 10,
+  },
 });

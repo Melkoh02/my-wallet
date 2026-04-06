@@ -1,12 +1,14 @@
-import { useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { useState, useMemo } from "react";
+import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, TextInput } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
-import { Chip } from "@/components/atoms/Chip";
+import { AppIcon } from "@/components/atoms/AppIcon";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
+import { typography } from "@/theme/typography";
 import type { Account, NewAccount } from "@/db/schema";
 import type { AccountType } from "@/types";
 
@@ -16,6 +18,26 @@ const ACCOUNT_TYPE_DEFS: { value: AccountType; key: string; icon: string }[] = [
   { value: "cash", key: "accounts.cash", icon: "cash" },
   { value: "wallet", key: "accounts.wallet", icon: "wallet" },
   { value: "savings", key: "accounts.savings", icon: "piggy-bank" },
+];
+
+const CURRENCIES = [
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CAD",
+  "AUD",
+  "CHF",
+  "CNY",
+  "BRL",
+  "ARS",
+  "PYG",
+  "MXN",
+  "COP",
+  "CLP",
+  "PEN",
+  "INR",
+  "KRW",
 ];
 
 const COLORS = [
@@ -50,6 +72,18 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [color, setColor] = useState(initial?.color ?? COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
 
+  const [showTypeModal, setShowTypeModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
+
+  const filteredCurrencies = useMemo(() => {
+    if (!currencySearch.trim()) return CURRENCIES;
+    const q = currencySearch.trim().toUpperCase();
+    return CURRENCIES.filter((c) => c.includes(q));
+  }, [currencySearch]);
+
+  const selectedTypeDef = ACCOUNT_TYPE_DEFS.find((td) => td.value === type);
+
   const handleSubmit = () => {
     const parsed = parseFloat(balance) || 0;
     onSubmit({
@@ -60,7 +94,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       creditLimit: type === "credit" ? parseFloat(creditLimit) || null : null,
       currency,
       color,
-      icon: ACCOUNT_TYPE_DEFS.find((td) => td.value === type)?.icon ?? "wallet",
+      icon: selectedTypeDef?.icon ?? "wallet",
     });
   };
 
@@ -85,21 +119,77 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
         placeholder={t("accounts.institutionPlaceholder")}
       />
 
+      {/* Type selector */}
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>
           {t("accounts.type")}
         </AppText>
-        <View style={styles.chipRow}>
-          {ACCOUNT_TYPE_DEFS.map((td) => (
-            <Chip
-              key={td.value}
-              label={t(td.key)}
-              selected={type === td.value}
-              onPress={() => setType(td.value)}
-            />
-          ))}
-        </View>
+        <Pressable
+          onPress={() => setShowTypeModal(true)}
+          style={[
+            styles.selectTrigger,
+            { borderColor: colors.border, backgroundColor: colors.surface },
+          ]}
+        >
+          <View style={styles.selectTriggerContent}>
+            {selectedTypeDef && (
+              <AppIcon name={selectedTypeDef.icon} size={20} color={colors.icon} />
+            )}
+            <AppText variant="body">{selectedTypeDef ? t(selectedTypeDef.key) : ""}</AppText>
+          </View>
+          <AppIcon name="chevron-down" size={20} color={colors.iconSecondary} />
+        </Pressable>
       </View>
+
+      {/* Type picker modal */}
+      <Modal
+        visible={showTypeModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowTypeModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={styles.modalHeader}>
+            <AppText variant="h3">{t("accounts.type")}</AppText>
+            <Pressable onPress={() => setShowTypeModal(false)}>
+              <AppIcon name="close" size={24} color={colors.icon} />
+            </Pressable>
+          </View>
+          {ACCOUNT_TYPE_DEFS.map((td) => {
+            const isSelected = type === td.value;
+            return (
+              <Pressable
+                key={td.value}
+                onPress={() => {
+                  setType(td.value);
+                  setShowTypeModal(false);
+                }}
+                style={[
+                  styles.optionRow,
+                  {
+                    backgroundColor: isSelected ? colors.primary + "14" : "transparent",
+                    borderColor: isSelected ? colors.primary : "transparent",
+                  },
+                ]}
+              >
+                <AppIcon
+                  name={td.icon}
+                  size={22}
+                  color={isSelected ? colors.primary : colors.icon}
+                />
+                <AppText
+                  variant="body"
+                  color={isSelected ? colors.primary : colors.text}
+                  style={styles.optionLabel}
+                >
+                  {t(td.key)}
+                </AppText>
+                {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+              </Pressable>
+            );
+          })}
+        </SafeAreaView>
+      </Modal>
 
       <AppInput
         label={t("accounts.initialBalance")}
@@ -119,16 +209,91 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
         />
       )}
 
+      {/* Currency selector */}
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>
           {t("accounts.currency")}
         </AppText>
-        <View style={styles.chipRow}>
-          {["USD", "EUR", "GBP", "PYG", "BRL", "ARS", "JPY", "CAD"].map((c) => (
-            <Chip key={c} label={c} selected={currency === c} onPress={() => setCurrency(c)} />
-          ))}
-        </View>
+        <Pressable
+          onPress={() => setShowCurrencyModal(true)}
+          style={[
+            styles.selectTrigger,
+            { borderColor: colors.border, backgroundColor: colors.surface },
+          ]}
+        >
+          <AppText variant="body">{currency}</AppText>
+          <AppIcon name="chevron-down" size={20} color={colors.iconSecondary} />
+        </Pressable>
       </View>
+
+      {/* Currency picker modal */}
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={styles.modalHeader}>
+            <AppText variant="h3">{t("accounts.currency")}</AppText>
+            <Pressable onPress={() => setShowCurrencyModal(false)}>
+              <AppIcon name="close" size={24} color={colors.icon} />
+            </Pressable>
+          </View>
+          <View style={styles.searchContainer}>
+            <TextInput
+              value={currencySearch}
+              onChangeText={setCurrencySearch}
+              placeholder={t("common.search")}
+              placeholderTextColor={colors.placeholder}
+              style={[
+                styles.searchInput,
+                typography.body,
+                {
+                  color: colors.text,
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+          </View>
+          <FlatList
+            data={filteredCurrencies}
+            keyExtractor={(item) => item}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => {
+              const isSelected = currency === item;
+              return (
+                <Pressable
+                  onPress={() => {
+                    setCurrency(item);
+                    setCurrencySearch("");
+                    setShowCurrencyModal(false);
+                  }}
+                  style={[
+                    styles.optionRow,
+                    {
+                      backgroundColor: isSelected ? colors.primary + "14" : "transparent",
+                      borderColor: isSelected ? colors.primary : "transparent",
+                    },
+                  ]}
+                >
+                  <AppText
+                    variant="body"
+                    color={isSelected ? colors.primary : colors.text}
+                    style={styles.optionLabel}
+                  >
+                    {item}
+                  </AppText>
+                  {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+                </Pressable>
+              );
+            }}
+          />
+        </SafeAreaView>
+      </Modal>
 
       <View style={styles.section}>
         <AppText variant="label" color={colors.textSecondary}>
@@ -176,11 +341,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing["5xl"],
   },
   section: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  chipRow: {
+  selectTrigger: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+  },
+  selectTriggerContent: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   colorRow: {
@@ -197,5 +372,39 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.md,
     marginTop: spacing.lg,
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xs,
+    borderRadius: 10,
+  },
+  optionLabel: {
+    flex: 1,
   },
 });

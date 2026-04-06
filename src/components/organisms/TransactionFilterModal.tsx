@@ -46,6 +46,8 @@ export function TransactionFilterModal({
   const [toAccountIds, setToAccountIds] = useState<number[]>(filters.toAccountIds ?? []);
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>(filters.subcategoryIds ?? []);
   const [expandedCatId, setExpandedCatId] = useState<number | null>(null);
+  const [fromAccountsExpanded, setFromAccountsExpanded] = useState(false);
+  const [toAccountsExpanded, setToAccountsExpanded] = useState(false);
 
   // Sync when modal opens
   useEffect(() => {
@@ -140,28 +142,46 @@ export function TransactionFilterModal({
                     onChange={setDateFrom}
                   />
                 ) : (
-                  <Pressable
-                    onPress={() => setDateFrom(new Date().toISOString().slice(0, 10))}
-                    style={[styles.emptyPicker, { borderColor: colors.border }]}
-                  >
-                    <AppText variant="bodySmall" color={colors.placeholder}>
+                  <View style={styles.emptyPickerWrapper}>
+                    <AppText variant="label" color={colors.textSecondary}>
                       {t("transactions.from")}
                     </AppText>
-                  </Pressable>
+                    <Pressable
+                      onPress={() => setDateFrom(new Date().toISOString().slice(0, 10))}
+                      style={[
+                        styles.emptyPicker,
+                        { borderColor: colors.border, backgroundColor: colors.surface },
+                      ]}
+                    >
+                      <AppIcon name="calendar" size={20} color={colors.iconSecondary} />
+                      <AppText variant="body" color={colors.placeholder}>
+                        {t("transactions.notSet")}
+                      </AppText>
+                    </Pressable>
+                  </View>
                 )}
               </View>
               <View style={styles.half}>
                 {dateTo ? (
                   <DatePicker label={t("transactions.to")} value={dateTo} onChange={setDateTo} />
                 ) : (
-                  <Pressable
-                    onPress={() => setDateTo(new Date().toISOString().slice(0, 10))}
-                    style={[styles.emptyPicker, { borderColor: colors.border }]}
-                  >
-                    <AppText variant="bodySmall" color={colors.placeholder}>
+                  <View style={styles.emptyPickerWrapper}>
+                    <AppText variant="label" color={colors.textSecondary}>
                       {t("transactions.to")}
                     </AppText>
-                  </Pressable>
+                    <Pressable
+                      onPress={() => setDateTo(new Date().toISOString().slice(0, 10))}
+                      style={[
+                        styles.emptyPicker,
+                        { borderColor: colors.border, backgroundColor: colors.surface },
+                      ]}
+                    >
+                      <AppIcon name="calendar" size={20} color={colors.iconSecondary} />
+                      <AppText variant="body" color={colors.placeholder}>
+                        {t("transactions.notSet")}
+                      </AppText>
+                    </Pressable>
+                  </View>
                 )}
               </View>
             </View>
@@ -217,32 +237,76 @@ export function TransactionFilterModal({
             </Section>
           )}
 
-          {/* From Accounts */}
+          {/* From Accounts — collapsible */}
           <Section title={t("transactions.fromAccounts")} colors={colors}>
-            <View style={styles.chipRow}>
-              {accounts.map((acc) => (
-                <Chip
-                  key={acc.id}
-                  label={acc.name}
-                  selected={fromAccountIds.includes(acc.id)}
-                  onPress={() => toggleId(fromAccountIds, acc.id, setFromAccountIds)}
-                />
-              ))}
-            </View>
+            <Pressable
+              onPress={() => setFromAccountsExpanded((p) => !p)}
+              style={styles.collapsibleHeader}
+            >
+              <AppText variant="body" color={colors.text} style={styles.collapsibleLabel}>
+                {t("transactions.fromAccounts")}
+              </AppText>
+              {fromAccountIds.length > 0 && (
+                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+                  <AppText variant="caption" color={colors.textInverse} style={styles.badgeText}>
+                    {fromAccountIds.length}
+                  </AppText>
+                </View>
+              )}
+              <AppIcon
+                name={fromAccountsExpanded ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={colors.iconSecondary}
+              />
+            </Pressable>
+            {fromAccountsExpanded && (
+              <View style={styles.chipRow}>
+                {accounts.map((acc) => (
+                  <Chip
+                    key={acc.id}
+                    label={acc.name}
+                    selected={fromAccountIds.includes(acc.id)}
+                    onPress={() => toggleId(fromAccountIds, acc.id, setFromAccountIds)}
+                  />
+                ))}
+              </View>
+            )}
           </Section>
 
-          {/* To Accounts */}
+          {/* To Accounts — collapsible */}
           <Section title={t("transactions.toAccounts")} colors={colors}>
-            <View style={styles.chipRow}>
-              {accounts.map((acc) => (
-                <Chip
-                  key={acc.id}
-                  label={acc.name}
-                  selected={toAccountIds.includes(acc.id)}
-                  onPress={() => toggleId(toAccountIds, acc.id, setToAccountIds)}
-                />
-              ))}
-            </View>
+            <Pressable
+              onPress={() => setToAccountsExpanded((p) => !p)}
+              style={styles.collapsibleHeader}
+            >
+              <AppText variant="body" color={colors.text} style={styles.collapsibleLabel}>
+                {t("transactions.toAccounts")}
+              </AppText>
+              {toAccountIds.length > 0 && (
+                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+                  <AppText variant="caption" color={colors.textInverse} style={styles.badgeText}>
+                    {toAccountIds.length}
+                  </AppText>
+                </View>
+              )}
+              <AppIcon
+                name={toAccountsExpanded ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={colors.iconSecondary}
+              />
+            </Pressable>
+            {toAccountsExpanded && (
+              <View style={styles.chipRow}>
+                {accounts.map((acc) => (
+                  <Chip
+                    key={acc.id}
+                    label={acc.name}
+                    selected={toAccountIds.includes(acc.id)}
+                    onPress={() => toggleId(toAccountIds, acc.id, setToAccountIds)}
+                  />
+                ))}
+              </View>
+            )}
           </Section>
 
           {/* Categories / Subcategories — collapsible */}
@@ -362,13 +426,39 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   half: { flex: 1 },
+  emptyPickerWrapper: {
+    gap: spacing.xs,
+  },
   emptyPicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     minHeight: 48,
+  },
+  collapsibleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  collapsibleLabel: {
+    flex: 1,
+  },
+  badge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
     justifyContent: "center",
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 14,
   },
   catRow: {
     flexDirection: "row",

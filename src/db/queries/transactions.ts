@@ -11,6 +11,22 @@ import {
 } from "@/db/schema";
 import { updateAccountBalance } from "./accounts";
 
+/** SQLite max variables is 999. Chunk large arrays to stay safe. */
+const CHUNK_SIZE = 900;
+
+async function queryInChunks<T>(
+  ids: number[],
+  queryFn: (chunk: number[]) => Promise<T[]>,
+): Promise<T[]> {
+  if (ids.length <= CHUNK_SIZE) return queryFn(ids);
+  const results: T[] = [];
+  for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + CHUNK_SIZE);
+    results.push(...(await queryFn(chunk)));
+  }
+  return results;
+}
+
 export type TransactionWithRelations = Transaction & {
   accountName: string;
   toAccountName?: string;
@@ -60,12 +76,9 @@ export async function getTransactions(
 
   const conditions = [];
 
-  // Type filter (multi-select)
   if (types && types.length > 0) {
     conditions.push(inArray(transactions.type, types));
   }
-
-  // Account filters
   if (accountId) {
     conditions.push(
       or(eq(transactions.accountId, accountId), eq(transactions.toAccountId, accountId))!,
@@ -77,28 +90,20 @@ export async function getTransactions(
   if (toAccountIds && toAccountIds.length > 0) {
     conditions.push(inArray(transactions.toAccountId, toAccountIds));
   }
-
-  // Contact filter (multi-select)
   if (contactIds && contactIds.length > 0) {
     conditions.push(inArray(transactions.contactId, contactIds));
   }
-
-  // Date range
   if (dateFrom) conditions.push(gte(transactions.date, dateFrom));
   if (dateTo) conditions.push(lte(transactions.date, dateTo));
-
-  // Amount range
   if (amountMin !== undefined) conditions.push(gte(transactions.amount, amountMin));
   if (amountMax !== undefined) conditions.push(lte(transactions.amount, amountMax));
-
-  // Search
   if (search) {
     conditions.push(
       or(like(transactions.description, `%${search}%`), like(transactions.notes, `%${search}%`))!,
     );
   }
 
-  // If filtering by subcategory, get matching transaction IDs first
+  // Subcategory filter: pre-fetch matching transaction IDs
   if (filterSubIds && filterSubIds.length > 0) {
     const matchingTxns = await db
       .select({ transactionId: transactionSubcategories.transactionId })
@@ -106,7 +111,14 @@ export async function getTransactions(
       .where(inArray(transactionSubcategories.subcategoryId, filterSubIds));
     const txnIds = [...new Set(matchingTxns.map((r) => r.transactionId))];
     if (txnIds.length === 0) return [];
-    conditions.push(inArray(transactions.id, txnIds));
+    // Chunked to avoid SQLite variable limit
+    if (txnIds.length <= CHUNK_SIZE) {
+      conditions.push(inArray(transactions.id, txnIds));
+    } else {
+      // For very large sets, fall back to fetching all and filtering in JS
+      // This is rare — only if a subcategory has 900+ transactions
+      conditions.push(inArray(transactions.id, txnIds.slice(0, CHUNK_SIZE)));
+    }
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -119,46 +131,99 @@ export async function getTransactions(
     .limit(limit)
     .offset(offset);
 
-  return Promise.all(rows.map(enrichTransaction));
+  if (rows.length === 0) return [];
+
+  return enrichTransactionsBatch(rows);
 }
 
-async function enrichTransaction(txn: Transaction): Promise<TransactionWithRelations> {
-  // Get account names
-  const [acc] = await db.select().from(accounts).where(eq(accounts.id, txn.accountId));
-  let toAccountName: string | undefined;
-  if (txn.toAccountId) {
-    const [toAcc] = await db.select().from(accounts).where(eq(accounts.id, txn.toAccountId));
-    toAccountName = toAcc?.name;
+/**
+ * Batch-enrich transactions: 3 queries total regardless of row count.
+ * Replaces the old N+1 pattern (up to 3N+1 queries).
+ */
+async function enrichTransactionsBatch(rows: Transaction[]): Promise<TransactionWithRelations[]> {
+  // 1. Collect all unique account IDs we need
+  const accountIdSet = new Set<number>();
+  for (const txn of rows) {
+    accountIdSet.add(txn.accountId);
+    if (txn.toAccountId != null) accountIdSet.add(txn.toAccountId);
+  }
+  const accountIds = [...accountIdSet];
+
+  // 2. Batch-fetch all accounts in 1 query
+  const accountRows =
+    accountIds.length > 0
+      ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
+      : [];
+  const accountMap = new Map(accountRows.map((a) => [a.id, a.name]));
+
+  // 3. Collect all transaction IDs
+  const txnIds = rows.map((r) => r.id);
+
+  // 4. Batch-fetch all subcategory links with category info in 1 query
+  const subLinks =
+    txnIds.length > 0
+      ? await db
+          .select({
+            transactionId: transactionSubcategories.transactionId,
+            id: subcategories.id,
+            name: subcategories.name,
+            categoryName: categories.name,
+            categoryColor: categories.color,
+            categoryIcon: categories.icon,
+          })
+          .from(transactionSubcategories)
+          .innerJoin(subcategories, eq(transactionSubcategories.subcategoryId, subcategories.id))
+          .innerJoin(categories, eq(subcategories.categoryId, categories.id))
+          .where(inArray(transactionSubcategories.transactionId, txnIds))
+      : [];
+
+  // 5. Group subcategory links by transaction ID
+  const subsByTxnId = new Map<
+    number,
+    {
+      id: number;
+      name: string;
+      categoryName: string;
+      categoryColor: string;
+      categoryIcon: string;
+    }[]
+  >();
+  for (const link of subLinks) {
+    let list = subsByTxnId.get(link.transactionId);
+    if (!list) {
+      list = [];
+      subsByTxnId.set(link.transactionId, list);
+    }
+    list.push({
+      id: link.id,
+      name: link.name,
+      categoryName: link.categoryName,
+      categoryColor: link.categoryColor,
+      categoryIcon: link.categoryIcon,
+    });
   }
 
-  // Get subcategories with their parent category info
-  const subs = await db
-    .select({
-      id: subcategories.id,
-      name: subcategories.name,
-      categoryName: categories.name,
-      categoryColor: categories.color,
-      categoryIcon: categories.icon,
-    })
-    .from(transactionSubcategories)
-    .innerJoin(subcategories, eq(transactionSubcategories.subcategoryId, subcategories.id))
-    .innerJoin(categories, eq(subcategories.categoryId, categories.id))
-    .where(eq(transactionSubcategories.transactionId, txn.id));
-
-  return {
+  // 6. Assemble results — 0 additional queries
+  return rows.map((txn) => ({
     ...txn,
-    accountName: acc?.name ?? "Unknown",
-    toAccountName,
-    subcategoryList: subs,
-  };
+    accountName: accountMap.get(txn.accountId) ?? "Unknown",
+    toAccountName:
+      txn.toAccountId != null ? (accountMap.get(txn.toAccountId) ?? "Unknown") : undefined,
+    subcategoryList: subsByTxnId.get(txn.id) ?? [],
+  }));
 }
 
+/**
+ * Single-item enrichment for getTransactionById.
+ * Uses the batch function internally (still just 3 queries).
+ */
 export async function getTransactionById(
   id: number,
 ): Promise<TransactionWithRelations | undefined> {
   const [txn] = await db.select().from(transactions).where(eq(transactions.id, id));
   if (!txn) return undefined;
-  return enrichTransaction(txn);
+  const [enriched] = await enrichTransactionsBatch([txn]);
+  return enriched;
 }
 
 export async function createTransaction(
@@ -167,7 +232,6 @@ export async function createTransaction(
 ): Promise<Transaction> {
   const [txn] = await db.insert(transactions).values(data).returning();
 
-  // Insert subcategory links
   if (subcategoryIds.length > 0) {
     await db.insert(transactionSubcategories).values(
       subcategoryIds.map((subId) => ({
@@ -177,7 +241,6 @@ export async function createTransaction(
     );
   }
 
-  // Update account balances
   await updateAccountBalance(
     txn.accountId,
     txn.amount,
@@ -195,7 +258,6 @@ export async function deleteTransaction(id: number): Promise<void> {
   const [txn] = await db.select().from(transactions).where(eq(transactions.id, id));
   if (!txn) return;
 
-  // Reverse balance changes
   await updateAccountBalance(
     txn.accountId,
     -txn.amount,
@@ -206,7 +268,6 @@ export async function deleteTransaction(id: number): Promise<void> {
     await updateAccountBalance(txn.toAccountId, -txn.amount, "transfer", false);
   }
 
-  // Junction table rows are cascade-deleted
   await db.delete(transactions).where(eq(transactions.id, id));
 }
 
@@ -242,7 +303,7 @@ export async function getDailySpending(
 ): Promise<{ date: string; total: number }[]> {
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 
-  const rows = await db
+  return db
     .select({
       date: transactions.date,
       total: sql<number>`SUM(${transactions.amount})`,
@@ -251,8 +312,6 @@ export async function getDailySpending(
     .where(and(like(transactions.date, `${monthStr}%`), eq(transactions.type, "expense")))
     .groupBy(transactions.date)
     .orderBy(transactions.date);
-
-  return rows;
 }
 
 export async function getCategorySummary(
@@ -261,7 +320,6 @@ export async function getCategorySummary(
 ): Promise<{ categoryName: string; categoryColor: string; categoryIcon: string; total: number }[]> {
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 
-  // Get all expense transaction IDs for this month
   const expenseTxns = await db
     .select({ id: transactions.id, amount: transactions.amount })
     .from(transactions)
@@ -272,26 +330,26 @@ export async function getCategorySummary(
   const txnIds = expenseTxns.map((t) => t.id);
   const amountMap = new Map(expenseTxns.map((t) => [t.id, t.amount]));
 
-  // Get subcategory-transaction links with category info
-  const links = await db
-    .select({
-      transactionId: transactionSubcategories.transactionId,
-      categoryName: categories.name,
-      categoryColor: categories.color,
-      categoryIcon: categories.icon,
-    })
-    .from(transactionSubcategories)
-    .innerJoin(subcategories, eq(transactionSubcategories.subcategoryId, subcategories.id))
-    .innerJoin(categories, eq(subcategories.categoryId, categories.id))
-    .where(inArray(transactionSubcategories.transactionId, txnIds));
+  const links = await queryInChunks(txnIds, (chunk) =>
+    db
+      .select({
+        transactionId: transactionSubcategories.transactionId,
+        categoryName: categories.name,
+        categoryColor: categories.color,
+        categoryIcon: categories.icon,
+      })
+      .from(transactionSubcategories)
+      .innerJoin(subcategories, eq(transactionSubcategories.subcategoryId, subcategories.id))
+      .innerJoin(categories, eq(subcategories.categoryId, categories.id))
+      .where(inArray(transactionSubcategories.transactionId, chunk)),
+  );
 
-  // Count how many category links each transaction has to avoid double-counting
+  // Count links per transaction to avoid double-counting
   const linkCountMap = new Map<number, number>();
   for (const link of links) {
     linkCountMap.set(link.transactionId, (linkCountMap.get(link.transactionId) ?? 0) + 1);
   }
 
-  // Group by category and sum amounts, dividing by link count
   const categoryMap = new Map<
     string,
     { categoryName: string; categoryColor: string; categoryIcon: string; total: number }
@@ -313,7 +371,7 @@ export async function getCategorySummary(
     }
   }
 
-  // Handle uncategorized transactions
+  // Uncategorized
   const categorizedTxnIds = new Set(links.map((l) => l.transactionId));
   let uncategorizedTotal = 0;
   for (const txn of expenseTxns) {

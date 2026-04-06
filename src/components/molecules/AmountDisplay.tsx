@@ -21,7 +21,7 @@ export function AmountDisplay({
   style,
 }: AmountDisplayProps) {
   const { colors } = useTheme();
-  const { hideAmounts } = usePrivacy();
+  const { hideAmounts, maskAmount } = usePrivacy();
 
   const colorMap = {
     income: colors.income,
@@ -31,10 +31,11 @@ export function AmountDisplay({
   };
 
   const prefix = type === "income" ? "+" : type === "expense" ? "-" : "";
+  const displayAmount = maskAmount(Math.abs(amount));
 
   return (
     <AppText variant={variant} color={colorMap[type]} style={style}>
-      {hideAmounts ? "••••" : `${prefix}${formatCurrency(Math.abs(amount), currency)}`}
+      {hideAmounts ? "••••" : `${prefix}${formatCurrency(displayAmount, currency)}`}
     </AppText>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -8,6 +8,7 @@ import { TransactionListItem } from "@/components/organisms/TransactionListItem"
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { AppText } from "@/components/atoms/AppText";
+import { AppIcon } from "@/components/atoms/AppIcon";
 import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -15,47 +16,68 @@ import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getMonthSummary, getRecentTransactions } from "@/db/queries/transactions";
-import { formatCurrency } from "@/utils/format";
+import { getRecurringTransactions } from "@/db/queries/recurring";
+import { formatCurrency, formatDate } from "@/utils/format";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
+import type { RecurringTransaction } from "@/db/schema";
+
+const FREQ_LABELS: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  biweekly: "Biweekly",
+  monthly: "Monthly",
+  yearly: "Yearly",
+};
 
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { hideAmounts, toggleHideAmounts } = usePrivacy();
+  const { hideAmounts, toggleHideAmounts, maskAmount } = usePrivacy();
   const { revisions } = useDataRefresh();
   const { totals } = useAccounts();
   const [monthSummary, setMonthSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [recent, setRecent] = useState<TransactionWithRelations[]>([]);
+  const [upcoming, setUpcoming] = useState<RecurringTransaction[]>([]);
 
   useEffect(() => {
     const now = new Date();
     Promise.all([
       getMonthSummary(now.getFullYear(), now.getMonth() + 1),
       getRecentTransactions(5),
-    ]).then(([summary, txns]) => {
+      getRecurringTransactions(true),
+    ]).then(([summary, txns, recurring]) => {
       setMonthSummary(summary);
       setRecent(txns);
+      // Show up to 3 upcoming recurring, sorted by next date
+      setUpcoming(recurring.slice(0, 3));
     });
-  }, [revisions.transactions, revisions.accounts]);
+  }, [revisions.transactions, revisions.accounts, revisions.recurring]);
 
   return (
     <ScreenLayout scrollable edges={["top"]}>
       <HeaderBar
         title={t("home.title")}
-        rightActions={[
-          { icon: hideAmounts ? "eye-off" : "eye", onPress: toggleHideAmounts },
-          { icon: "cog", onPress: () => router.push("/settings") },
-        ]}
+        rightIcon="cog"
+        onRightPress={() => router.push("/settings")}
       />
 
-      {/* Balance card */}
+      {/* Balance card with eye toggle */}
       <View style={[styles.balanceCard, { backgroundColor: colors.primary + "10" }]}>
-        <AppText variant="caption" color={colors.textSecondary}>
-          {t("home.netWorth")} ({totals.displayCurrency})
-        </AppText>
+        <View style={styles.balanceHeader}>
+          <AppText variant="caption" color={colors.textSecondary}>
+            {t("home.netWorth")} ({totals.displayCurrency})
+          </AppText>
+          <Pressable onPress={toggleHideAmounts} hitSlop={8}>
+            <AppIcon
+              name={hideAmounts ? "eye-off" : "eye"}
+              size={20}
+              color={colors.iconSecondary}
+            />
+          </Pressable>
+        </View>
         <AmountDisplay
           amount={totals.netWorth}
           currency={totals.displayCurrency}
@@ -70,7 +92,7 @@ export default function HomeScreen() {
             {t("home.income")}
           </AppText>
           <AppText variant="label" color={colors.income}>
-            {hideAmounts ? "••••" : formatCurrency(monthSummary.income)}
+            {hideAmounts ? "••••" : formatCurrency(maskAmount(monthSummary.income))}
           </AppText>
         </View>
         <View style={[styles.summaryItem, { backgroundColor: colors.card }]}>
@@ -78,10 +100,56 @@ export default function HomeScreen() {
             {t("home.expenses")}
           </AppText>
           <AppText variant="label" color={colors.expense}>
-            {hideAmounts ? "••••" : formatCurrency(monthSummary.expense)}
+            {hideAmounts ? "••••" : formatCurrency(maskAmount(monthSummary.expense))}
           </AppText>
         </View>
       </View>
+
+      {/* Upcoming recurring */}
+      {upcoming.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <AppText variant="h3">{t("home.upcoming")}</AppText>
+            <AppText
+              variant="bodySmall"
+              color={colors.primary}
+              onPress={() => router.push("/recurring")}
+            >
+              {t("home.seeAll")}
+            </AppText>
+          </View>
+          {upcoming.map((item, i) => {
+            const typeColor = item.type === "income" ? colors.income : colors.expense;
+            return (
+              <View key={item.id}>
+                {i > 0 && <Divider />}
+                <View style={styles.upcomingRow}>
+                  <View style={[styles.upcomingIcon, { backgroundColor: typeColor + "18" }]}>
+                    <AppIcon
+                      name={item.type === "income" ? "arrow-down" : "arrow-up"}
+                      size={18}
+                      color={typeColor}
+                    />
+                  </View>
+                  <View style={styles.upcomingInfo}>
+                    <AppText variant="label" numberOfLines={1}>
+                      {item.description}
+                    </AppText>
+                    <AppText variant="caption" color={colors.textTertiary}>
+                      {FREQ_LABELS[item.frequency]} · {formatDate(item.nextDate)}
+                    </AppText>
+                  </View>
+                  <AmountDisplay
+                    amount={item.amount}
+                    type={item.type as "income" | "expense"}
+                    variant="label"
+                  />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {/* Recent transactions */}
       <View style={styles.section}>
@@ -126,8 +194,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: spacing.lg,
     paddingVertical: spacing["2xl"],
+    paddingHorizontal: spacing.lg,
     borderRadius: 16,
     gap: spacing.xs,
+  },
+  balanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   summaryRow: {
     flexDirection: "row",
@@ -150,5 +224,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
+  },
+  upcomingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  upcomingIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  upcomingInfo: {
+    flex: 1,
+    gap: 2,
   },
 });

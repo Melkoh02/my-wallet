@@ -31,7 +31,8 @@
     "recent": "Recent",
     "seeAll": "See all",
     "noTransactionsYet": "No transactions yet",
-    "startByAdding": "Start by adding a transaction"
+    "startByAdding": "Start by adding a transaction",
+    "upcoming": "Upcoming"
   },
   "transactions": {
     "title": "Transactions",
@@ -55,7 +56,8 @@
     "categories": "Categories",
     "clearAll": "Clear All",
     "apply": "Apply",
-    "activeFilters": "{{count}} active"
+    "activeFilters": "{{count}} active",
+    "notSet": "Not set"
   },
   "accounts": {
     "title": "Accounts",
@@ -117,7 +119,8 @@
     "gettingLocation": "Getting location...",
     "locationFailed": "Could not get location. Make sure location services are enabled.",
     "contact": "Contact",
-    "selectContact": "Select contact..."
+    "selectContact": "Select contact...",
+    "noAccounts": "Add an account first to create transactions"
   },
   "recurring": {
     "title": "Recurring",
@@ -159,7 +162,21 @@
     "ratesFailed": "Update Failed",
     "ratesFailedDesc": "Could not fetch exchange rates. Check your connection.",
     "language": "Language",
-    "languageDesc": "Change the app language"
+    "languageDesc": "Change the app language",
+    "privacy": "Privacy",
+    "hideByDefault": "Hide amounts on open",
+    "hideByDefaultDesc": "Start with amounts hidden each time",
+    "randomNumbers": "Random numbers",
+    "randomNumbersDesc": "Show fake amounts instead of real ones",
+    "randomByDefault": "Random numbers on open",
+    "randomByDefaultDesc": "Start with random numbers each time",
+    "version": "v{{version}}",
+    "cashback": "Cashback",
+    "cashbackPercentage": "Cashback %",
+    "cashbackFlat": "Cashback amount",
+    "cashbackFulfilled": "Cashback received",
+    "cashbackPending": "Pending",
+    "cashbackAccount": "Cashback account"
   },
   "themes": {
     "title": "Themes",
@@ -209,6 +226,14 @@
   "categoryPicker": {
     "title": "Select Categories",
     "selectPlaceholder": "Select categories..."
+  },
+  "analytics": {
+    "title": "Analytics",
+    "monthlyOverview": "Monthly Overview",
+    "categoryBreakdown": "Category Breakdown",
+    "dailySpending": "Daily Spending",
+    "noData": "No data for this period",
+    "net": "Net"
   },
   "iconPicker": {
     "title": "Choose Icon",

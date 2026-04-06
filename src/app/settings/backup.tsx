@@ -9,8 +9,10 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useTranslation } from "react-i18next";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
+import { documentDirectory } from "expo-file-system/legacy";
 import {
   createBackup,
   exportBackup,
@@ -18,13 +20,13 @@ import {
   getBackupList,
   deleteBackup,
 } from "@/services/backup.service";
-import { formatDate } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
 import type { Backup } from "@/db/schema";
 
 export default function BackupScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { invalidate } = useDataRefresh();
   const [backupList, setBackupList] = useState<Backup[]>([]);
   const [autoEnabled, setAutoEnabled] = useState(true);
@@ -91,10 +93,13 @@ export default function BackupScreen() {
         "settings",
         "backups",
       );
-      setResultModal({ title: "Success", message: "Data imported successfully" });
+      setResultModal({ title: t("common.success"), message: t("backup.dataImported") });
       await loadData();
     } else {
-      setResultModal({ title: "Error", message: result.error ?? "Import failed" });
+      setResultModal({
+        title: t("common.error"),
+        message: result.error ?? t("backup.importFailed"),
+      });
     }
   };
 
@@ -113,7 +118,7 @@ export default function BackupScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title="Backup & Export" onBack={() => router.back()} />
+      <HeaderBar title={t("backup.title")} onBack={() => router.back()} />
       <FlatList
         data={backupList}
         keyExtractor={(item) => item.id.toString()}
@@ -123,9 +128,9 @@ export default function BackupScreen() {
             {/* Auto backup toggle */}
             <View style={[styles.settingRow, { borderColor: colors.border }]}>
               <View style={styles.settingInfo}>
-                <AppText variant="label">Auto Backup</AppText>
+                <AppText variant="label">{t("backup.autoBackup")}</AppText>
                 <AppText variant="caption" color={colors.textSecondary}>
-                  Daily automatic backup
+                  {t("backup.autoBackupDesc")}
                 </AppText>
               </View>
               <Switch value={autoEnabled} onValueChange={handleToggleAuto} />
@@ -135,9 +140,9 @@ export default function BackupScreen() {
             {autoEnabled && (
               <View style={[styles.settingRow, { borderColor: colors.border }]}>
                 <View style={styles.settingInfo}>
-                  <AppText variant="label">Keep Last</AppText>
+                  <AppText variant="label">{t("backup.keepLast")}</AppText>
                   <AppText variant="caption" color={colors.textSecondary}>
-                    Auto backups to retain
+                    {t("backup.keepDesc")}
                   </AppText>
                 </View>
                 <View style={styles.stepper}>
@@ -155,20 +160,20 @@ export default function BackupScreen() {
             {/* Action buttons */}
             <View style={styles.actions}>
               <AppButton
-                title={loading ? "Working..." : "Backup Now"}
+                title={loading ? t("common.working") : t("backup.backupNow")}
                 icon="cloud-upload"
                 onPress={handleManualBackup}
                 disabled={loading}
               />
               <AppButton
-                title="Export (Share)"
+                title={t("backup.export")}
                 variant="secondary"
                 icon="share-variant"
                 onPress={handleExport}
                 disabled={loading}
               />
               <AppButton
-                title="Import"
+                title={t("backup.import")}
                 variant="secondary"
                 icon="cloud-download"
                 onPress={() => setShowImport(true)}
@@ -178,8 +183,13 @@ export default function BackupScreen() {
 
             <Divider />
             <AppText variant="label" color={colors.textSecondary} style={styles.sectionTitle}>
-              Backup History
+              {t("backup.backupHistory")}
             </AppText>
+            {documentDirectory && (
+              <AppText variant="caption" color={colors.textTertiary} style={styles.backupDir}>
+                {`${documentDirectory}backups/`}
+              </AppText>
+            )}
           </View>
         }
         renderItem={({ item }) => (
@@ -197,33 +207,33 @@ export default function BackupScreen() {
                 {item.filename}
               </AppText>
               <AppText variant="caption" color={colors.textSecondary}>
-                {formatDate(item.createdAt)} · {formatSize(item.sizeBytes)} ·{" "}
-                {item.isAuto ? "Auto" : "Manual"}
+                {new Date(item.createdAt).toLocaleDateString()} · {formatSize(item.sizeBytes)} ·{" "}
+                {item.isAuto ? t("backup.auto") : t("backup.manual")}
               </AppText>
             </View>
           </Pressable>
         )}
         ListEmptyComponent={
           <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
-            No backups yet
+            {t("backup.noBackups")}
           </AppText>
         }
       />
       <ConfirmModal
         visible={showImport}
-        title="Import Data"
-        message="This will replace ALL existing data. Make sure you have a backup first."
-        confirmLabel="Import"
-        cancelLabel="Cancel"
+        title={t("backup.importTitle")}
+        message={t("backup.importMessage")}
+        confirmLabel={t("backup.import")}
+        cancelLabel={t("common.cancel")}
         onConfirm={confirmImport}
         onCancel={() => setShowImport(false)}
       />
       <ConfirmModal
         visible={deleteBackupId !== null}
-        title="Delete Backup"
-        message="Remove this backup file?"
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("common.delete")}
+        message={t("common.confirm")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         onConfirm={confirmDeleteBackup}
         onCancel={() => setDeleteBackupId(null)}
       />
@@ -231,7 +241,7 @@ export default function BackupScreen() {
         visible={!!resultModal}
         title={resultModal?.title ?? ""}
         message={resultModal?.message ?? ""}
-        confirmLabel="OK"
+        confirmLabel={t("common.done")}
         variant="primary"
         onConfirm={() => setResultModal(null)}
       />
@@ -253,6 +263,7 @@ const styles = StyleSheet.create({
   stepper: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   actions: { gap: spacing.sm },
   sectionTitle: { marginTop: spacing.sm },
+  backupDir: { marginTop: spacing.xs, fontSize: 11 },
   backupRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,22 +1,57 @@
-import { useEffect, useState } from "react";
-import { View, Pressable, Switch, StyleSheet } from "react-native";
+import { useEffect, useState, useMemo } from "react";
+import { View, Pressable, Switch, StyleSheet, Modal, FlatList, TextInput } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
-import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
-import { refreshExchangeRates } from "@/services/exchangeRate.service";
+import { refreshExchangeRates, getAccountCurrencies } from "@/services/exchangeRate.service";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useLanguage } from "@/hooks/useLanguage";
 import { spacing } from "@/theme/spacing";
+import { typography } from "@/theme/typography";
 
-const CURRENCIES = ["USD", "EUR", "GBP", "PYG", "BRL", "ARS", "JPY", "CAD"];
+const ALL_CURRENCIES = [
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CAD",
+  "AUD",
+  "CHF",
+  "CNY",
+  "BRL",
+  "ARS",
+  "PYG",
+  "MXN",
+  "COP",
+  "CLP",
+  "PEN",
+  "INR",
+  "KRW",
+  "TWD",
+  "THB",
+  "SGD",
+  "HKD",
+  "NZD",
+  "SEK",
+  "NOK",
+  "DKK",
+  "PLN",
+  "CZK",
+  "HUF",
+  "TRY",
+  "ZAR",
+  "ILS",
+  "AED",
+  "SAR",
+];
 
 type SettingsRowProps = {
   icon: string;
@@ -93,6 +128,156 @@ function formatLastUpdated(iso: string): string {
   return d.toLocaleDateString();
 }
 
+/* ---------- Currency Picker Modal ---------- */
+function CurrencyPickerModal({
+  visible,
+  selected,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  selected: string;
+  onSelect: (c: string) => void;
+  onClose: () => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return ALL_CURRENCIES;
+    const q = search.toUpperCase();
+    return ALL_CURRENCIES.filter((c) => c.includes(q));
+  }, [search]);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.modalHeader}>
+          <AppText variant="h3">{t("settings.displayCurrency")}</AppText>
+          <Pressable onPress={onClose}>
+            <AppIcon name="close" size={24} color={colors.icon} />
+          </Pressable>
+        </View>
+        <View style={styles.searchWrap}>
+          <TextInput
+            placeholder={t("common.search")}
+            placeholderTextColor={colors.placeholder}
+            value={search}
+            onChangeText={setSearch}
+            autoCorrect={false}
+            style={[
+              styles.searchInput,
+              typography.body,
+              {
+                color: colors.text,
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          />
+        </View>
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => {
+                onSelect(item);
+                onClose();
+                setSearch("");
+              }}
+              style={({ pressed }) => [
+                styles.listItem,
+                {
+                  backgroundColor: pressed
+                    ? colors.borderLight
+                    : item === selected
+                      ? colors.surface
+                      : "transparent",
+                },
+              ]}
+            >
+              <AppText variant="body">{item}</AppText>
+              {item === selected && <AppIcon name="check" size={20} color={colors.primary} />}
+            </Pressable>
+          )}
+          ListEmptyComponent={
+            <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
+              {t("common.noResults")}
+            </AppText>
+          }
+        />
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+/* ---------- Language Picker Modal ---------- */
+function LanguagePickerModal({
+  visible,
+  selected,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  selected: string;
+  onSelect: (code: string) => void;
+  onClose: () => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.modalHeader}>
+          <AppText variant="h3">{t("settings.language")}</AppText>
+          <Pressable onPress={onClose}>
+            <AppIcon name="close" size={24} color={colors.icon} />
+          </Pressable>
+        </View>
+        <View style={styles.listContent}>
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <Pressable
+              key={lang.code}
+              onPress={() => {
+                onSelect(lang.code);
+                onClose();
+              }}
+              style={({ pressed }) => [
+                styles.listItem,
+                {
+                  backgroundColor: pressed
+                    ? colors.borderLight
+                    : lang.code === selected
+                      ? colors.surface
+                      : "transparent",
+                },
+              ]}
+            >
+              <AppText variant="body">{lang.label}</AppText>
+              {lang.code === selected && <AppIcon name="check" size={20} color={colors.primary} />}
+            </Pressable>
+          ))}
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+/* ---------- Main Settings Screen ---------- */
 export default function SettingsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -103,6 +288,9 @@ export default function SettingsScreen() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [refreshing, setRefreshing] = useState(false);
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+  const [multiCurrency, setMultiCurrency] = useState(false);
 
   useEffect(() => {
     getSetting("location_enabled").then((v) => setLocationEnabled(v === "true"));
@@ -114,6 +302,9 @@ export default function SettingsScreen() {
           setRatesUpdatedAt(cache.updatedAt ?? null);
         } catch {}
       }
+    });
+    getAccountCurrencies().then((currencies) => {
+      setMultiCurrency(currencies.length > 1);
     });
   }, []);
 
@@ -139,69 +330,72 @@ export default function SettingsScreen() {
     }
   };
 
+  const currentLanguageLabel =
+    SUPPORTED_LANGUAGES.find((l) => l.code === language)?.label ?? language;
+
   return (
     <ScreenLayout scrollable edges={["top"]}>
       <HeaderBar title={t("settings.title")} onBack={() => router.back()} />
 
-      {/* Display Currency */}
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <AppIcon name="currency-usd" size={22} color={colors.primary} />
-          <View style={styles.rowText}>
-            <AppText variant="body">{t("settings.displayCurrency")}</AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              {t("settings.displayCurrencyDesc")}
-            </AppText>
+      {/* Display Currency — only if multi-currency */}
+      {multiCurrency && (
+        <>
+          <View style={styles.section}>
+            <Pressable
+              onPress={() => setShowCurrencyPicker(true)}
+              style={({ pressed }) => [
+                styles.row,
+                { backgroundColor: pressed ? colors.borderLight : "transparent" },
+              ]}
+            >
+              <AppIcon name="currency-usd" size={22} color={colors.primary} />
+              <View style={styles.rowText}>
+                <AppText variant="body">{t("settings.displayCurrency")}</AppText>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {displayCurrency}
+                </AppText>
+              </View>
+              <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
+            </Pressable>
+            <View style={styles.ratesRow}>
+              <Pressable
+                onPress={handleRefreshRates}
+                disabled={refreshing}
+                style={styles.refreshRow}
+              >
+                <AppIcon name="refresh" size={18} color={colors.primary} />
+                <AppText variant="bodySmall" color={colors.primary}>
+                  {refreshing ? t("settings.updatingRates") : t("settings.updateRates")}
+                </AppText>
+              </Pressable>
+              {ratesUpdatedAt && (
+                <AppText variant="caption" color={colors.textTertiary}>
+                  {t("settings.lastUpdated", { date: formatLastUpdated(ratesUpdatedAt) })}
+                </AppText>
+              )}
+            </View>
           </View>
-        </View>
-        <View style={styles.chipWrap}>
-          {CURRENCIES.map((c) => (
-            <Chip
-              key={c}
-              label={c}
-              selected={displayCurrency === c}
-              onPress={() => handleCurrencyChange(c)}
-            />
-          ))}
-        </View>
-        <View style={styles.ratesRow}>
-          <Pressable onPress={handleRefreshRates} disabled={refreshing} style={styles.refreshRow}>
-            <AppIcon name="refresh" size={18} color={colors.primary} />
-            <AppText variant="bodySmall" color={colors.primary}>
-              {refreshing ? t("settings.updatingRates") : t("settings.updateRates")}
-            </AppText>
-          </Pressable>
-          {ratesUpdatedAt && (
-            <AppText variant="caption" color={colors.textTertiary}>
-              {t("settings.lastUpdated", { date: formatLastUpdated(ratesUpdatedAt) })}
-            </AppText>
-          )}
-        </View>
-      </View>
-      <Divider />
+          <Divider />
+        </>
+      )}
 
       {/* Language */}
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <AppIcon name="translate" size={22} color={colors.primary} />
-          <View style={styles.rowText}>
-            <AppText variant="body">{t("settings.language")}</AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              {t("settings.languageDesc")}
-            </AppText>
-          </View>
+      <Pressable
+        onPress={() => setShowLanguagePicker(true)}
+        style={({ pressed }) => [
+          styles.row,
+          { backgroundColor: pressed ? colors.borderLight : "transparent" },
+        ]}
+      >
+        <AppIcon name="translate" size={22} color={colors.primary} />
+        <View style={styles.rowText}>
+          <AppText variant="body">{t("settings.language")}</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            {currentLanguageLabel}
+          </AppText>
         </View>
-        <View style={styles.chipWrap}>
-          {SUPPORTED_LANGUAGES.map((lang) => (
-            <Chip
-              key={lang.code}
-              label={lang.label}
-              selected={language === lang.code}
-              onPress={() => changeLanguage(lang.code)}
-            />
-          ))}
-        </View>
-      </View>
+        <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
+      </Pressable>
       <Divider />
 
       <SettingsRow
@@ -233,6 +427,27 @@ export default function SettingsScreen() {
         onToggle={handleLocationToggle}
       />
       <Divider />
+
+      {/* App version */}
+      <View style={styles.versionContainer}>
+        <AppText variant="caption" color={colors.textTertiary}>
+          v1.0.0
+        </AppText>
+      </View>
+
+      {/* Modals */}
+      <CurrencyPickerModal
+        visible={showCurrencyPicker}
+        selected={displayCurrency}
+        onSelect={handleCurrencyChange}
+        onClose={() => setShowCurrencyPicker(false)}
+      />
+      <LanguagePickerModal
+        visible={showLanguagePicker}
+        selected={language}
+        onSelect={changeLanguage}
+        onClose={() => setShowLanguagePicker(false)}
+      />
     </ScreenLayout>
   );
 }
@@ -252,12 +467,6 @@ const styles = StyleSheet.create({
   section: {
     paddingBottom: spacing.sm,
   },
-  chipWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
   ratesRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -269,5 +478,45 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
+  },
+  versionContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+  },
+  /* Modal styles */
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  searchWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  listContent: {
+    paddingHorizontal: spacing.sm,
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: 10,
+  },
+  emptyText: {
+    textAlign: "center",
+    padding: spacing.xl,
   },
 });

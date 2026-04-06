@@ -9,7 +9,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: "1.0.1",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: "mywallet",
+  scheme: IS_DEV ? "mywallet-dev" : "mywallet",
   userInterfaceStyle: "automatic",
   ios: {
     icon: "./assets/expo.icon",

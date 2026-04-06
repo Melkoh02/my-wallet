@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-04-06
+
+### Fixed
+
+#### Credit Card Balance (Breaking Change)
+- Balance now represents **available credit**, not debt
+- Debt is computed as `creditLimit - balance` (displayed on account detail)
+- Expense decreases available credit, payment increases it (same direction as debit accounts)
+- Net worth: credit card liability = debt, not raw balance
+- Overpaid credit cards (balance > limit) correctly counted as assets
+- One-time migration automatically converts existing credit card balances
+
+#### UI/UX
+- Eye toggle moved inside net worth card (no longer pushes title off-center)
+- Balance field selects "0" on focus for easy replacement
+- Display currency setting always visible (not hidden when single currency)
+- Currency lists sorted alphabetically in settings and account form
+- Reduced spacing around exchange rate update row
+- Removed redundant net worth total from accounts list screen
+- Subcategory input fills full width in category detail
+- Removed empty fragment separator from accounts list
+
+#### Contact Picker
+- Shows all contacts immediately on open (no search required to see contacts)
+- Frequents section: top 4 most-used contacts + last transaction contact
+- Search filters the list while frequents remain visible
+
+#### Accounts
+- Separate Archive (soft-delete, restorable) and Delete (permanent) options with confirmation dialogs
+- Archive icon in header toggles archived accounts view
+- Restore button to un-archive accounts
+- Account form label shows "Available Credit" for credit card type
+
+#### Transactions
+- Removed redundant Notes field (Description is sufficient)
+- Filter modal reuses the existing CategoryPicker component
+
+### Known Limitations
+- App icon background color is set at build time and cannot be themed at runtime (Android OS limitation)
+
 ## [1.0.0] - 2026-04-06
 
 Initial release of My Wallet.
@@ -162,4 +202,5 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.0.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.0

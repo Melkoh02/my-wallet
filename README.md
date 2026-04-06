@@ -1,56 +1,141 @@
-# Welcome to your Expo app 👋
+# My Wallet
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A fully offline personal finance tracker built with React Native and Expo.
 
-## Get started
+Track your income, expenses, and transfers across multiple accounts and currencies — all stored locally on your device. No accounts, no servers, no internet required.
 
-1. Install dependencies
+## Features
 
-   ```bash
-   npm install
-   ```
+### Transactions
+- Income, expense, and transfer types
+- Categorize with categories and subcategories (many-to-many)
+- Attach contacts from your address book
+- Optional location stamps with reverse geocoding
+- Cashback tracking with instant or deferred fulfillment
+- Full edit and delete support
 
-2. Start the app
+### Accounts
+- 5 account types: Debit, Credit, Cash, Wallet, Savings
+- Credit cards with inverted balance logic (expenses increase debt)
+- Per-account currency (33 currencies supported)
+- Net worth calculation with cross-currency conversion
 
-   ```bash
-   npx expo start
-   ```
+### Analytics
+- Monthly overview: income, expenses, net
+- Category breakdown with proportional bars
+- Daily spending chart
+- Navigate between months
 
-In the output, you'll find options to open the app in a
+### Recurring Transactions
+- Daily, weekly, biweekly, monthly, yearly frequencies
+- Auto-processed on app open (90-day catchup cap)
+- Pause, resume, and delete
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Multi-Currency
+- Display currency setting with automatic conversion
+- Exchange rates fetched once per day (only when multiple currencies exist)
+- Graceful offline fallback to cached rates
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Privacy
+- Hide amounts with eye toggle
+- Random numbers mode (shows fake amounts everywhere)
+- Both modes configurable to activate on app open
 
-## Get a fresh project
+### Customization
+- Light and dark mode
+- Custom themes with accent color and status bar style
+- 5 languages: English, Spanish, Portuguese, Japanese, Chinese
 
-When you're ready, run:
+### Data Management
+- Automatic daily backups with configurable retention
+- Manual backup, export (share as JSON), and import
+- Atomic import with SQLite transaction rollback on failure
+- Data persists across app updates
 
-```bash
-npm run reset-project
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | React Native 0.83 + Expo SDK 55 |
+| Language | TypeScript (strict mode) |
+| Navigation | Expo Router (file-based) |
+| Database | SQLite via expo-sqlite |
+| ORM | Drizzle ORM (type-safe schema + migrations) |
+| State | React Context (Theme, Privacy, Data Refresh) |
+| Icons | MaterialCommunityIcons (7000+) |
+| Animations | React Native Reanimated |
+| i18n | i18next + react-i18next + expo-localization |
+
+## Project Structure
+
+```
+src/
+├── app/                    Expo Router screens (file-based routing)
+│   ├── (tabs)/             Bottom tab screens (Home, Transactions, Categories, Analytics, Accounts)
+│   ├── account/            Account detail + form
+│   ├── transaction/        Transaction detail + form
+│   ├── category/           Category detail + form
+│   ├── recurring/          Recurring list + form
+│   ├── contact/            Contact transaction history
+│   └── settings/           Settings, themes, backup
+├── components/
+│   ├── atoms/              AppText, AppButton, AppInput, AppIcon, FAB, Chip, Divider, Switch
+│   ├── molecules/          AmountDisplay, CategoryPill, DatePicker, TimePicker, EmptyState, etc.
+│   ├── organisms/          TransactionForm, AccountForm, CategoryPicker, ContactPicker, etc.
+│   └── templates/          ScreenLayout, ModalLayout, HeaderBar
+├── db/
+│   ├── schema/             Drizzle table definitions (11 tables)
+│   ├── queries/            CRUD + business logic per entity
+│   ├── migrations/         SQL migrations (inlined for Metro compatibility)
+│   └── seed.ts             Default categories + settings
+├── providers/              DatabaseProvider, ThemeProvider, PrivacyProvider, DataRefreshProvider
+├── services/               Backup, location, contacts, exchange rates
+├── hooks/                  useAccounts, useTransactions, useCategories, useRecurring, etc.
+├── theme/                  Color palettes, spacing, typography, tokens
+├── i18n/                   i18next config + 5 locale JSON files
+├── constants/              Default categories, FAB actions, settings
+└── utils/                  Currency/date formatting, date math
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-### Other setup steps
+### Prerequisites
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- Node.js 18+
+- Android Studio with SDK (for Android builds)
+- Xcode (for iOS builds, macOS only)
 
-## Learn more
+### Install
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+git clone https://github.com/Melkoh02/my-wallet.git
+cd my-wallet
+npm install
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Run on Android
 
-## Join the community
+```bash
+npx expo run:android
+```
 
-Join our community of developers creating universal apps.
+### Run on iOS
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx expo run:ios
+```
+
+### Lint & Format
+
+```bash
+npm run lint
+npm run format
+```
+
+## Download
+
+Get the latest APK from [Releases](https://github.com/Melkoh02/my-wallet/releases).
+
+## License
+
+Private project by [melkoh.dev](https://melkoh.dev).

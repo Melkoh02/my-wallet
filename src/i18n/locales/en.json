@@ -230,7 +230,8 @@
     "backupHistory": "Backup History",
     "noBackups": "No backups yet",
     "auto": "Auto",
-    "manual": "Manual"
+    "manual": "Manual",
+    "storageNote": "Backups are stored in the app\u2019s private storage. Use Export to save a copy to your device or share it."
   },
   "contacts": {
     "selectContact": "Select Contact",

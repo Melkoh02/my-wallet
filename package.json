@@ -1,12 +1,13 @@
 {
   "name": "my-wallet",
   "main": "expo-router/entry",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "APP_VARIANT=development expo run:android",
-    "android:release": "expo run:android --variant release",
+    "android:prebuild": "APP_VARIANT=development npx expo prebuild --clean",
+    "android:release": "npx expo prebuild --clean && cd android && ./gradlew assembleRelease -x lint -x test",
     "ios": "APP_VARIANT=development expo run:ios",
     "ios:release": "expo run:ios --configuration Release",
     "web": "expo start --web",

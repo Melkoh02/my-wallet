@@ -12,11 +12,11 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
-import { documentDirectory } from "expo-file-system/legacy";
 import {
   createBackup,
   exportBackup,
   importBackup,
+  restoreFromBackup,
   getBackupList,
   deleteBackup,
 } from "@/services/backup.service";
@@ -34,6 +34,7 @@ export default function BackupScreen() {
   const [loading, setLoading] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [deleteBackupId, setDeleteBackupId] = useState<number | null>(null);
+  const [restoreFilePath, setRestoreFilePath] = useState<string | null>(null);
   const [resultModal, setResultModal] = useState<{ title: string; message: string } | null>(null);
 
   const loadData = async () => {
@@ -83,22 +84,44 @@ export default function BackupScreen() {
     }
   };
 
+  const invalidateAll = () => {
+    invalidate(
+      "accounts",
+      "categories",
+      "transactions",
+      "recurring",
+      "cashback",
+      "themes",
+      "settings",
+      "backups",
+    );
+  };
+
   const confirmImport = async () => {
     setShowImport(false);
     setLoading(true);
     const result = await importBackup();
     setLoading(false);
     if (result.success) {
-      invalidate(
-        "accounts",
-        "categories",
-        "transactions",
-        "recurring",
-        "cashback",
-        "themes",
-        "settings",
-        "backups",
-      );
+      invalidateAll();
+      setResultModal({ title: t("common.success"), message: t("backup.dataImported") });
+      await loadData();
+    } else {
+      setResultModal({
+        title: t("common.error"),
+        message: result.error ?? t("backup.importFailed"),
+      });
+    }
+  };
+
+  const confirmRestore = async () => {
+    if (!restoreFilePath) return;
+    setRestoreFilePath(null);
+    setLoading(true);
+    const result = await restoreFromBackup(restoreFilePath);
+    setLoading(false);
+    if (result.success) {
+      invalidateAll();
       setResultModal({ title: t("common.success"), message: t("backup.dataImported") });
       await loadData();
     } else {
@@ -191,18 +214,13 @@ export default function BackupScreen() {
             <AppText variant="label" color={colors.textSecondary} style={styles.sectionTitle}>
               {t("backup.backupHistory")}
             </AppText>
-            {documentDirectory && (
-              <AppText variant="caption" color={colors.textTertiary} style={styles.backupDir}>
-                {`${documentDirectory}backups/`}
-              </AppText>
-            )}
+            <AppText variant="caption" color={colors.textTertiary} style={styles.backupDir}>
+              {t("backup.storageNote")}
+            </AppText>
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable
-            onLongPress={() => setDeleteBackupId(item.id)}
-            style={[styles.backupRow, { borderColor: colors.border }]}
-          >
+          <View style={[styles.backupRow, { borderColor: colors.border }]}>
             <AppIcon
               name={item.isAuto ? "cloud-sync" : "cloud-check"}
               size={24}
@@ -217,7 +235,13 @@ export default function BackupScreen() {
                 {item.isAuto ? t("backup.auto") : t("backup.manual")}
               </AppText>
             </View>
-          </Pressable>
+            <Pressable onPress={() => setRestoreFilePath(item.filePath)} hitSlop={8}>
+              <AppIcon name="backup-restore" size={20} color={colors.primary} />
+            </Pressable>
+            <Pressable onPress={() => setDeleteBackupId(item.id)} hitSlop={8}>
+              <AppIcon name="delete-outline" size={20} color={colors.iconSecondary} />
+            </Pressable>
+          </View>
         )}
         ListEmptyComponent={
           <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
@@ -233,6 +257,15 @@ export default function BackupScreen() {
         cancelLabel={t("common.cancel")}
         onConfirm={confirmImport}
         onCancel={() => setShowImport(false)}
+      />
+      <ConfirmModal
+        visible={restoreFilePath !== null}
+        title={t("backup.restoreTitle")}
+        message={t("backup.restoreMessage")}
+        confirmLabel={t("backup.restore")}
+        cancelLabel={t("common.cancel")}
+        onConfirm={confirmRestore}
+        onCancel={() => setRestoreFilePath(null)}
       />
       <ConfirmModal
         visible={deleteBackupId !== null}

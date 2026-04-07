@@ -17,42 +17,7 @@ import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useLanguage } from "@/hooks/useLanguage";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
-
-const ALL_CURRENCIES = [
-  "AED",
-  "ARS",
-  "AUD",
-  "BRL",
-  "CAD",
-  "CHF",
-  "CLP",
-  "CNY",
-  "COP",
-  "CZK",
-  "DKK",
-  "EUR",
-  "GBP",
-  "HKD",
-  "HUF",
-  "ILS",
-  "INR",
-  "JPY",
-  "KRW",
-  "MXN",
-  "NOK",
-  "NZD",
-  "PEN",
-  "PLN",
-  "PYG",
-  "SAR",
-  "SEK",
-  "SGD",
-  "THB",
-  "TRY",
-  "TWD",
-  "USD",
-  "ZAR",
-];
+import { SUPPORTED_CURRENCIES } from "@/constants/currencies";
 
 type SettingsRowProps = {
   icon: string;
@@ -146,9 +111,9 @@ function CurrencyPickerModal({
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return ALL_CURRENCIES;
+    if (!search.trim()) return SUPPORTED_CURRENCIES;
     const q = search.toUpperCase();
-    return ALL_CURRENCIES.filter((c) => c.includes(q));
+    return SUPPORTED_CURRENCIES.filter((c) => c.includes(q));
   }, [search]);
 
   return (

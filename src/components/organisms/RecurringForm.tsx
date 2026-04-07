@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
@@ -70,8 +70,9 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
           const isActive = type === t;
           const tColor = t === "income" ? colors.income : colors.expense;
           return (
-            <View
+            <Pressable
               key={t}
+              onPress={() => setType(t)}
               style={[
                 styles.typeBtn,
                 {
@@ -79,12 +80,11 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
                   borderColor: isActive ? tColor : colors.border,
                 },
               ]}
-              onTouchEnd={() => setType(t)}
             >
               <AppText variant="label" color={isActive ? tColor : colors.textSecondary}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </AppText>
-            </View>
+            </Pressable>
           );
         })}
       </View>

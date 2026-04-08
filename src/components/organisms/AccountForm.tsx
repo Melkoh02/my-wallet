@@ -9,6 +9,8 @@ import { AppIcon } from "@/components/atoms/AppIcon";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { PALETTE_COLORS } from "@/constants/colors";
+import { SUPPORTED_CURRENCIES } from "@/constants/currencies";
 import type { Account, NewAccount } from "@/db/schema";
 import type { AccountType } from "@/types";
 
@@ -18,57 +20,6 @@ const ACCOUNT_TYPE_DEFS: { value: AccountType; key: string; icon: string }[] = [
   { value: "cash", key: "accounts.cash", icon: "cash" },
   { value: "wallet", key: "accounts.wallet", icon: "wallet" },
   { value: "savings", key: "accounts.savings", icon: "piggy-bank" },
-];
-
-const CURRENCIES = [
-  "AED",
-  "ARS",
-  "AUD",
-  "BRL",
-  "CAD",
-  "CHF",
-  "CLP",
-  "CNY",
-  "COP",
-  "CZK",
-  "DKK",
-  "EUR",
-  "GBP",
-  "HKD",
-  "HUF",
-  "ILS",
-  "INR",
-  "JPY",
-  "KRW",
-  "MXN",
-  "NOK",
-  "NZD",
-  "PEN",
-  "PLN",
-  "PYG",
-  "SAR",
-  "SEK",
-  "SGD",
-  "THB",
-  "TRY",
-  "TWD",
-  "USD",
-  "ZAR",
-];
-
-const COLORS = [
-  "#EF4444",
-  "#F59E0B",
-  "#10B981",
-  "#3B82F6",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
-  "#6366F1",
-  "#F97316",
-  "#06B6D4",
-  "#78716C",
-  "#607D8B",
 ];
 
 type AccountFormProps = {
@@ -85,7 +36,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [type, setType] = useState<AccountType>((initial?.type as AccountType) ?? "debit");
   const [balance, setBalance] = useState(initial?.balance?.toString() ?? "0");
   const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() ?? "");
-  const [color, setColor] = useState(initial?.color ?? COLORS[3]);
+  const [color, setColor] = useState(initial?.color ?? PALETTE_COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
 
   const [showTypeModal, setShowTypeModal] = useState(false);
@@ -93,9 +44,9 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [currencySearch, setCurrencySearch] = useState("");
 
   const filteredCurrencies = useMemo(() => {
-    if (!currencySearch.trim()) return CURRENCIES;
+    if (!currencySearch.trim()) return SUPPORTED_CURRENCIES;
     const q = currencySearch.trim().toUpperCase();
-    return CURRENCIES.filter((c) => c.includes(q));
+    return SUPPORTED_CURRENCIES.filter((c) => c.includes(q));
   }, [currencySearch]);
 
   const selectedTypeDef = ACCOUNT_TYPE_DEFS.find((td) => td.value === type);
@@ -317,14 +268,14 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
           {t("accounts.color")}
         </AppText>
         <View style={styles.colorRow}>
-          {COLORS.map((c) => (
-            <View
+          {PALETTE_COLORS.map((c) => (
+            <Pressable
               key={c}
+              onPress={() => setColor(c)}
               style={[
                 styles.colorDot,
                 { backgroundColor: c, borderColor: color === c ? colors.text : "transparent" },
               ]}
-              onTouchEnd={() => setColor(c)}
             />
           ))}
         </View>

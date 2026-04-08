@@ -17,22 +17,8 @@ import {
   deleteCategory,
 } from "@/db/queries/categories";
 import { spacing } from "@/theme/spacing";
+import { PALETTE_COLORS } from "@/constants/colors";
 import type { Category } from "@/db/schema";
-
-const COLORS = [
-  "#EF4444",
-  "#F59E0B",
-  "#10B981",
-  "#3B82F6",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
-  "#6366F1",
-  "#F97316",
-  "#06B6D4",
-  "#78716C",
-  "#22C55E",
-];
 
 const QUICK_ICONS = [
   "food",
@@ -67,7 +53,7 @@ export default function CategoryFormScreen() {
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
 
   const [name, setName] = useState("");
-  const [color, setColor] = useState(COLORS[2]);
+  const [color, setColor] = useState(PALETTE_COLORS[2]);
   const [icon, setIcon] = useState("tag");
 
   useEffect(() => {
@@ -125,7 +111,7 @@ export default function CategoryFormScreen() {
             {t("accounts.color")}
           </AppText>
           <View style={styles.grid}>
-            {COLORS.map((c) => (
+            {PALETTE_COLORS.map((c) => (
               <Pressable
                 key={c}
                 onPress={() => setColor(c)}

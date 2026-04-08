@@ -156,9 +156,9 @@ export default function ThemesScreen() {
                 </AppText>
                 <View style={styles.colorGrid}>
                   {ACCENT_COLORS.map((c) => (
-                    <View
+                    <Pressable
                       key={c}
-                      onTouchEnd={() => setAccentColor(c)}
+                      onPress={() => setAccentColor(c)}
                       style={[
                         styles.accentDot,
                         {

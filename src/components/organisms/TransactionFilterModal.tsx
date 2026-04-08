@@ -419,39 +419,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 14,
   },
-  catRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-  },
-  catDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  catName: {
-    flex: 1,
-  },
-  catBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  catBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    lineHeight: 14,
-  },
-  catSubs: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    paddingLeft: spacing.xl,
-    paddingBottom: spacing.sm,
-  },
   footer: {
     flexDirection: "row",
     paddingHorizontal: spacing.lg,

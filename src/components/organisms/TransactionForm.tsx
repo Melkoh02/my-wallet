@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView, Switch, Modal, FlatList, Pressable, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, ScrollView, Switch, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
@@ -8,6 +7,8 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { DatePicker } from "@/components/molecules/DatePicker";
 import { TimePicker } from "@/components/molecules/TimePicker";
+import { SelectInput } from "@/components/molecules/SelectInput";
+import { PickerModal } from "@/components/molecules/PickerModal";
 import { CategoryPicker } from "@/components/organisms/CategoryPicker";
 import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -34,77 +35,6 @@ type TransactionFormProps = {
   initialData?: TransactionFormData & { subcategoryIds: number[] };
   locationEnabled?: boolean;
 };
-
-/* ---------- Account Picker Modal ---------- */
-function AccountPickerModal({
-  visible,
-  accounts,
-  selected,
-  onSelect,
-  onClose,
-  title,
-}: {
-  visible: boolean;
-  accounts: Account[];
-  selected: number | null;
-  onSelect: (id: number) => void;
-  onClose: () => void;
-  title: string;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={[modalStyles.container, { backgroundColor: colors.background }]}>
-        <View style={modalStyles.header}>
-          <AppText variant="h3">{title}</AppText>
-          <Pressable onPress={onClose}>
-            <AppIcon name="close" size={24} color={colors.icon} />
-          </Pressable>
-        </View>
-        <FlatList
-          data={accounts}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => {
-                onSelect(item.id);
-                onClose();
-              }}
-              style={({ pressed }) => [
-                modalStyles.row,
-                {
-                  backgroundColor: pressed
-                    ? colors.borderLight
-                    : item.id === selected
-                      ? colors.surface
-                      : "transparent",
-                },
-              ]}
-            >
-              <View style={[modalStyles.iconWrap, { backgroundColor: item.color + "20" }]}>
-                <AppIcon name={item.icon} size={20} color={item.color} />
-              </View>
-              <View style={modalStyles.rowInfo}>
-                <AppText variant="body">{item.name}</AppText>
-                {item.institution ? (
-                  <AppText variant="caption" color={colors.textSecondary}>
-                    {item.institution}
-                  </AppText>
-                ) : null}
-              </View>
-              {item.id === selected && <AppIcon name="check" size={20} color={colors.primary} />}
-            </Pressable>
-          )}
-        />
-      </SafeAreaView>
-    </Modal>
-  );
-}
 
 /* ---------- Main Form ---------- */
 export function TransactionForm({
@@ -286,62 +216,40 @@ export function TransactionForm({
         </View>
       ) : (
         <>
-          <Pressable
-            onPress={() => setShowAccountPicker(true)}
-            style={[
-              styles.selectInput,
-              { borderColor: colors.border, backgroundColor: colors.surface },
-            ]}
-          >
-            <AppText variant="label" color={colors.textSecondary} style={styles.selectLabel}>
-              {type === "transfer"
-                ? t("transactionForm.fromAccount")
-                : t("transactionForm.account")}
-            </AppText>
-            <View style={styles.selectValue}>
-              {selectedAccount ? (
-                <>
+          <SelectInput
+            label={
+              type === "transfer" ? t("transactionForm.fromAccount") : t("transactionForm.account")
+            }
+            value={
+              selectedAccount ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <AppIcon name={selectedAccount.icon} size={18} color={selectedAccount.color} />
                   <AppText variant="body">{selectedAccount.name}</AppText>
-                </>
-              ) : (
-                <AppText variant="body" color={colors.placeholder}>
-                  {t("common.select")}
-                </AppText>
-              )}
-              <AppIcon name="chevron-down" size={18} color={colors.iconSecondary} />
-            </View>
-          </Pressable>
+                </View>
+              ) : undefined
+            }
+            placeholder={t("common.select")}
+            onPress={() => setShowAccountPicker(true)}
+          />
 
           {type === "transfer" && (
-            <Pressable
-              onPress={() => setShowToAccountPicker(true)}
-              style={[
-                styles.selectInput,
-                { borderColor: colors.border, backgroundColor: colors.surface },
-              ]}
-            >
-              <AppText variant="label" color={colors.textSecondary} style={styles.selectLabel}>
-                {t("transactionForm.toAccount")}
-              </AppText>
-              <View style={styles.selectValue}>
-                {selectedToAccount ? (
-                  <>
+            <SelectInput
+              label={t("transactionForm.toAccount")}
+              value={
+                selectedToAccount ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <AppIcon
                       name={selectedToAccount.icon}
                       size={18}
                       color={selectedToAccount.color}
                     />
                     <AppText variant="body">{selectedToAccount.name}</AppText>
-                  </>
-                ) : (
-                  <AppText variant="body" color={colors.placeholder}>
-                    {t("common.select")}
-                  </AppText>
-                )}
-                <AppIcon name="chevron-down" size={18} color={colors.iconSecondary} />
-              </View>
-            </Pressable>
+                  </View>
+                ) : undefined
+              }
+              placeholder={t("common.select")}
+              onPress={() => setShowToAccountPicker(true)}
+            />
           )}
         </>
       )}
@@ -480,34 +388,24 @@ export function TransactionForm({
               )}
 
               {/* Cashback account — modal picker */}
-              <Pressable
-                onPress={() => setShowCashbackAccountPicker(true)}
-                style={[
-                  styles.selectInput,
-                  { borderColor: colors.border, backgroundColor: colors.background },
-                ]}
-              >
-                <AppText variant="caption" color={colors.textSecondary} style={styles.selectLabel}>
-                  {t("settings.cashbackAccount")}
-                </AppText>
-                <View style={styles.selectValue}>
-                  {selectedCashbackAccount ? (
-                    <>
+              <SelectInput
+                label={t("settings.cashbackAccount")}
+                value={
+                  selectedCashbackAccount ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <AppIcon
                         name={selectedCashbackAccount.icon}
                         size={16}
                         color={selectedCashbackAccount.color}
                       />
                       <AppText variant="bodySmall">{selectedCashbackAccount.name}</AppText>
-                    </>
-                  ) : (
-                    <AppText variant="bodySmall" color={colors.placeholder}>
-                      {t("common.select")}
-                    </AppText>
-                  )}
-                  <AppIcon name="chevron-down" size={16} color={colors.iconSecondary} />
-                </View>
-              </Pressable>
+                    </View>
+                  ) : undefined
+                }
+                placeholder={t("common.select")}
+                onPress={() => setShowCashbackAccountPicker(true)}
+                style={{ backgroundColor: colors.background }}
+              />
 
               {/* Instant cashback toggle */}
               <View style={styles.instantRow}>
@@ -528,61 +426,113 @@ export function TransactionForm({
       />
 
       {/* Account picker modals */}
-      <AccountPickerModal
+      <PickerModal
         visible={showAccountPicker}
-        accounts={accounts}
-        selected={accountId}
-        onSelect={setAccountId}
-        onClose={() => setShowAccountPicker(false)}
         title={
           type === "transfer" ? t("transactionForm.fromAccount") : t("transactionForm.account")
         }
+        items={accounts}
+        keyExtractor={(item) => item.id.toString()}
+        selectedKey={accountId?.toString()}
+        onSelect={(item) => setAccountId(item.id)}
+        onClose={() => setShowAccountPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: item.color + "20",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppIcon name={item.icon} size={20} color={item.color} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="body">{item.name}</AppText>
+              {item.institution ? (
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {item.institution}
+                </AppText>
+              ) : null}
+            </View>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
       />
-      <AccountPickerModal
+      <PickerModal
         visible={showToAccountPicker}
-        accounts={accounts.filter((a) => a.id !== accountId)}
-        selected={toAccountId}
-        onSelect={setToAccountId}
-        onClose={() => setShowToAccountPicker(false)}
         title={t("transactionForm.toAccount")}
+        items={accounts.filter((a) => a.id !== accountId)}
+        keyExtractor={(item) => item.id.toString()}
+        selectedKey={toAccountId?.toString()}
+        onSelect={(item) => setToAccountId(item.id)}
+        onClose={() => setShowToAccountPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: item.color + "20",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppIcon name={item.icon} size={20} color={item.color} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="body">{item.name}</AppText>
+              {item.institution ? (
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {item.institution}
+                </AppText>
+              ) : null}
+            </View>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
       />
-      <AccountPickerModal
+      <PickerModal
         visible={showCashbackAccountPicker}
-        accounts={accounts}
-        selected={cashbackAccountId}
-        onSelect={setCashbackAccountId}
-        onClose={() => setShowCashbackAccountPicker(false)}
         title={t("settings.cashbackAccount")}
+        items={accounts}
+        keyExtractor={(item) => item.id.toString()}
+        selectedKey={cashbackAccountId?.toString()}
+        onSelect={(item) => setCashbackAccountId(item.id)}
+        onClose={() => setShowCashbackAccountPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: item.color + "20",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppIcon name={item.icon} size={20} color={item.color} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="body">{item.name}</AppText>
+              {item.institution ? (
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {item.institution}
+                </AppText>
+              ) : null}
+            </View>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
       />
     </ScrollView>
   );
 }
-
-const modalStyles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rowInfo: { flex: 1, gap: 2 },
-});
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
@@ -596,7 +546,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   section: { gap: spacing.sm },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   row: { flexDirection: "row", gap: spacing.md },
   halfInput: { flex: 1 },
   flex: { flex: 1 },
@@ -608,14 +557,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  selectInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  selectLabel: { marginBottom: 2 },
-  selectValue: { flexDirection: "row", alignItems: "center", gap: spacing.sm, minHeight: 32 },
   locationRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   locationText: { flex: 1 },
   cashbackCard: { borderWidth: 1, borderRadius: 12, padding: spacing.md, gap: spacing.md },

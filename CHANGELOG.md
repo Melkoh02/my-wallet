@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-04-08
+
+### Changed
+- Extracted shared `PALETTE_COLORS` and `SUPPORTED_CURRENCIES` constants (no more duplicate arrays)
+- New `SelectInput` molecule — reusable select trigger used across transaction and account forms
+- New `PickerModal<T>` molecule — generic searchable list picker, replaces inline modal implementations
+- TransactionForm refactored to use SelectInput + PickerModal (removed 120-line inline AccountPickerModal)
+- PickerModal resets search on both select and close
+
+### Fixed
+- Color picker in AccountForm, RecurringForm, ThemeForm: replaced `View` + `onTouchEnd` with `Pressable` + `onPress` (accessibility fix)
+- Removed unused styles from TransactionFilterModal after CategoryPicker extraction
+- Preserved `#607D8B` in palette to avoid breaking existing account color selections
+
 ## [1.0.2] - 2026-04-06
 
 ### Fixed
@@ -215,6 +229,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.0.3]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.3
 [1.0.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.0

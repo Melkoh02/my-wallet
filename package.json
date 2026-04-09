@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "APP_VARIANT=development npx expo prebuild --clean && APP_VARIANT=development expo run:android",
+    "android": "rm -rf android && APP_VARIANT=development expo run:android",
     "android:prebuild": "APP_VARIANT=development npx expo prebuild --clean",
     "android:release": "npx expo prebuild --clean && cd android && ./gradlew assembleRelease -x lint -x test",
     "ios": "APP_VARIANT=development expo run:ios",
@@ -26,6 +26,7 @@
     "expo-background-fetch": "~55.0.10",
     "expo-constants": "~55.0.9",
     "expo-contacts": "~55.0.9",
+    "expo-dev-client": "~55.0.24",
     "expo-device": "~55.0.10",
     "expo-document-picker": "~55.0.9",
     "expo-file-system": "~55.0.12",

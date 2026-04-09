@@ -39,20 +39,14 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const fabRef = useRef<View>(null);
-  const fabLayout = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const isDragging = useRef(false);
   const startY = useRef(0);
   const isOpenRef = useRef(false);
   const wasOpenOnGrant = useRef(false);
   const lastHoveredIndex = useRef(-1);
+  const fabTopPageY = useRef(0);
 
   const isSpeedDial = actions && actions.length > 0;
-
-  const handleLayout = useCallback(() => {
-    fabRef.current?.measureInWindow((x, y, width, height) => {
-      fabLayout.current = { x, y, width, height };
-    });
-  }, []);
 
   const open = useCallback(() => {
     setIsOpen(true);
@@ -73,7 +67,7 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const getActionIndexAtPosition = useCallback(
     (pageY: number) => {
       if (!actions || actions.length === 0) return -1;
-      const fabTop = fabLayout.current.y;
+      const fabTop = fabTopPageY.current;
       if (fabTop === 0) return -1;
 
       const count = actions.length;
@@ -118,6 +112,7 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
         lastHoveredIndex.current = -1;
         wasOpenOnGrant.current = isOpenRef.current;
         startY.current = evt.nativeEvent.pageY;
+        fabTopPageY.current = evt.nativeEvent.pageY - evt.nativeEvent.locationY;
         if (!isOpenRef.current) {
           open();
         }
@@ -187,7 +182,6 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
 
       <View
         ref={fabRef}
-        onLayout={handleLayout}
         style={[styles.fab, { backgroundColor: colors.primary }]}
         {...(isSpeedDial ? panResponder.panHandlers : {})}
         onTouchEnd={isSpeedDial ? undefined : handleTap}

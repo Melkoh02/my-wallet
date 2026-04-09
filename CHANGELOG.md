@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-04-09
+
+### Fixed
+- Net worth now shows negative sign when liabilities exceed assets (was displaying as positive)
+- FAB speed-dial hit zones aligned to actual button positions (drag-to-select was offset)
+- FAB hit-test uses touch-relative coordinates to avoid Android status bar offset
+- Dev builds (`npm run android`) no longer overwrite the release APK — clean prebuild ensures correct package name
+
 ## [1.0.3] - 2026-04-08
 
 ### Changed
@@ -229,6 +237,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.0.4]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.4
 [1.0.3]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.3
 [1.0.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.1

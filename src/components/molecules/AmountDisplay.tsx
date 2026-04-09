@@ -30,7 +30,7 @@ export function AmountDisplay({
     neutral: colors.text,
   };
 
-  const prefix = type === "income" ? "+" : type === "expense" ? "-" : "";
+  const prefix = type === "income" ? "+" : type === "expense" ? "-" : amount < 0 ? "-" : "";
   const displayAmount = maskAmount(Math.abs(amount));
 
   return (

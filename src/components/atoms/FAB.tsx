@@ -39,20 +39,14 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const fabRef = useRef<View>(null);
-  const fabLayout = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const isDragging = useRef(false);
   const startY = useRef(0);
   const isOpenRef = useRef(false);
   const wasOpenOnGrant = useRef(false);
   const lastHoveredIndex = useRef(-1);
+  const fabTopPageY = useRef(0);
 
   const isSpeedDial = actions && actions.length > 0;
-
-  const handleLayout = useCallback(() => {
-    fabRef.current?.measureInWindow((x, y, width, height) => {
-      fabLayout.current = { x, y, width, height };
-    });
-  }, []);
 
   const open = useCallback(() => {
     setIsOpen(true);
@@ -73,35 +67,34 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const getActionIndexAtPosition = useCallback(
     (pageY: number) => {
       if (!actions || actions.length === 0) return -1;
-      const fabTop = fabLayout.current.y;
+      const fabTop = fabTopPageY.current;
       if (fabTop === 0) return -1;
 
       const count = actions.length;
-      const topItemTop = fabTop - count * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
-      const bottomItemBottom = fabTop - (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
+      const topItemTop = fabTop - count * (ITEM_HEIGHT + ITEM_GAP);
+      const bottomItemBottom = fabTop - ITEM_GAP;
 
       // Above all items → clamp to topmost
       if (pageY < topItemTop) return count - 1;
       // Below all items but above FAB → clamp to bottommost
-      if (pageY > bottomItemBottom + ITEM_HEIGHT && pageY < fabTop) return 0;
+      if (pageY > bottomItemBottom && pageY < fabTop) return 0;
 
       for (let i = 0; i < count; i++) {
-        const itemBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
-        const itemTop = itemBottom + ITEM_HEIGHT;
-        if (pageY >= itemBottom && pageY <= itemTop) {
+        const itemTop = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP);
+        const itemBottom = itemTop + ITEM_HEIGHT;
+        if (pageY >= itemTop && pageY <= itemBottom) {
           return i;
         }
       }
 
       // In a gap between items — find the closest
       for (let i = 0; i < count - 1; i++) {
-        const thisBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
-        const nextTop = fabTop - (i + 2) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP + ITEM_HEIGHT;
-        if (pageY >= nextTop && pageY <= thisBottom) {
-          // In gap between i and i+1, pick the closer one
-          const distToI = pageY - thisBottom;
-          const distToNext = nextTop - pageY;
-          return Math.abs(distToI) < Math.abs(distToNext) ? i : i + 1;
+        const thisTop = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP);
+        const nextBottom = fabTop - (i + 2) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_HEIGHT;
+        if (pageY >= nextBottom && pageY <= thisTop) {
+          const distToThis = thisTop - pageY;
+          const distToNext = pageY - nextBottom;
+          return distToThis < distToNext ? i : i + 1;
         }
       }
 
@@ -119,6 +112,7 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
         lastHoveredIndex.current = -1;
         wasOpenOnGrant.current = isOpenRef.current;
         startY.current = evt.nativeEvent.pageY;
+        fabTopPageY.current = evt.nativeEvent.pageY - evt.nativeEvent.locationY;
         if (!isOpenRef.current) {
           open();
         }
@@ -188,7 +182,6 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
 
       <View
         ref={fabRef}
-        onLayout={handleLayout}
         style={[styles.fab, { backgroundColor: colors.primary }]}
         {...(isSpeedDial ? panResponder.panHandlers : {})}
         onTouchEnd={isSpeedDial ? undefined : handleTap}

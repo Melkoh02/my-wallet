@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { accounts, settings } from "@/db/schema";
+import { accounts, settings, themes } from "@/db/schema";
 import { seed } from "@/db/seed";
 import { processDueRecurring } from "@/db/queries/recurring";
 import { checkAndRunAutoBackup } from "@/services/backup.service";
@@ -44,6 +44,27 @@ async function migrateCreditCardBalances() {
     .onConflictDoNothing();
 }
 
+const DEFAULT_THEMES = [
+  { name: "Dark Blue", mode: "dark", accentColor: "#3B82F6", statusBarStyle: "light" },
+  { name: "Light Blue", mode: "light", accentColor: "#3B82F6", statusBarStyle: "dark" },
+  { name: "Dark Pink", mode: "dark", accentColor: "#EC4899", statusBarStyle: "light" },
+  { name: "Light Pink", mode: "light", accentColor: "#EC4899", statusBarStyle: "dark" },
+] as const;
+
+async function seedDefaultThemes() {
+  const [flag] = await db.select().from(settings).where(eq(settings.key, "default_themes_seeded"));
+  if (flag) return;
+
+  for (const theme of DEFAULT_THEMES) {
+    await db.insert(themes).values(theme);
+  }
+
+  await db
+    .insert(settings)
+    .values({ key: "default_themes_seeded", value: "true" })
+    .onConflictDoNothing();
+}
+
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { success, error } = useMigrations(db, migrationData);
   const [isSeeded, setIsSeeded] = useState(false);
@@ -52,6 +73,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     if (!success) return;
     seed(db)
       .then(() => migrateCreditCardBalances())
+      .then(() => seedDefaultThemes())
       .then(() => setIsSeeded(true));
   }, [success]);
 

@@ -77,31 +77,30 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
       if (fabTop === 0) return -1;
 
       const count = actions.length;
-      const topItemTop = fabTop - count * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
-      const bottomItemBottom = fabTop - (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
+      const topItemTop = fabTop - count * (ITEM_HEIGHT + ITEM_GAP);
+      const bottomItemBottom = fabTop - ITEM_GAP;
 
       // Above all items → clamp to topmost
       if (pageY < topItemTop) return count - 1;
       // Below all items but above FAB → clamp to bottommost
-      if (pageY > bottomItemBottom + ITEM_HEIGHT && pageY < fabTop) return 0;
+      if (pageY > bottomItemBottom && pageY < fabTop) return 0;
 
       for (let i = 0; i < count; i++) {
-        const itemBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
-        const itemTop = itemBottom + ITEM_HEIGHT;
-        if (pageY >= itemBottom && pageY <= itemTop) {
+        const itemTop = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP);
+        const itemBottom = itemTop + ITEM_HEIGHT;
+        if (pageY >= itemTop && pageY <= itemBottom) {
           return i;
         }
       }
 
       // In a gap between items — find the closest
       for (let i = 0; i < count - 1; i++) {
-        const thisBottom = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP;
-        const nextTop = fabTop - (i + 2) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_GAP + ITEM_HEIGHT;
-        if (pageY >= nextTop && pageY <= thisBottom) {
-          // In gap between i and i+1, pick the closer one
-          const distToI = pageY - thisBottom;
-          const distToNext = nextTop - pageY;
-          return Math.abs(distToI) < Math.abs(distToNext) ? i : i + 1;
+        const thisTop = fabTop - (i + 1) * (ITEM_HEIGHT + ITEM_GAP);
+        const nextBottom = fabTop - (i + 2) * (ITEM_HEIGHT + ITEM_GAP) + ITEM_HEIGHT;
+        if (pageY >= nextBottom && pageY <= thisTop) {
+          const distToThis = thisTop - pageY;
+          const distToNext = pageY - nextBottom;
+          return distToThis < distToNext ? i : i + 1;
         }
       }
 

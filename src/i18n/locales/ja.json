@@ -100,6 +100,7 @@
     "currentValue": "現在価値",
     "counterparty": "相手先",
     "counterpartyPlaceholder": "例: 銀行、太郎",
+    "counterpartyManual": "または名前を入力",
     "interestRate": "金利（年率%）",
     "interestRatePlaceholder": "例: 5.5",
     "dueDate": "期日",

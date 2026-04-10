@@ -14,8 +14,10 @@ export const accounts = sqliteTable("accounts", {
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   counterparty: text("counterparty"),
+  counterpartyContactId: text("counterparty_contact_id"),
   interestRate: real("interest_rate"),
   dueDate: text("due_date"),
+  lastInterestDate: text("last_interest_date"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),

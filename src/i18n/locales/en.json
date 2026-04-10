@@ -100,6 +100,7 @@
     "currentValue": "Current Value",
     "counterparty": "Counterparty",
     "counterpartyPlaceholder": "e.g. Bank, John",
+    "counterpartyManual": "Or type a name",
     "interestRate": "Interest Rate (% annual)",
     "interestRatePlaceholder": "e.g. 5.5",
     "dueDate": "Due Date",

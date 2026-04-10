@@ -169,8 +169,12 @@ CREATE INDEX \`idx_transactions_contact\` ON \`transactions\` (\`contact_id\`);-
 CREATE INDEX \`idx_transactions_recurring\` ON \`transactions\` (\`recurring_id\`);`,
     m0001: `ALTER TABLE \`accounts\` ADD COLUMN \`counterparty\` text;
 --> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`counterparty_contact_id\` text;
+--> statement-breakpoint
 ALTER TABLE \`accounts\` ADD COLUMN \`interest_rate\` real;
 --> statement-breakpoint
-ALTER TABLE \`accounts\` ADD COLUMN \`due_date\` text;`,
+ALTER TABLE \`accounts\` ADD COLUMN \`due_date\` text;
+--> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`last_interest_date\` text;`,
   },
 };

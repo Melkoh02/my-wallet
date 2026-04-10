@@ -7,6 +7,7 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { DatePicker } from "@/components/molecules/DatePicker";
+import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
@@ -46,6 +47,14 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [color, setColor] = useState(initial?.color ?? PALETTE_COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
   const [counterparty, setCounterparty] = useState(initial?.counterparty ?? "");
+  const [counterpartyContact, setCounterpartyContact] = useState<{
+    id: string;
+    name: string;
+  } | null>(
+    initial?.counterpartyContactId
+      ? { id: initial.counterpartyContactId, name: initial.counterparty ?? "" }
+      : null,
+  );
   const [interestRate, setInterestRate] = useState(initial?.interestRate?.toString() ?? "");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
 
@@ -92,10 +101,14 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       currency,
       color,
       icon: selectedTypeDef?.icon ?? "wallet",
-      counterparty: isLoanType(type) ? counterparty.trim() || null : null,
+      counterparty: isLoanType(type)
+        ? counterpartyContact?.name || counterparty.trim() || null
+        : null,
+      counterpartyContactId: isLoanType(type) ? counterpartyContact?.id || null : null,
       interestRate:
         isLoanType(type) || type === "investment" ? parseFloat(interestRate) || null : null,
       dueDate: isLoanType(type) && dueDate ? dueDate : null,
+      lastInterestDate: type === "investment" ? new Date().toISOString().slice(0, 10) : null,
     });
   };
 
@@ -192,14 +205,25 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
         </SafeAreaView>
       </Modal>
 
-      {/* Counterparty — loans only */}
+      {/* Counterparty — loans only: contact picker OR text input */}
       {isLoanType(type) && (
-        <AppInput
-          label={t("accounts.counterparty")}
-          value={counterparty}
-          onChangeText={setCounterparty}
-          placeholder={t("accounts.counterpartyPlaceholder")}
-        />
+        <View style={styles.section}>
+          <ContactPicker
+            selected={counterpartyContact}
+            onSelect={(c) => {
+              setCounterpartyContact(c);
+              if (c) setCounterparty(c.name);
+            }}
+          />
+          {!counterpartyContact && (
+            <AppInput
+              label={t("accounts.counterpartyManual")}
+              value={counterparty}
+              onChangeText={setCounterparty}
+              placeholder={t("accounts.counterpartyPlaceholder")}
+            />
+          )}
+        </View>
       )}
 
       <AppInput

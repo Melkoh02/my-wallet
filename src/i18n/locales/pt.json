@@ -100,6 +100,7 @@
     "currentValue": "Valor Atual",
     "counterparty": "Contraparte",
     "counterpartyPlaceholder": "ex. Banco, João",
+    "counterpartyManual": "Ou digite um nome",
     "interestRate": "Taxa de Juros (% anual)",
     "interestRatePlaceholder": "ex. 5.5",
     "dueDate": "Data de Vencimento",

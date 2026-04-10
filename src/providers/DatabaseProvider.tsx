@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import { eq } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { accounts, settings, themes } from "@/db/schema";
 import { seed } from "@/db/seed";
@@ -65,6 +65,43 @@ async function seedDefaultThemes() {
     .onConflictDoNothing();
 }
 
+/**
+ * Apply compound interest to investment accounts.
+ * Runs on each app foreground. Uses daily compounding:
+ * newBalance = balance * (1 + rate/100/365) ^ days
+ */
+async function applyInvestmentInterest() {
+  const today = new Date().toISOString().slice(0, 10);
+  const investmentAccounts = await db
+    .select()
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.type, "investment"),
+        eq(accounts.isActive, true),
+        isNotNull(accounts.interestRate),
+      ),
+    );
+
+  for (const acc of investmentAccounts) {
+    if (!acc.interestRate || acc.balance <= 0) continue;
+    const lastDate = acc.lastInterestDate ?? acc.createdAt.slice(0, 10);
+    if (lastDate >= today) continue;
+
+    const days = Math.floor((new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000);
+    if (days <= 0) continue;
+
+    const dailyRate = acc.interestRate / 100 / 365;
+    const newBalance = acc.balance * Math.pow(1 + dailyRate, days);
+    const rounded = Math.round(newBalance * 100) / 100;
+
+    await db
+      .update(accounts)
+      .set({ balance: rounded, lastInterestDate: today })
+      .where(eq(accounts.id, acc.id));
+  }
+}
+
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { success, error } = useMigrations(db, migrationData);
   const [isSeeded, setIsSeeded] = useState(false);
@@ -84,6 +121,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
         console.log(`Processed ${count} recurring transaction(s)`);
       }
     });
+    applyInvestmentInterest();
     checkAndRunAutoBackup().then((didBackup) => {
       if (didBackup) {
         console.log("Auto backup completed");

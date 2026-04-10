@@ -100,6 +100,7 @@
     "currentValue": "当前价值",
     "counterparty": "对方",
     "counterpartyPlaceholder": "例如：银行、小明",
+    "counterpartyManual": "或输入名称",
     "interestRate": "利率（年化%）",
     "interestRatePlaceholder": "例如：5.5",
     "dueDate": "到期日",

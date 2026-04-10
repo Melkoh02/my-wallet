@@ -15,6 +15,7 @@ type CategoryPickerProps = {
   selected: number[]; // subcategory IDs
   onSelectionChange: (ids: number[]) => void;
   label?: string;
+  suggestedIds?: number[];
 };
 
 export function CategoryPicker({
@@ -22,6 +23,7 @@ export function CategoryPicker({
   selected,
   onSelectionChange,
   label = "Categories",
+  suggestedIds,
 }: CategoryPickerProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -46,11 +48,43 @@ export function CategoryPicker({
     }
   }
 
+  // Resolve suggested subcategory names for display
+  const suggestedItems: { id: number; name: string }[] = [];
+  if (suggestedIds && suggestedIds.length > 0) {
+    for (const cat of categories) {
+      for (const sub of cat.subcategories) {
+        if (suggestedIds.includes(sub.id)) {
+          suggestedItems.push({
+            id: sub.id,
+            name: sub.isGeneral ? cat.name : `${cat.name} › ${sub.name}`,
+          });
+        }
+      }
+    }
+  }
+
   return (
     <View style={styles.container}>
       <AppText variant="label" color={colors.textSecondary}>
         {label}
       </AppText>
+      {suggestedItems.length > 0 && (
+        <View style={styles.suggestedRow}>
+          <AppText variant="caption" color={colors.textTertiary}>
+            {t("categoryPicker.suggested")}
+          </AppText>
+          <View style={styles.chipWrap}>
+            {suggestedItems.map((item) => (
+              <Chip
+                key={item.id}
+                label={item.name}
+                selected={selected.includes(item.id)}
+                onPress={() => toggleSub(item.id)}
+              />
+            ))}
+          </View>
+        </View>
+      )}
       <Pressable
         onPress={() => setVisible(true)}
         style={[styles.trigger, { borderColor: colors.border, backgroundColor: colors.surface }]}
@@ -138,6 +172,12 @@ export function CategoryPicker({
 const styles = StyleSheet.create({
   container: {
     gap: spacing.xs,
+  },
+  suggestedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    flexWrap: "wrap",
   },
   trigger: {
     flexDirection: "row",

@@ -126,12 +126,13 @@ export function TransactionForm({
   }, [type, accounts, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Item 5: Suggest categories from last transaction of same type (new transactions only)
+  const [suggestedCategoryIds, setSuggestedCategoryIds] = useState<number[]>([]);
   useEffect(() => {
-    if (isEditing || subcategoryIds.length > 0) return;
+    if (isEditing) return;
     getFrequentCategoriesByType(type, 3).then((ids) => {
-      if (ids.length > 0) setSubcategoryIds(ids);
+      setSuggestedCategoryIds(ids);
     });
-  }, [type, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [type, isEditing]);
 
   // Item 3: Autofocus amount field (new transactions only)
   useEffect(() => {
@@ -327,6 +328,7 @@ export function TransactionForm({
           categories={categories}
           selected={subcategoryIds}
           onSelectionChange={setSubcategoryIds}
+          suggestedIds={!isEditing ? suggestedCategoryIds : undefined}
         />
       )}
 

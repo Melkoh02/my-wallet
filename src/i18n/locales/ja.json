@@ -196,8 +196,9 @@
     "noTransactionsDesc": "\u3053\u306e\u9023\u7d61\u5148\u3068\u306e\u53d6\u5f15\u306f\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f"
   },
   "categoryPicker": {
-    "title": "\u30ab\u30c6\u30b4\u30ea\u30fc\u3092\u9078\u629e",
-    "selectPlaceholder": "\u30ab\u30c6\u30b4\u30ea\u30fc\u3092\u9078\u629e..."
+    "title": "カテゴリーを選択",
+    "selectPlaceholder": "カテゴリーを選択...",
+    "suggested": "おすすめ:"
   },
   "analytics": {
     "title": "分析",

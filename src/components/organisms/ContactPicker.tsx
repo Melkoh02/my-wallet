@@ -129,34 +129,36 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
   );
 
   return (
-    <View style={styles.container}>
-      <AppText variant="label" color={colors.textSecondary}>
-        {t("transactionForm.contact")} ({t("common.optional")})
-      </AppText>
+    <View>
       <Pressable
         onPress={selected ? () => onSelect(null) : openPicker}
         style={[styles.trigger, { borderColor: colors.border, backgroundColor: colors.surface }]}
       >
-        {selected ? (
-          <>
-            <AppIcon name="account" size={20} color={colors.primary} />
-            <AppText variant="body" style={styles.contactName} numberOfLines={1}>
-              {selected.name}
-            </AppText>
-            <AppIcon name="close-circle" size={20} color={colors.iconSecondary} />
-          </>
-        ) : (
-          <>
-            <AppIcon name="account-plus-outline" size={20} color={colors.iconSecondary} />
-            <AppText variant="body" color={colors.placeholder} numberOfLines={1}>
-              {t("transactionForm.selectContact")}
-            </AppText>
-          </>
-        )}
+        <AppText variant="label" color={colors.textSecondary} style={styles.triggerLabel}>
+          {t("transactionForm.contact")} ({t("common.optional")})
+        </AppText>
+        <View style={styles.triggerValue}>
+          {selected ? (
+            <>
+              <AppIcon name="account" size={20} color={colors.primary} />
+              <AppText variant="body" style={styles.contactName} numberOfLines={1}>
+                {selected.name}
+              </AppText>
+              <AppIcon name="close-circle" size={20} color={colors.iconSecondary} />
+            </>
+          ) : (
+            <>
+              <AppIcon name="account-plus-outline" size={20} color={colors.iconSecondary} />
+              <AppText variant="body" color={colors.placeholder} numberOfLines={1}>
+                {t("transactionForm.selectContact")}
+              </AppText>
+            </>
+          )}
+        </View>
       </Pressable>
 
       {hasPermission === false && (
-        <AppText variant="caption" color={colors.warning}>
+        <AppText variant="caption" color={colors.warning} style={{ marginTop: spacing.xs }}>
           {t("contacts.permissionDenied")}
         </AppText>
       )}
@@ -226,16 +228,20 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.xs },
   trigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: 48,
+    paddingVertical: spacing.sm,
+  },
+  triggerLabel: {
+    marginBottom: 2,
+  },
+  triggerValue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 32,
   },
   contactName: { flex: 1 },
   modal: { flex: 1 },

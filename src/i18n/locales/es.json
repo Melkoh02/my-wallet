@@ -196,8 +196,9 @@
     "noTransactionsDesc": "No se encontraron transacciones con este contacto"
   },
   "categoryPicker": {
-    "title": "Seleccionar Categor\u00edas",
-    "selectPlaceholder": "Seleccionar categor\u00edas..."
+    "title": "Seleccionar Categorías",
+    "selectPlaceholder": "Seleccionar categorías...",
+    "suggested": "Sugeridas:"
   },
   "analytics": {
     "title": "Estadísticas",

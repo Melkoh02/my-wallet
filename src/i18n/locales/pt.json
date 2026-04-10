@@ -197,7 +197,8 @@
   },
   "categoryPicker": {
     "title": "Selecionar Categorias",
-    "selectPlaceholder": "Selecionar categorias..."
+    "selectPlaceholder": "Selecionar categorias...",
+    "suggested": "Sugeridas:"
   },
   "analytics": {
     "title": "Estatísticas",

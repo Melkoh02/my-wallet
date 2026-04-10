@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -35,7 +35,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [institution, setInstitution] = useState(initial?.institution ?? "");
   const [type, setType] = useState<AccountType>((initial?.type as AccountType) ?? "debit");
-  const [balance, setBalance] = useState(initial?.balance?.toString() ?? "0");
+  const [balance, setBalance] = useState(initial?.balance?.toString() ?? "");
   const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() ?? "");
   const [color, setColor] = useState(initial?.color ?? PALETTE_COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
@@ -47,17 +47,6 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       });
     }
   }, [initial]);
-
-  const balanceRef = useRef<TextInput>(null);
-
-  const handleBalanceFocus = useCallback(() => {
-    // Delay selection to avoid the bug where typed character stays selected
-    setTimeout(() => {
-      balanceRef.current?.setNativeProps({
-        selection: { start: 0, end: balance.length },
-      });
-    }, 50);
-  }, [balance]);
 
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
@@ -179,13 +168,11 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       </Modal>
 
       <AppInput
-        ref={balanceRef}
         label={type === "credit" ? t("accounts.availableCredit") : t("accounts.initialBalance")}
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"
-        onFocus={handleBalanceFocus}
-        placeholder="0.00"
+        placeholder="0"
       />
 
       {type === "credit" && (

@@ -250,7 +250,8 @@
   },
   "categoryPicker": {
     "title": "Select Categories",
-    "selectPlaceholder": "Select categories..."
+    "selectPlaceholder": "Select categories...",
+    "suggested": "Suggested:"
   },
   "analytics": {
     "title": "Analytics",

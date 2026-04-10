@@ -18,6 +18,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getMonthSummary, getRecentTransactions } from "@/db/queries/transactions";
 import { getRecurringTransactions } from "@/db/queries/recurring";
+import { getAccounts } from "@/db/queries/accounts";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { spacing } from "@/theme/spacing";
@@ -30,7 +31,7 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const { hideAmounts, toggleHideAmounts, maskAmount } = usePrivacy();
   const { revisions } = useDataRefresh();
-  const { totals, accounts } = useAccounts();
+  const { totals } = useAccounts();
   const [monthSummary, setMonthSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [recent, setRecent] = useState<TransactionWithRelations[]>([]);
   const [upcoming, setUpcoming] = useState<RecurringTransaction[]>([]);
@@ -50,8 +51,9 @@ export default function HomeScreen() {
     });
   }, [revisions.transactions, revisions.accounts, revisions.recurring]);
 
-  const handleFabAction = (key: string) => {
-    if (accounts.length === 0) {
+  const handleFabAction = async (key: string) => {
+    const accs = await getAccounts(true);
+    if (accs.length === 0) {
       setShowNoAccountModal(true);
       return;
     }

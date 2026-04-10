@@ -14,8 +14,8 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { useTheme } from "@/providers/ThemeProvider";
-import { useAccounts } from "@/hooks/useAccounts";
 import { useTransactions } from "@/hooks/useTransactions";
+import { getAccounts } from "@/db/queries/accounts";
 import { formatDate } from "@/utils/format";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { spacing } from "@/theme/spacing";
@@ -54,7 +54,6 @@ export default function TransactionsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { accounts } = useAccounts();
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TransactionFilters>({});
@@ -90,8 +89,9 @@ export default function TransactionsScreen() {
     setFilters(rest);
   };
 
-  const handleFabAction = (key: string) => {
-    if (accounts.length === 0) {
+  const handleFabAction = async (key: string) => {
+    const accs = await getAccounts(true);
+    if (accs.length === 0) {
       setShowNoAccountModal(true);
       return;
     }

@@ -135,7 +135,7 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
         style={[styles.trigger, { borderColor: colors.border, backgroundColor: colors.surface }]}
       >
         <AppText variant="label" color={colors.textSecondary} style={styles.triggerLabel}>
-          {t("transactionForm.contact")} ({t("common.optional")})
+          {t("transactionForm.contact")}
         </AppText>
         <View style={styles.triggerValue}>
           {selected ? (

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/molecules/EmptyState";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
+import { useAccounts } from "@/hooks/useAccounts";
 import { getMonthSummary, getDailySpending, getCategorySummary } from "@/db/queries/transactions";
 import { formatCurrency } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
@@ -18,6 +19,8 @@ export default function AnalyticsScreen() {
   const { colors } = useTheme();
   const { hideAmounts, maskAmount } = usePrivacy();
   const { revisions } = useDataRefresh();
+  const { totals } = useAccounts();
+  const dc = totals.displayCurrency;
 
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
@@ -97,7 +100,7 @@ export default function AnalyticsScreen() {
                   {t("home.income")}
                 </AppText>
                 <AppText variant="label" color={colors.income}>
-                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.income))}
+                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.income), dc)}
                 </AppText>
               </View>
               <View style={styles.overviewRow}>
@@ -105,7 +108,7 @@ export default function AnalyticsScreen() {
                   {t("home.expenses")}
                 </AppText>
                 <AppText variant="label" color={colors.expense}>
-                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.expense))}
+                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.expense), dc)}
                 </AppText>
               </View>
               <View style={[styles.overviewRow, styles.netRow, { borderTopColor: colors.border }]}>
@@ -113,7 +116,7 @@ export default function AnalyticsScreen() {
                   {t("analytics.net")}
                 </AppText>
                 <AppText variant="label" color={summary.net >= 0 ? colors.income : colors.expense}>
-                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.net))}
+                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.net), dc)}
                 </AppText>
               </View>
             </View>
@@ -149,7 +152,7 @@ export default function AnalyticsScreen() {
                           </AppText>
                         </View>
                         <AppText variant="label" color={colors.text}>
-                          {hideAmounts ? "••••" : formatCurrency(maskAmount(cat.total))}
+                          {hideAmounts ? "••••" : formatCurrency(maskAmount(cat.total), dc)}
                         </AppText>
                       </View>
                       <View style={[styles.barBackground, { backgroundColor: colors.borderLight }]}>
@@ -211,7 +214,7 @@ export default function AnalyticsScreen() {
                         </View>
                       </View>
                       <AppText variant="caption" color={colors.text} style={styles.dailyAmount}>
-                        {hideAmounts ? "••••" : formatCurrency(maskAmount(day.total))}
+                        {hideAmounts ? "••••" : formatCurrency(maskAmount(day.total), dc)}
                       </AppText>
                     </View>
                   );

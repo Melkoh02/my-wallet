@@ -21,7 +21,9 @@
     "success": "\u00c9xito",
     "error": "Error",
     "working": "Procesando...",
-    "noResults": "Sin resultados"
+    "noResults": "Sin resultados",
+    "select": "Seleccionar...",
+    "selected": "{{count}} seleccionados"
   },
   "home": {
     "title": "Mi Billetera",
@@ -204,6 +206,27 @@
     "dailySpending": "Gastos Diarios",
     "noData": "Sin datos para este período",
     "net": "Neto"
+  },
+  "format": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "todayAt": "Hoy a las {{time}}"
+  },
+  "tabs": {
+    "home": "Inicio",
+    "transactions": "Transacciones",
+    "categories": "Categorías",
+    "accounts": "Cuentas"
+  },
+  "fab": {
+    "expense": "Gasto",
+    "income": "Ingreso",
+    "transfer": "Transferencia"
+  },
+  "noAccountModal": {
+    "title": "Cuenta Requerida",
+    "message": "Necesitas crear una cuenta antes de agregar transacciones.",
+    "addAccount": "Agregar Cuenta"
   },
   "iconPicker": {
     "title": "Elegir \u00cdcono",

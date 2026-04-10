@@ -78,7 +78,10 @@ function SettingsToggle({
   );
 }
 
-function formatLastUpdated(iso: string): string {
+function formatLastUpdated(
+  iso: string,
+  t: (key: string, opts?: Record<string, string>) => string,
+): string {
   const d = new Date(iso);
   const now = new Date();
   const isToday =
@@ -89,7 +92,7 @@ function formatLastUpdated(iso: string): string {
     const h = d.getHours() % 12 || 12;
     const m = String(d.getMinutes()).padStart(2, "0");
     const ampm = d.getHours() >= 12 ? "PM" : "AM";
-    return `Today at ${h}:${m} ${ampm}`;
+    return t("format.todayAt", { time: `${h}:${m} ${ampm}` });
   }
   return d.toLocaleDateString();
 }
@@ -336,7 +339,7 @@ export default function SettingsScreen() {
             </Pressable>
             {ratesUpdatedAt && (
               <AppText variant="caption" color={colors.textTertiary}>
-                {t("settings.lastUpdated", { date: formatLastUpdated(ratesUpdatedAt) })}
+                {t("settings.lastUpdated", { date: formatLastUpdated(ratesUpdatedAt, t) })}
               </AppText>
             )}
           </View>

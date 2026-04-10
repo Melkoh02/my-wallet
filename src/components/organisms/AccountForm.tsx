@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -47,6 +47,17 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       });
     }
   }, [initial]);
+
+  const balanceRef = useRef<TextInput>(null);
+
+  const handleBalanceFocus = useCallback(() => {
+    // Delay selection to avoid the bug where typed character stays selected
+    setTimeout(() => {
+      balanceRef.current?.setNativeProps({
+        selection: { start: 0, end: balance.length },
+      });
+    }, 50);
+  }, [balance]);
 
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
@@ -168,11 +179,12 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       </Modal>
 
       <AppInput
+        ref={balanceRef}
         label={type === "credit" ? t("accounts.availableCredit") : t("accounts.initialBalance")}
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"
-        selectTextOnFocus
+        onFocus={handleBalanceFocus}
         placeholder="0.00"
       />
 

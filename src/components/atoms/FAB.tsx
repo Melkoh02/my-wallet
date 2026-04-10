@@ -1,19 +1,21 @@
 import { useCallback, useRef, useState } from "react";
 import { View, StyleSheet, PanResponder } from "react-native";
 import Animated, {
+  type SharedValue,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   interpolate,
   Easing,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppIcon } from "./AppIcon";
 import { AppText } from "./AppText";
 
 type FABAction = {
   key: string;
-  label: string;
+  labelKey: string;
   icon: string;
   color: string;
 };
@@ -35,6 +37,7 @@ const ANIM_EASING = Easing.out(Easing.cubic);
 
 export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const expanded = useSharedValue(0);
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
@@ -173,6 +176,7 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
             expanded={expanded}
             hovered={hoveredIndex === i}
             colors={colors}
+            label={t(action.labelKey)}
             onPress={() => {
               onAction?.(action.key);
               close();
@@ -201,13 +205,15 @@ function SpeedDialItem({
   hovered,
   colors,
   onPress,
+  label,
 }: {
   action: FABAction;
   index: number;
-  expanded: Animated.SharedValue<number>;
+  expanded: SharedValue<number>;
   hovered: boolean;
   colors: ReturnType<typeof useTheme>["colors"];
   onPress: () => void;
+  label: string;
 }) {
   const animStyle = useAnimatedStyle(() => {
     const offset = (index + 1) * (ITEM_HEIGHT + ITEM_GAP);
@@ -239,7 +245,7 @@ function SpeedDialItem({
         color={hovered ? colors.textInverse : colors.text}
         style={styles.actionLabel}
       >
-        {action.label}
+        {label}
       </AppText>
     </Animated.View>
   );

@@ -52,7 +52,9 @@ export default function AccountFormScreen() {
           onPress: async () => {
             await archiveAccount(initial.id);
             invalidate("accounts", "transactions");
-            router.back();
+            // Navigate to accounts tab to avoid blank detail screen
+            router.dismissAll();
+            router.replace("/(tabs)/accounts");
           },
         },
       ]);
@@ -65,7 +67,9 @@ export default function AccountFormScreen() {
           onPress: async () => {
             await deleteAccountPermanently(initial.id);
             invalidate("accounts", "transactions");
-            router.back();
+            // Navigate to accounts tab to avoid blank detail screen
+            router.dismissAll();
+            router.replace("/(tabs)/accounts");
           },
         },
       ]);

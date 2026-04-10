@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { TextInput, View, StyleSheet, type TextInputProps, type ViewStyle } from "react-native";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppText } from "./AppText";
@@ -10,7 +11,10 @@ type AppInputProps = TextInputProps & {
   containerStyle?: ViewStyle;
 };
 
-export function AppInput({ label, error, style, containerStyle, ...props }: AppInputProps) {
+export const AppInput = forwardRef<TextInput, AppInputProps>(function AppInput(
+  { label, error, style, containerStyle, ...props },
+  ref,
+) {
   const { colors } = useTheme();
 
   return (
@@ -21,6 +25,7 @@ export function AppInput({ label, error, style, containerStyle, ...props }: AppI
         </AppText>
       )}
       <TextInput
+        ref={ref}
         placeholderTextColor={colors.placeholder}
         style={[
           styles.input,
@@ -41,7 +46,7 @@ export function AppInput({ label, error, style, containerStyle, ...props }: AppI
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

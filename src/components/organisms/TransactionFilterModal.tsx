@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, Pressable, Modal, StyleSheet } from "react-native";
+import { View, ScrollView, Pressable, Modal, FlatList, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { AppText } from "@/components/atoms/AppText";
@@ -9,12 +9,14 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { DatePicker } from "@/components/molecules/DatePicker";
+import { SelectInput } from "@/components/molecules/SelectInput";
 import { CategoryPicker } from "@/components/organisms/CategoryPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { spacing } from "@/theme/spacing";
 import type { TransactionFilters } from "@/db/queries/transactions";
+import type { Account } from "@/db/schema";
 
 type FilterModalProps = {
   visible: boolean;
@@ -46,8 +48,11 @@ export function TransactionFilterModal({
   const [fromAccountIds, setFromAccountIds] = useState<number[]>(filters.fromAccountIds ?? []);
   const [toAccountIds, setToAccountIds] = useState<number[]>(filters.toAccountIds ?? []);
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>(filters.subcategoryIds ?? []);
-  const [fromAccountsExpanded, setFromAccountsExpanded] = useState(false);
-  const [toAccountsExpanded, setToAccountsExpanded] = useState(false);
+
+  // Account picker modals
+  const [showFromAccountPicker, setShowFromAccountPicker] = useState(false);
+  const [showToAccountPicker, setShowToAccountPicker] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
 
   // Sync when modal opens
   useEffect(() => {
@@ -69,8 +74,12 @@ export function TransactionFilterModal({
     setTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
   };
 
-  const toggleId = <T,>(list: T[], item: T, setter: (v: T[]) => void) => {
-    setter(list.includes(item) ? list.filter((i) => i !== item) : [...list, item]);
+  const toggleAccountId = (id: number, list: number[], setter: (v: number[]) => void) => {
+    setter(list.includes(id) ? list.filter((i) => i !== id) : [...list, id]);
+  };
+
+  const toggleContactId = (id: string) => {
+    setContactIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   };
 
   const clearAll = () => {
@@ -100,6 +109,13 @@ export function TransactionFilterModal({
     });
     onClose();
   };
+
+  const fromAccountLabel =
+    fromAccountIds.length > 0 ? t("common.selected", { count: fromAccountIds.length }) : undefined;
+  const toAccountLabel =
+    toAccountIds.length > 0 ? t("common.selected", { count: toAccountIds.length }) : undefined;
+  const contactLabel =
+    contactIds.length > 0 ? t("common.selected", { count: contactIds.length }) : undefined;
 
   return (
     <Modal
@@ -221,93 +237,41 @@ export function TransactionFilterModal({
             </View>
           </Section>
 
-          {/* Contacts */}
+          {/* From Accounts — modal picker */}
+          <Section title="" colors={colors}>
+            <SelectInput
+              label={t("transactions.fromAccounts")}
+              value={
+                fromAccountLabel ? <AppText variant="body">{fromAccountLabel}</AppText> : undefined
+              }
+              placeholder={t("common.select")}
+              onPress={() => setShowFromAccountPicker(true)}
+            />
+          </Section>
+
+          {/* To Accounts — modal picker */}
+          <Section title="" colors={colors}>
+            <SelectInput
+              label={t("transactions.toAccounts")}
+              value={
+                toAccountLabel ? <AppText variant="body">{toAccountLabel}</AppText> : undefined
+              }
+              placeholder={t("common.select")}
+              onPress={() => setShowToAccountPicker(true)}
+            />
+          </Section>
+
+          {/* Contacts — modal picker */}
           {contacts.length > 0 && (
-            <Section title={t("transactions.contacts")} colors={colors}>
-              <View style={styles.chipRow}>
-                {contacts.map((c) => (
-                  <Chip
-                    key={c.id}
-                    label={c.name}
-                    selected={contactIds.includes(c.id)}
-                    onPress={() => toggleId(contactIds, c.id, setContactIds)}
-                  />
-                ))}
-              </View>
+            <Section title="" colors={colors}>
+              <SelectInput
+                label={t("transactions.contacts")}
+                value={contactLabel ? <AppText variant="body">{contactLabel}</AppText> : undefined}
+                placeholder={t("common.select")}
+                onPress={() => setShowContactPicker(true)}
+              />
             </Section>
           )}
-
-          {/* From Accounts — collapsible */}
-          <Section title="" colors={colors}>
-            <Pressable
-              onPress={() => setFromAccountsExpanded((p) => !p)}
-              style={styles.collapsibleHeader}
-            >
-              <AppText variant="body" color={colors.text} style={styles.collapsibleLabel}>
-                {t("transactions.fromAccounts")}
-              </AppText>
-              {fromAccountIds.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                  <AppText variant="caption" color={colors.textInverse} style={styles.badgeText}>
-                    {fromAccountIds.length}
-                  </AppText>
-                </View>
-              )}
-              <AppIcon
-                name={fromAccountsExpanded ? "chevron-up" : "chevron-down"}
-                size={18}
-                color={colors.iconSecondary}
-              />
-            </Pressable>
-            {fromAccountsExpanded && (
-              <View style={styles.chipRow}>
-                {accounts.map((acc) => (
-                  <Chip
-                    key={acc.id}
-                    label={acc.name}
-                    selected={fromAccountIds.includes(acc.id)}
-                    onPress={() => toggleId(fromAccountIds, acc.id, setFromAccountIds)}
-                  />
-                ))}
-              </View>
-            )}
-          </Section>
-
-          {/* To Accounts — collapsible */}
-          <Section title="" colors={colors}>
-            <Pressable
-              onPress={() => setToAccountsExpanded((p) => !p)}
-              style={styles.collapsibleHeader}
-            >
-              <AppText variant="body" color={colors.text} style={styles.collapsibleLabel}>
-                {t("transactions.toAccounts")}
-              </AppText>
-              {toAccountIds.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                  <AppText variant="caption" color={colors.textInverse} style={styles.badgeText}>
-                    {toAccountIds.length}
-                  </AppText>
-                </View>
-              )}
-              <AppIcon
-                name={toAccountsExpanded ? "chevron-up" : "chevron-down"}
-                size={18}
-                color={colors.iconSecondary}
-              />
-            </Pressable>
-            {toAccountsExpanded && (
-              <View style={styles.chipRow}>
-                {accounts.map((acc) => (
-                  <Chip
-                    key={acc.id}
-                    label={acc.name}
-                    selected={toAccountIds.includes(acc.id)}
-                    onPress={() => toggleId(toAccountIds, acc.id, setToAccountIds)}
-                  />
-                ))}
-              </View>
-            )}
-          </Section>
 
           {/* Categories / Subcategories — reuse CategoryPicker */}
           <CategoryPicker
@@ -330,6 +294,200 @@ export function TransactionFilterModal({
             onPress={handleApply}
             style={styles.footerBtn}
           />
+        </View>
+      </SafeAreaView>
+
+      {/* From Accounts multi-select modal */}
+      <MultiSelectAccountModal
+        visible={showFromAccountPicker}
+        title={t("transactions.fromAccounts")}
+        accounts={accounts}
+        selectedIds={fromAccountIds}
+        onToggle={(id) => toggleAccountId(id, fromAccountIds, setFromAccountIds)}
+        onClose={() => setShowFromAccountPicker(false)}
+      />
+
+      {/* To Accounts multi-select modal */}
+      <MultiSelectAccountModal
+        visible={showToAccountPicker}
+        title={t("transactions.toAccounts")}
+        accounts={accounts}
+        selectedIds={toAccountIds}
+        onToggle={(id) => toggleAccountId(id, toAccountIds, setToAccountIds)}
+        onClose={() => setShowToAccountPicker(false)}
+      />
+
+      {/* Contacts multi-select modal */}
+      <MultiSelectContactModal
+        visible={showContactPicker}
+        title={t("transactions.contacts")}
+        contacts={contacts}
+        selectedIds={contactIds}
+        onToggle={toggleContactId}
+        onClose={() => setShowContactPicker(false)}
+      />
+    </Modal>
+  );
+}
+
+/* ---------- Multi-select Account Modal ---------- */
+function MultiSelectAccountModal({
+  visible,
+  title,
+  accounts,
+  selectedIds,
+  onToggle,
+  onClose,
+}: {
+  visible: boolean;
+  title: string;
+  accounts: Account[];
+  selectedIds: number[];
+  onToggle: (id: number) => void;
+  onClose: () => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.header}>
+          <AppText variant="h3">{title}</AppText>
+          <Pressable onPress={onClose}>
+            <AppIcon name="close" size={24} color={colors.icon} />
+          </Pressable>
+        </View>
+        <FlatList
+          data={accounts}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => {
+            const isSelected = selectedIds.includes(item.id);
+            return (
+              <Pressable
+                onPress={() => onToggle(item.id)}
+                style={[
+                  styles.pickerRow,
+                  {
+                    backgroundColor: isSelected ? colors.surface : "transparent",
+                  },
+                ]}
+              >
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: item.color + "20",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <AppIcon name={item.icon} size={20} color={item.color} />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <AppText variant="body">{item.name}</AppText>
+                  {item.institution ? (
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      {item.institution}
+                    </AppText>
+                  ) : null}
+                </View>
+                <AppIcon
+                  name={isSelected ? "checkbox-marked" : "checkbox-blank-outline"}
+                  size={22}
+                  color={isSelected ? colors.primary : colors.iconSecondary}
+                />
+              </Pressable>
+            );
+          }}
+          ListEmptyComponent={
+            <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
+              {t("common.noResults")}
+            </AppText>
+          }
+        />
+        <View style={styles.modalFooter}>
+          <AppButton title={t("common.done")} onPress={onClose} />
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+/* ---------- Multi-select Contact Modal ---------- */
+function MultiSelectContactModal({
+  visible,
+  title,
+  contacts,
+  selectedIds,
+  onToggle,
+  onClose,
+}: {
+  visible: boolean;
+  title: string;
+  contacts: { id: string; name: string }[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  onClose: () => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.header}>
+          <AppText variant="h3">{title}</AppText>
+          <Pressable onPress={onClose}>
+            <AppIcon name="close" size={24} color={colors.icon} />
+          </Pressable>
+        </View>
+        <FlatList
+          data={contacts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            const isSelected = selectedIds.includes(item.id);
+            return (
+              <Pressable
+                onPress={() => onToggle(item.id)}
+                style={[
+                  styles.pickerRow,
+                  {
+                    backgroundColor: isSelected ? colors.surface : "transparent",
+                  },
+                ]}
+              >
+                <AppIcon name="account-circle" size={32} color={colors.iconSecondary} />
+                <AppText variant="body" style={{ flex: 1 }}>
+                  {item.name}
+                </AppText>
+                <AppIcon
+                  name={isSelected ? "checkbox-marked" : "checkbox-blank-outline"}
+                  size={22}
+                  color={isSelected ? colors.primary : colors.iconSecondary}
+                />
+              </Pressable>
+            );
+          }}
+          ListEmptyComponent={
+            <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
+              {t("common.noResults")}
+            </AppText>
+          }
+        />
+        <View style={styles.modalFooter}>
+          <AppButton title={t("common.done")} onPress={onClose} />
         </View>
       </SafeAreaView>
     </Modal>
@@ -398,26 +556,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     minHeight: 48,
   },
-  collapsibleHeader: {
+  pickerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-  },
-  collapsibleLabel: {
-    flex: 1,
-  },
-  badge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    lineHeight: 14,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
   },
   footer: {
     flexDirection: "row",
@@ -426,4 +570,12 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   footerBtn: { flex: 1 },
+  modalFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  emptyText: {
+    textAlign: "center",
+    padding: spacing.xl,
+  },
 });

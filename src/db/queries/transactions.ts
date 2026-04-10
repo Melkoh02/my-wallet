@@ -334,6 +334,32 @@ export async function getLastUsedContact(): Promise<{ id: string; name: string }
   return { id: row.id, name: row.name };
 }
 
+export async function getLastAccountByType(type: string): Promise<number | null> {
+  const [row] = await db
+    .select({ accountId: transactions.accountId })
+    .from(transactions)
+    .where(eq(transactions.type, type))
+    .orderBy(desc(transactions.date), desc(transactions.time))
+    .limit(1);
+  return row?.accountId ?? null;
+}
+
+export async function getFrequentCategoriesByType(type: string, limit = 3): Promise<number[]> {
+  const rows = await db
+    .select({
+      subcategoryId: transactionSubcategories.subcategoryId,
+      count: sql<number>`COUNT(*)`.as("cnt"),
+    })
+    .from(transactionSubcategories)
+    .innerJoin(transactions, eq(transactionSubcategories.transactionId, transactions.id))
+    .where(eq(transactions.type, type))
+    .groupBy(transactionSubcategories.subcategoryId)
+    .orderBy(sql`cnt DESC`)
+    .limit(limit);
+
+  return rows.map((r) => r.subcategoryId);
+}
+
 export async function getDailySpending(
   year: number,
   month: number,

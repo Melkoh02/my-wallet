@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, Modal, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -9,6 +9,7 @@ import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
+import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -29,10 +30,11 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const { hideAmounts, toggleHideAmounts, maskAmount } = usePrivacy();
   const { revisions } = useDataRefresh();
-  const { totals } = useAccounts();
+  const { totals, accounts } = useAccounts();
   const [monthSummary, setMonthSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [recent, setRecent] = useState<TransactionWithRelations[]>([]);
   const [upcoming, setUpcoming] = useState<RecurringTransaction[]>([]);
+  const [showNoAccountModal, setShowNoAccountModal] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -47,6 +49,14 @@ export default function HomeScreen() {
       setUpcoming(recurring.slice(0, 3));
     });
   }, [revisions.transactions, revisions.accounts, revisions.recurring]);
+
+  const handleFabAction = (key: string) => {
+    if (accounts.length === 0) {
+      setShowNoAccountModal(true);
+      return;
+    }
+    router.push(`/transaction/form?type=${key}`);
+  };
 
   return (
     <ScreenLayout scrollable edges={["top"]}>
@@ -78,7 +88,9 @@ export default function HomeScreen() {
             {t("home.income")}
           </AppText>
           <AppText variant="label" color={colors.income}>
-            {hideAmounts ? "••••" : formatCurrency(maskAmount(monthSummary.income))}
+            {hideAmounts
+              ? "••••"
+              : formatCurrency(maskAmount(monthSummary.income), totals.displayCurrency)}
           </AppText>
         </View>
         <View style={[styles.summaryItem, { backgroundColor: colors.card }]}>
@@ -86,7 +98,9 @@ export default function HomeScreen() {
             {t("home.expenses")}
           </AppText>
           <AppText variant="label" color={colors.expense}>
-            {hideAmounts ? "••••" : formatCurrency(maskAmount(monthSummary.expense))}
+            {hideAmounts
+              ? "••••"
+              : formatCurrency(maskAmount(monthSummary.expense), totals.displayCurrency)}
           </AppText>
         </View>
       </View>
@@ -167,10 +181,43 @@ export default function HomeScreen() {
           />
         )}
       </View>
-      <FAB
-        actions={TRANSACTION_FAB_ACTIONS}
-        onAction={(key) => router.push(`/transaction/form?type=${key}`)}
-      />
+      <FAB actions={TRANSACTION_FAB_ACTIONS} onAction={handleFabAction} />
+
+      {/* No account modal */}
+      <Modal
+        visible={showNoAccountModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowNoAccountModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowNoAccountModal(false)}>
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <AppIcon name="wallet-plus" size={48} color={colors.primary} />
+            <AppText variant="h3" style={styles.modalTitle}>
+              {t("noAccountModal.title")}
+            </AppText>
+            <AppText variant="body" color={colors.textSecondary} style={styles.modalMessage}>
+              {t("noAccountModal.message")}
+            </AppText>
+            <AppButton
+              title={t("noAccountModal.addAccount")}
+              onPress={() => {
+                setShowNoAccountModal(false);
+                router.push("/account/form");
+              }}
+              icon="plus"
+            />
+            <AppButton
+              title={t("common.cancel")}
+              variant="ghost"
+              onPress={() => setShowNoAccountModal(false)}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </ScreenLayout>
   );
 }
@@ -228,5 +275,26 @@ const styles = StyleSheet.create({
   upcomingInfo: {
     flex: 1,
     gap: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+  },
+  modalContent: {
+    width: "100%",
+    borderRadius: 16,
+    padding: spacing.xl,
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  modalTitle: {
+    textAlign: "center",
+  },
+  modalMessage: {
+    textAlign: "center",
+    marginBottom: spacing.sm,
   },
 });

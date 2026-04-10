@@ -21,7 +21,9 @@
     "success": "\u6210\u529f",
     "error": "\u9519\u8bef",
     "working": "\u5904\u7406\u4e2d...",
-    "noResults": "\u65e0\u7ed3\u679c"
+    "noResults": "无结果",
+    "select": "选择...",
+    "selected": "已选{{count}}项"
   },
   "home": {
     "title": "\u6211\u7684\u94b1\u5305",
@@ -204,6 +206,27 @@
     "dailySpending": "每日支出",
     "noData": "该时段暂无数据",
     "net": "净额"
+  },
+  "format": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "todayAt": "今天 {{time}}"
+  },
+  "tabs": {
+    "home": "首页",
+    "transactions": "交易",
+    "categories": "分类",
+    "accounts": "账户"
+  },
+  "fab": {
+    "expense": "支出",
+    "income": "收入",
+    "transfer": "转账"
+  },
+  "noAccountModal": {
+    "title": "需要账户",
+    "message": "请先创建账户再添加交易。",
+    "addAccount": "添加账户"
   },
   "iconPicker": {
     "title": "\u9009\u62e9\u56fe\u6807",

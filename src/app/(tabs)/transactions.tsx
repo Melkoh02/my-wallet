@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { View, Pressable, SectionList, StyleSheet } from "react-native";
+import { View, Pressable, SectionList, Modal, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -10,9 +10,11 @@ import { EmptyState } from "@/components/molecules/EmptyState";
 import { AppText } from "@/components/atoms/AppText";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppIcon } from "@/components/atoms/AppIcon";
+import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatDate } from "@/utils/format";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
@@ -52,10 +54,12 @@ export default function TransactionsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const { accounts } = useAccounts();
 
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [showNoAccountModal, setShowNoAccountModal] = useState(false);
 
   const fullFilters = useMemo(
     () => ({
@@ -84,6 +88,14 @@ export default function TransactionsScreen() {
     // Keep search separate
     const { search: _, ...rest } = newFilters;
     setFilters(rest);
+  };
+
+  const handleFabAction = (key: string) => {
+    if (accounts.length === 0) {
+      setShowNoAccountModal(true);
+      return;
+    }
+    router.push(`/transaction/form?type=${key}`);
   };
 
   return (
@@ -161,10 +173,43 @@ export default function TransactionsScreen() {
         contacts={contactOptions}
       />
 
-      <FAB
-        actions={TRANSACTION_FAB_ACTIONS}
-        onAction={(key) => router.push(`/transaction/form?type=${key}`)}
-      />
+      <FAB actions={TRANSACTION_FAB_ACTIONS} onAction={handleFabAction} />
+
+      {/* No account modal */}
+      <Modal
+        visible={showNoAccountModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowNoAccountModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowNoAccountModal(false)}>
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <AppIcon name="wallet-plus" size={48} color={colors.primary} />
+            <AppText variant="h3" style={styles.modalTitle}>
+              {t("noAccountModal.title")}
+            </AppText>
+            <AppText variant="body" color={colors.textSecondary} style={styles.modalMessage}>
+              {t("noAccountModal.message")}
+            </AppText>
+            <AppButton
+              title={t("noAccountModal.addAccount")}
+              onPress={() => {
+                setShowNoAccountModal(false);
+                router.push("/account/form");
+              }}
+              icon="plus"
+            />
+            <AppButton
+              title={t("common.cancel")}
+              variant="ghost"
+              onPress={() => setShowNoAccountModal(false)}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </ScreenLayout>
   );
 }
@@ -206,5 +251,26 @@ const styles = StyleSheet.create({
   dateHeader: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+  },
+  modalContent: {
+    width: "100%",
+    borderRadius: 16,
+    padding: spacing.xl,
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  modalTitle: {
+    textAlign: "center",
+  },
+  modalMessage: {
+    textAlign: "center",
+    marginBottom: spacing.sm,
   },
 });

@@ -248,6 +248,14 @@ function PaymentModal({
   );
   const [showAccountPicker, setShowAccountPicker] = useState(false);
 
+  // Reset state when modal opens
+  useEffect(() => {
+    if (visible) {
+      setAmount("");
+      setSelectedAccountId(paymentAccounts[0]?.id ?? null);
+    }
+  }, [visible, paymentAccounts]);
+
   const selectedAccount = paymentAccounts.find((a) => a.id === selectedAccountId);
   const parsed = parseFloat(amount) || 0;
   // #2: Cap at remaining balance

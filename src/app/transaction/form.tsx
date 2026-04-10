@@ -185,7 +185,7 @@ export default function TransactionFormScreen() {
               name: t("splitBill.loanName", { name: person.name }),
               type: "loan_lent",
               balance: person.amount,
-              currency: accounts.find((a) => a.id === data.accountId)?.currency ?? "USD",
+              currency: existingAccounts.find((a) => a.id === data.accountId)?.currency ?? "USD",
               counterparty: person.name,
               counterpartyContactId: person.contactId,
               icon: "bank-transfer-out",

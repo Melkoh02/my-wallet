@@ -268,7 +268,14 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       {isLoanType(type) && (
         <View style={styles.section}>
           {dueDate ? (
-            <DatePicker label={t("accounts.dueDate")} value={dueDate} onChange={setDueDate} />
+            <View style={styles.section}>
+              <DatePicker label={t("accounts.dueDate")} value={dueDate} onChange={setDueDate} />
+              <Pressable onPress={() => setDueDate("")}>
+                <AppText variant="caption" color={colors.danger}>
+                  {t("common.remove")}
+                </AppText>
+              </Pressable>
+            </View>
           ) : (
             <View style={styles.section}>
               <AppText variant="label" color={colors.textSecondary}>

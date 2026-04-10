@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-09
+
+### Added
+- Infinite scroll on contact list with pagination
+- Default account selection based on last transaction of the same type
+- Autofocus on amount field when creating a new transaction
+- Thousand separator formatting on amount input fields
+- Category suggestions shown as tappable chips based on frequent usage per type
+- Account-required modal when trying to add a transaction with no accounts (navigates to add account)
+- Persistent release keystore for consistent APK signing across rebuilds
+- Expo config plugin (`withReleaseSigning`) injects signing config on every prebuild
+- Default themes seeded on first launch (Dark/Light Blue, Dark/Light Pink)
+- New account currency defaults to display currency setting
+- New translation keys: tabs, FAB labels, format strings, suggestion label, account-required modal
+- Multi-select account/contact picker modals in transaction filters (replaces chip-based selectors)
+
+### Changed
+- Date and time fields moved right below transaction type selector (autocompleted fields grouped together)
+- Account and contact fields now share one row in the transaction form
+- Contact picker trigger matches SelectInput visual structure (label inside bordered box)
+- Filter modal uses modal pickers for accounts and contacts (same style as create transaction)
+- `formatCurrency` uses Intl default fraction digits per currency (no longer hardcodes USD decimals)
+- `AmountDisplay` defaults to display currency from settings instead of hardcoded "USD"
+- Analytics and home screens pass display currency to all `formatCurrency` calls
+- Tab labels, FAB labels, `formatDate`, and `formatLastUpdated` use i18n instead of hardcoded English
+- Account delete/archive confirmation uses themed `ConfirmModal` instead of native `Alert.alert`
+- Account balance field uses grayed-out placeholder instead of default "0" value
+- Removed "(optional)" text from contact field label
+- FAB speed dial closes when navigating away via bottom tabs
+
+### Fixed
+- Deleting/archiving an account no longer navigates to a blank screen (routes to accounts tab)
+- Currency symbol in analytics no longer shows "$" when accounts use a different currency (e.g. PYG)
+- Amount field selection bug in account form (removed `selectTextOnFocus` hack)
+- Dev build launch with expo-dev-client
+
+### Important
+- **Signing key change**: This release uses a new persistent release keystore. Users upgrading from v1.0.4 or earlier must uninstall the old app first (export a backup before updating, then import after). All future updates from v1.1.0 onward will preserve data seamlessly.
+
 ## [1.0.4] - 2026-04-09
 
 ### Fixed
@@ -237,6 +276,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.1.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.1.0
 [1.0.4]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.4
 [1.0.3]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.3
 [1.0.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.2

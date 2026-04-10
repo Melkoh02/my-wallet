@@ -29,6 +29,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    "./plugins/withReleaseSigning",
     "expo-router",
     [
       "expo-splash-screen",

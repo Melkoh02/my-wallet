@@ -5,7 +5,7 @@ export const accounts = sqliteTable("accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   institution: text("institution").notNull().default(""),
-  type: text("type").notNull(), // credit | debit | savings | wallet | cash
+  type: text("type").notNull(), // credit | debit | savings | wallet | cash | loan_borrowed | loan_lent | investment
   balance: real("balance").notNull().default(0),
   creditLimit: real("credit_limit"),
   currency: text("currency").notNull().default("USD"),
@@ -13,6 +13,11 @@ export const accounts = sqliteTable("accounts", {
   icon: text("icon").notNull().default("wallet"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  counterparty: text("counterparty"),
+  counterpartyContactId: text("counterparty_contact_id"),
+  interestRate: real("interest_rate"),
+  dueDate: text("due_date"),
+  lastInterestDate: text("last_interest_date"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),

@@ -92,7 +92,28 @@
     "debit": "Débito",
     "savings": "Ahorros",
     "wallet": "Billetera",
-    "cash": "Efectivo"
+    "cash": "Efectivo",
+    "loanBorrowed": "Préstamo (Recibido)",
+    "loanLent": "Préstamo (Otorgado)",
+    "investment": "Inversión",
+    "loanAmount": "Monto del Préstamo",
+    "currentValue": "Valor Actual",
+    "counterparty": "Contraparte",
+    "counterpartyPlaceholder": "ej. Banco, Juan",
+    "counterpartyManual": "O escribe un nombre",
+    "interestRate": "Tasa de Interés (% anual)",
+    "interestRatePlaceholder": "ej. 5.5",
+    "dueDate": "Fecha de Vencimiento",
+    "remaining": "Restante",
+    "settled": "Liquidado",
+    "makePayment": "Realizar Pago",
+    "receivePayment": "Recibir Pago",
+    "payFull": "Pagar Todo",
+    "payFrom": "Pagar Desde",
+    "receiveTo": "Recibir En",
+    "loanPaymentDesc": "Pago de préstamo: {{name}}",
+    "loanReceivedDesc": "Préstamo recibido: {{name}}",
+    "exceedsRemaining": "El monto excede el saldo restante"
   },
   "categories": {
     "title": "Categorías",
@@ -195,7 +216,29 @@
     "cashbackFlat": "Monto de cashback",
     "cashbackFulfilled": "Cashback recibido",
     "cashbackPending": "Pendiente",
-    "cashbackAccount": "Cuenta de cashback"
+    "cashbackAccount": "Cuenta de cashback",
+    "templates": "Plantillas",
+    "templatesDesc": "Atajos para transacciones frecuentes"
+  },
+  "templates": {
+    "title": "Plantillas",
+    "noItems": "Aún no hay plantillas",
+    "noItemsDesc": "Crea atajos para transacciones que haces seguido",
+    "newTemplate": "Nueva Plantilla",
+    "editTemplate": "Editar Plantilla",
+    "createTemplate": "Crear Plantilla",
+    "templateName": "Nombre de la Plantilla",
+    "templateNamePlaceholder": "ej. Almuerzo, Café",
+    "deleteTitle": "Eliminar Plantilla",
+    "deleteMessage": "¿Eliminar \"{{name}}\"?"
+  },
+  "splitBill": {
+    "title": "Dividir con Otros",
+    "description": "Los demás se rastrearán como préstamos que te deben",
+    "personName": "Nombre",
+    "addPerson": "Agregar persona",
+    "splitEvenly": "Dividir equitativamente",
+    "loanName": "Me debe: {{name}}"
   },
   "themes": {
     "title": "Temas",

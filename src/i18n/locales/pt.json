@@ -92,7 +92,28 @@
     "debit": "Débito",
     "savings": "Poupança",
     "wallet": "Carteira",
-    "cash": "Dinheiro"
+    "cash": "Dinheiro",
+    "loanBorrowed": "Empréstimo (Tomado)",
+    "loanLent": "Empréstimo (Concedido)",
+    "investment": "Investimento",
+    "loanAmount": "Valor do Empréstimo",
+    "currentValue": "Valor Atual",
+    "counterparty": "Contraparte",
+    "counterpartyPlaceholder": "ex. Banco, João",
+    "counterpartyManual": "Ou digite um nome",
+    "interestRate": "Taxa de Juros (% anual)",
+    "interestRatePlaceholder": "ex. 5.5",
+    "dueDate": "Data de Vencimento",
+    "remaining": "Restante",
+    "settled": "Quitado",
+    "makePayment": "Fazer Pagamento",
+    "receivePayment": "Receber Pagamento",
+    "payFull": "Pagar Tudo",
+    "payFrom": "Pagar De",
+    "receiveTo": "Receber Em",
+    "loanPaymentDesc": "Pagamento de empréstimo: {{name}}",
+    "loanReceivedDesc": "Empréstimo recebido: {{name}}",
+    "exceedsRemaining": "O valor excede o saldo restante"
   },
   "categories": {
     "title": "Categorias",
@@ -195,7 +216,29 @@
     "cashbackFlat": "Valor do cashback",
     "cashbackFulfilled": "Cashback recebido",
     "cashbackPending": "Pendente",
-    "cashbackAccount": "Conta de cashback"
+    "cashbackAccount": "Conta de cashback",
+    "templates": "Modelos",
+    "templatesDesc": "Atalhos para transações frequentes"
+  },
+  "templates": {
+    "title": "Modelos",
+    "noItems": "Nenhum modelo ainda",
+    "noItemsDesc": "Crie atalhos para transações que você faz com frequência",
+    "newTemplate": "Novo Modelo",
+    "editTemplate": "Editar Modelo",
+    "createTemplate": "Criar Modelo",
+    "templateName": "Nome do Modelo",
+    "templateNamePlaceholder": "ex. Almoço, Café",
+    "deleteTitle": "Excluir Modelo",
+    "deleteMessage": "Remover \"{{name}}\"?"
+  },
+  "splitBill": {
+    "title": "Dividir com Outros",
+    "description": "Os demais serão rastreados como empréstimos que devem a você",
+    "personName": "Nome",
+    "addPerson": "Adicionar pessoa",
+    "splitEvenly": "Dividir igualmente",
+    "loanName": "Me deve: {{name}}"
   },
   "themes": {
     "title": "Temas",

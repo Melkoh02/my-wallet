@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? "[Dev] My Wallet" : "My Wallet",
   slug: "my-wallet",
-  version: "1.1.1",
+  version: "1.2.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: IS_DEV ? "mywallet-dev" : "mywallet",

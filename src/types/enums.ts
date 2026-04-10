@@ -12,6 +12,9 @@ export const AccountType = {
   SAVINGS: "savings",
   WALLET: "wallet",
   CASH: "cash",
+  LOAN_BORROWED: "loan_borrowed",
+  LOAN_LENT: "loan_lent",
+  INVESTMENT: "investment",
 } as const;
 export type AccountType = (typeof AccountType)[keyof typeof AccountType];
 

@@ -92,7 +92,28 @@
     "debit": "借记卡",
     "savings": "储蓄",
     "wallet": "钱包",
-    "cash": "现金"
+    "cash": "现金",
+    "loanBorrowed": "贷款（借入）",
+    "loanLent": "贷款（借出）",
+    "investment": "投资",
+    "loanAmount": "贷款金额",
+    "currentValue": "当前价值",
+    "counterparty": "对方",
+    "counterpartyPlaceholder": "例如：银行、小明",
+    "counterpartyManual": "或输入名称",
+    "interestRate": "利率（年化%）",
+    "interestRatePlaceholder": "例如：5.5",
+    "dueDate": "到期日",
+    "remaining": "剩余",
+    "settled": "已结清",
+    "makePayment": "还款",
+    "receivePayment": "收款",
+    "payFull": "全额支付",
+    "payFrom": "付款账户",
+    "receiveTo": "收款账户",
+    "loanPaymentDesc": "贷款还款：{{name}}",
+    "loanReceivedDesc": "贷款收回：{{name}}",
+    "exceedsRemaining": "金额超过剩余余额"
   },
   "categories": {
     "title": "分类",
@@ -195,7 +216,29 @@
     "cashbackFlat": "返现金额",
     "cashbackFulfilled": "返现已到账",
     "cashbackPending": "待处理",
-    "cashbackAccount": "返现账户"
+    "cashbackAccount": "返现账户",
+    "templates": "模板",
+    "templatesDesc": "常用交易的快捷方式"
+  },
+  "templates": {
+    "title": "模板",
+    "noItems": "还没有模板",
+    "noItemsDesc": "为常用交易创建快捷方式",
+    "newTemplate": "新建模板",
+    "editTemplate": "编辑模板",
+    "createTemplate": "创建模板",
+    "templateName": "模板名称",
+    "templateNamePlaceholder": "例如：午餐、咖啡",
+    "deleteTitle": "删除模板",
+    "deleteMessage": "确认删除\"{{name}}\"？"
+  },
+  "splitBill": {
+    "title": "与他人分摊",
+    "description": "其他人将作为欠款记录",
+    "personName": "姓名",
+    "addPerson": "添加人员",
+    "splitEvenly": "平均分摊",
+    "loanName": "欠我：{{name}}"
   },
   "themes": {
     "title": "主题",

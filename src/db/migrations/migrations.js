@@ -11,6 +11,20 @@ export default {
         tag: "0000_acoustic_phil_sheldon",
         breakpoints: true,
       },
+      {
+        idx: 1,
+        version: "6",
+        when: 1775955600000,
+        tag: "0001_loans_investments",
+        breakpoints: true,
+      },
+      {
+        idx: 2,
+        version: "6",
+        when: 1776042000000,
+        tag: "0002_templates",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -160,5 +174,39 @@ CREATE INDEX \`idx_transactions_account\` ON \`transactions\` (\`account_id\`);-
 CREATE INDEX \`idx_transactions_type\` ON \`transactions\` (\`type\`);--> statement-breakpoint
 CREATE INDEX \`idx_transactions_contact\` ON \`transactions\` (\`contact_id\`);--> statement-breakpoint
 CREATE INDEX \`idx_transactions_recurring\` ON \`transactions\` (\`recurring_id\`);`,
+    m0001: `ALTER TABLE \`accounts\` ADD COLUMN \`counterparty\` text;
+--> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`counterparty_contact_id\` text;
+--> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`interest_rate\` real;
+--> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`due_date\` text;
+--> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`last_interest_date\` text;`,
+    m0002: `CREATE TABLE \`templates\` (
+\t\`id\` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+\t\`name\` text NOT NULL,
+\t\`icon\` text DEFAULT 'file-document' NOT NULL,
+\t\`type\` text NOT NULL,
+\t\`amount\` real DEFAULT 0 NOT NULL,
+\t\`description\` text DEFAULT '' NOT NULL,
+\t\`account_id\` integer,
+\t\`to_account_id\` integer,
+\t\`contact_id\` text,
+\t\`contact_name\` text,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL,
+\tFOREIGN KEY (\`account_id\`) REFERENCES \`accounts\`(\`id\`) ON UPDATE no action ON DELETE no action,
+\tFOREIGN KEY (\`to_account_id\`) REFERENCES \`accounts\`(\`id\`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE \`template_subcategories\` (
+\t\`id\` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+\t\`template_id\` integer NOT NULL,
+\t\`subcategory_id\` integer NOT NULL,
+\tFOREIGN KEY (\`template_id\`) REFERENCES \`templates\`(\`id\`) ON UPDATE no action ON DELETE cascade,
+\tFOREIGN KEY (\`subcategory_id\`) REFERENCES \`subcategories\`(\`id\`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX \`idx_tpl_sub_unique\` ON \`template_subcategories\` (\`template_id\`,\`subcategory_id\`);`,
   },
 };

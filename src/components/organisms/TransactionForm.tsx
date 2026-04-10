@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { View, ScrollView, Switch, Pressable, StyleSheet, TextInput } from "react-native";
+import { View, ScrollView, Switch, Pressable, StyleSheet, TextInput, FlatList } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
@@ -24,19 +24,28 @@ import { getCurrentLocation } from "@/services/location.service";
 import { getLastAccountByType, getFrequentCategoriesByType } from "@/db/queries/transactions";
 import type { Account, NewTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
+import type { TemplateWithSubs } from "@/db/queries/templates";
 import type { TransactionType } from "@/types";
 
+export type SplitPerson = {
+  contactId: string | null;
+  name: string;
+  amount: number;
+};
+
 export type TransactionFormData = NewTransaction & {
-  /** Cashback info — null if no cashback */
   cashbackEnabled: boolean;
   cashbackMode: "percent" | "flat";
   cashbackValue: number;
   instantCashback: boolean;
+  splitEnabled: boolean;
+  splitPeople: SplitPerson[];
 };
 
 type TransactionFormProps = {
   accounts: Account[];
   categories: CategoryWithSubs[];
+  templates?: TemplateWithSubs[];
   onSubmit: (data: TransactionFormData, subcategoryIds: number[]) => void;
   initialType?: TransactionType;
   initialData?: TransactionFormData & { subcategoryIds: number[] };
@@ -47,6 +56,7 @@ type TransactionFormProps = {
 export function TransactionForm({
   accounts,
   categories,
+  templates = [],
   onSubmit,
   initialType = "expense",
   initialData,
@@ -86,6 +96,12 @@ export function TransactionForm({
     initialData?.cashbackAccountId ?? null,
   );
   const [instantCashback, setInstantCashback] = useState(initialData?.instantCashback ?? false);
+
+  // Split bill
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitPeople, setSplitPeople] = useState<
+    { contactId: string | null; name: string; amount: string }[]
+  >([{ contactId: null, name: "", amount: "" }]);
 
   // Location
   const [locationLoading, setLocationLoading] = useState(false);
@@ -141,6 +157,31 @@ export function TransactionForm({
     }
   }, [isEditing]);
 
+  const applyTemplate = (tpl: TemplateWithSubs) => {
+    setType(tpl.type as TransactionType);
+    if (tpl.amount > 0) setAmount(formatAmountInput(tpl.amount.toString()));
+    if (tpl.description) setDescription(tpl.description);
+    if (tpl.accountId) setAccountId(tpl.accountId);
+    if (tpl.toAccountId) setToAccountId(tpl.toAccountId);
+    if (tpl.subcategoryIds.length > 0) setSubcategoryIds(tpl.subcategoryIds);
+    if (tpl.contactId) setContact({ id: tpl.contactId, name: tpl.contactName ?? "" });
+  };
+
+  // Auto-split equally when total amount or people count changes
+  useEffect(() => {
+    if (!splitEnabled) return;
+    const total = parseFloat(unformatAmount(amount)) || 0;
+    const count = splitPeople.length + 1; // +1 for yourself
+    if (total > 0 && count > 1) {
+      const share = Math.round((total / count) * 100) / 100;
+      setSplitPeople((prev) =>
+        prev.map((p) =>
+          p.amount === "" || parseFloat(p.amount) === 0 ? { ...p, amount: share.toString() } : p,
+        ),
+      );
+    }
+  }, [splitEnabled, amount, splitPeople.length]);
+
   const handleAmountChange = (text: string) => {
     setAmount(formatAmountInput(text));
   };
@@ -186,6 +227,17 @@ export function TransactionForm({
         cashbackMode,
         cashbackValue: parseFloat(cashbackValue) || 0,
         instantCashback,
+        splitEnabled,
+        splitPeople:
+          splitEnabled && type === "expense"
+            ? splitPeople
+                .filter((p) => p.name.trim() && parseFloat(p.amount) > 0)
+                .map((p) => ({
+                  contactId: p.contactId,
+                  name: p.name.trim(),
+                  amount: parseFloat(p.amount),
+                }))
+            : [],
       },
       subcategoryIds,
     );
@@ -203,6 +255,31 @@ export function TransactionForm({
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Template chips */}
+      {!isEditing && templates.length > 0 && (
+        <FlatList
+          horizontal
+          data={templates}
+          keyExtractor={(item) => item.id.toString()}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.templateChips}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => applyTemplate(item)}
+              style={[
+                styles.templateChip,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <AppIcon name={item.icon || "file-document"} size={16} color={colors.primary} />
+              <AppText variant="caption" numberOfLines={1}>
+                {item.name}
+              </AppText>
+            </Pressable>
+          )}
+        />
+      )}
+
       {/* Type selector */}
       <View style={styles.typeRow}>
         {(["expense", "income", "transfer"] as const).map((tp) => {
@@ -480,6 +557,124 @@ export function TransactionForm({
         </View>
       )}
 
+      {/* Split bill — expense only, new transactions only */}
+      {type === "expense" && !isEditing && accounts.length > 0 && (
+        <View
+          style={[
+            styles.cashbackCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.cashbackHeader}>
+            <AppIcon name="account-group" size={20} color={colors.primary} />
+            <AppText variant="label" style={styles.flex}>
+              {t("splitBill.title")}
+            </AppText>
+            <Switch value={splitEnabled} onValueChange={setSplitEnabled} />
+          </View>
+
+          {splitEnabled && (
+            <View style={styles.cashbackBody}>
+              <AppText variant="bodySmall" color={colors.textSecondary}>
+                {t("splitBill.description")}
+              </AppText>
+
+              {splitPeople.map((person, idx) => (
+                <View
+                  key={idx}
+                  style={[styles.splitPersonCard, { borderBottomColor: colors.borderLight }]}
+                >
+                  <View style={styles.splitPersonTop}>
+                    <View style={{ flex: 1 }}>
+                      <ContactPicker
+                        selected={
+                          person.contactId ? { id: person.contactId, name: person.name } : null
+                        }
+                        onSelect={(c) =>
+                          setSplitPeople((prev) =>
+                            prev.map((p, i) =>
+                              i === idx
+                                ? {
+                                    ...p,
+                                    contactId: c?.id ?? null,
+                                    name: c?.name ?? p.name,
+                                  }
+                                : p,
+                            ),
+                          )
+                        }
+                      />
+                    </View>
+                    {splitPeople.length > 1 && (
+                      <Pressable
+                        onPress={() => setSplitPeople((prev) => prev.filter((_, i) => i !== idx))}
+                        style={{ marginTop: spacing.sm }}
+                      >
+                        <AppIcon name="close-circle" size={22} color={colors.iconSecondary} />
+                      </Pressable>
+                    )}
+                  </View>
+                  {!person.contactId && (
+                    <AppInput
+                      placeholder={t("splitBill.personName")}
+                      value={person.name}
+                      onChangeText={(text) =>
+                        setSplitPeople((prev) =>
+                          prev.map((p, i) => (i === idx ? { ...p, name: text } : p)),
+                        )
+                      }
+                    />
+                  )}
+                  <AppInput
+                    label={t("transactionForm.amount")}
+                    placeholder="0"
+                    value={person.amount}
+                    onChangeText={(text) =>
+                      setSplitPeople((prev) =>
+                        prev.map((p, i) => (i === idx ? { ...p, amount: text } : p)),
+                      )
+                    }
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              ))}
+
+              <View style={styles.splitActions}>
+                <Pressable
+                  onPress={() =>
+                    setSplitPeople((prev) => [...prev, { contactId: null, name: "", amount: "" }])
+                  }
+                  style={styles.splitAddBtn}
+                >
+                  <AppIcon name="plus" size={18} color={colors.primary} />
+                  <AppText variant="bodySmall" color={colors.primary}>
+                    {t("splitBill.addPerson")}
+                  </AppText>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    const total = parseFloat(unformatAmount(amount)) || 0;
+                    const count = splitPeople.length + 1;
+                    if (total > 0 && count > 1) {
+                      const share = Math.round((total / count) * 100) / 100;
+                      setSplitPeople((prev) =>
+                        prev.map((p) => ({ ...p, amount: share.toString() })),
+                      );
+                    }
+                  }}
+                  style={styles.splitAddBtn}
+                >
+                  <AppIcon name="equal" size={18} color={colors.primary} />
+                  <AppText variant="bodySmall" color={colors.primary}>
+                    {t("splitBill.splitEvenly")}
+                  </AppText>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
       <AppButton
         title={initialData ? t("accounts.saveChanges") : t("transactionForm.saveTransaction")}
         onPress={handleSubmit}
@@ -633,4 +828,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   instantRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  templateChips: { gap: spacing.sm, paddingHorizontal: spacing.xs },
+  templateChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  splitPersonCard: {
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    // borderBottomColor applied inline from theme
+    marginBottom: spacing.xs,
+  },
+  splitPersonTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+  },
+  splitActions: {
+    flexDirection: "row",
+    gap: spacing.lg,
+  },
+  splitAddBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
 });

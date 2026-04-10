@@ -11,6 +11,13 @@ export default {
         tag: "0000_acoustic_phil_sheldon",
         breakpoints: true,
       },
+      {
+        idx: 1,
+        version: "6",
+        when: 1775955600000,
+        tag: "0001_loans_investments",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -160,5 +167,10 @@ CREATE INDEX \`idx_transactions_account\` ON \`transactions\` (\`account_id\`);-
 CREATE INDEX \`idx_transactions_type\` ON \`transactions\` (\`type\`);--> statement-breakpoint
 CREATE INDEX \`idx_transactions_contact\` ON \`transactions\` (\`contact_id\`);--> statement-breakpoint
 CREATE INDEX \`idx_transactions_recurring\` ON \`transactions\` (\`recurring_id\`);`,
+    m0001: `ALTER TABLE \`accounts\` ADD COLUMN \`counterparty\` text;
+--> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`interest_rate\` real;
+--> statement-breakpoint
+ALTER TABLE \`accounts\` ADD COLUMN \`due_date\` text;`,
   },
 };

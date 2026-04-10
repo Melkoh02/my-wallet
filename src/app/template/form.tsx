@@ -76,23 +76,27 @@ export default function TemplateFormScreen() {
   const isValid = name.trim().length > 0;
 
   const handleSubmit = async () => {
-    const data = {
-      name: name.trim(),
-      type,
-      amount: parseFloat(amount) || 0,
-      description: description.trim(),
-      accountId,
-      toAccountId: type === "transfer" ? toAccountId : null,
-      contactId: contact?.id ?? null,
-      contactName: contact?.name ?? null,
-    };
-    if (initial) {
-      await updateTemplate(initial.id, data, subcategoryIds);
-    } else {
-      await createTemplate(data, subcategoryIds);
+    try {
+      const data = {
+        name: name.trim(),
+        type,
+        amount: parseFloat(amount) || 0,
+        description: description.trim(),
+        accountId,
+        toAccountId: type === "transfer" ? toAccountId : null,
+        contactId: contact?.id ?? null,
+        contactName: contact?.name ?? null,
+      };
+      if (initial) {
+        await updateTemplate(initial.id, data, subcategoryIds);
+      } else {
+        await createTemplate(data, subcategoryIds);
+      }
+      invalidate("templates");
+      router.back();
+    } catch (e) {
+      console.error("Template save failed:", e);
     }
-    invalidate("templates");
-    router.back();
   };
 
   if (!loaded) return null;

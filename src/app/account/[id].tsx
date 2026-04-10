@@ -210,6 +210,8 @@ export default function AccountDetailScreen() {
                 [],
               );
               invalidate("accounts", "transactions");
+            } catch (e) {
+              console.error("Payment failed:", e);
             } finally {
               setShowPaymentModal(false);
             }

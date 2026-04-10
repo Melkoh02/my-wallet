@@ -580,7 +580,10 @@ export function TransactionForm({
               </AppText>
 
               {splitPeople.map((person, idx) => (
-                <View key={idx} style={styles.splitPersonCard}>
+                <View
+                  key={idx}
+                  style={[styles.splitPersonCard, { borderBottomColor: colors.borderLight }]}
+                >
                   <View style={styles.splitPersonTop}>
                     <View style={{ flex: 1 }}>
                       <ContactPicker
@@ -839,7 +842,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: "#0000000F",
+    // borderBottomColor applied inline from theme
     marginBottom: spacing.xs,
   },
   splitPersonTop: {

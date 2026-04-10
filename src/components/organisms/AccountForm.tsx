@@ -116,7 +116,8 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       interestRate:
         isLoanType(type) || type === "investment" ? parseFloat(interestRate) || null : null,
       dueDate: isLoanType(type) && dueDate ? dueDate : null,
-      lastInterestDate: type === "investment" ? new Date().toISOString().slice(0, 10) : null,
+      lastInterestDate:
+        !initial && type === "investment" ? new Date().toISOString().slice(0, 10) : undefined,
     });
   };
 

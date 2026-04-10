@@ -15,7 +15,7 @@ import {
 import { updateAccountBalance, createAccount, getAccounts } from "@/db/queries/accounts";
 import { db } from "@/db/client";
 import { settings, transactions, transactionSubcategories } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { PALETTE_COLORS } from "@/constants/colors";
 import type { TransactionType } from "@/types";
 
@@ -66,66 +66,72 @@ export default function TransactionFormScreen() {
   const handleSubmit = async (data: TransactionFormData, subcategoryIds: number[]) => {
     try {
       if (params.id) {
-        // Editing existing transaction — update in place
+        // Editing existing transaction — wrapped in SQLite transaction for atomicity
         const existingId = parseInt(params.id, 10);
         const existing = await getTransactionById(existingId);
         if (existing) {
-          // Clean up old linked cashback transaction if present
-          if (existing.linkedTransactionId) {
-            await deleteTransaction(existing.linkedTransactionId);
-          }
-          // Reverse old balance
-          await updateAccountBalance(
-            existing.accountId,
-            -existing.amount,
-            existing.type as "income" | "expense" | "transfer",
-            true,
-          );
-          if (existing.toAccountId && existing.type === "transfer") {
-            await updateAccountBalance(existing.toAccountId, -existing.amount, "transfer", false);
-          }
-          // Update transaction
-          await db
-            .update(transactions)
-            .set({
-              type: data.type,
-              amount: data.amount,
-              description: data.description,
-              accountId: data.accountId,
-              toAccountId: data.toAccountId,
-              date: data.date,
-              time: data.time,
-              notes: data.notes,
-              contactId: data.contactId,
-              contactName: data.contactName,
-              latitude: data.latitude,
-              longitude: data.longitude,
-              locationName: data.locationName,
-              cashbackAmount: data.cashbackAmount,
-              cashbackAccountId: data.cashbackAccountId,
-            })
-            .where(eq(transactions.id, existingId));
-          // Update subcategories
-          await db
-            .delete(transactionSubcategories)
-            .where(eq(transactionSubcategories.transactionId, existingId));
-          if (subcategoryIds.length > 0) {
-            await db.insert(transactionSubcategories).values(
-              subcategoryIds.map((subId) => ({
-                transactionId: existingId,
-                subcategoryId: subId,
-              })),
+          await db.run(sql`BEGIN TRANSACTION`);
+          try {
+            if (existing.linkedTransactionId) {
+              await deleteTransaction(existing.linkedTransactionId);
+            }
+            // Reverse old balance
+            await updateAccountBalance(
+              existing.accountId,
+              -existing.amount,
+              existing.type as "income" | "expense" | "transfer",
+              true,
             );
-          }
-          // Apply new balance
-          await updateAccountBalance(
-            data.accountId,
-            data.amount,
-            data.type as "income" | "expense" | "transfer",
-            true,
-          );
-          if (data.toAccountId && data.type === "transfer") {
-            await updateAccountBalance(data.toAccountId, data.amount, "transfer", false);
+            if (existing.toAccountId && existing.type === "transfer") {
+              await updateAccountBalance(existing.toAccountId, -existing.amount, "transfer", false);
+            }
+            // Update transaction
+            await db
+              .update(transactions)
+              .set({
+                type: data.type,
+                amount: data.amount,
+                description: data.description,
+                accountId: data.accountId,
+                toAccountId: data.toAccountId,
+                date: data.date,
+                time: data.time,
+                notes: data.notes,
+                contactId: data.contactId,
+                contactName: data.contactName,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                locationName: data.locationName,
+                cashbackAmount: data.cashbackAmount,
+                cashbackAccountId: data.cashbackAccountId,
+              })
+              .where(eq(transactions.id, existingId));
+            // Update subcategories
+            await db
+              .delete(transactionSubcategories)
+              .where(eq(transactionSubcategories.transactionId, existingId));
+            if (subcategoryIds.length > 0) {
+              await db.insert(transactionSubcategories).values(
+                subcategoryIds.map((subId) => ({
+                  transactionId: existingId,
+                  subcategoryId: subId,
+                })),
+              );
+            }
+            // Apply new balance
+            await updateAccountBalance(
+              data.accountId,
+              data.amount,
+              data.type as "income" | "expense" | "transfer",
+              true,
+            );
+            if (data.toAccountId && data.type === "transfer") {
+              await updateAccountBalance(data.toAccountId, data.amount, "transfer", false);
+            }
+            await db.run(sql`COMMIT`);
+          } catch (e) {
+            await db.run(sql`ROLLBACK`);
+            throw e;
           }
         }
       } else {

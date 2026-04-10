@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, FlatList, Pressable, Modal, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -15,6 +16,7 @@ import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
 import { useTheme } from "@/providers/ThemeProvider";
+import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { getAccountById } from "@/db/queries/accounts";
@@ -23,7 +25,7 @@ import {
   createTransaction,
   type TransactionWithRelations,
 } from "@/db/queries/transactions";
-import { formatCurrency, formatDate } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
 import type { Account } from "@/db/schema";
 
@@ -34,6 +36,7 @@ export default function AccountDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const { hideAmounts } = usePrivacy();
   const { revisions, invalidate } = useDataRefresh();
   const { accounts: allAccounts } = useAccounts();
   const [account, setAccount] = useState<Account | null>(null);
@@ -54,12 +57,9 @@ export default function AccountDetailScreen() {
   const isInvestment = account.type === "investment";
   const isBorrowed = account.type === "loan_borrowed";
 
-  // For borrowed loans: balance is negative, remaining = abs(balance)
-  // For lent loans: balance is positive, remaining = balance
   const loanRemaining = isBorrowed ? Math.abs(account.balance) : account.balance;
   const loanSettled = isLoan && loanRemaining <= 0;
 
-  // Other accounts available for payment transfers
   const paymentAccounts = allAccounts.filter((a) => a.id !== account.id && !isLoanType(a.type));
 
   return (
@@ -75,7 +75,6 @@ export default function AccountDetailScreen() {
         keyExtractor={(item) => item.id.toString()}
         ListHeaderComponent={
           <View style={styles.headerSection}>
-            {/* Balance / Value display */}
             <View style={styles.balanceSection}>
               <AppText variant="caption" color={colors.textSecondary}>
                 {isLoan
@@ -92,11 +91,19 @@ export default function AccountDetailScreen() {
                 variant="amountLarge"
                 type={isBorrowed && !loanSettled ? "expense" : loanSettled ? "income" : "neutral"}
               />
-              {account.type === "credit" && account.creditLimit != null && (
-                <AppText variant="bodySmall" color={colors.expense}>
-                  {t("accounts.debt")}:{" "}
-                  {formatCurrency((account.creditLimit ?? 0) - account.balance, account.currency)}
-                </AppText>
+              {/* #5: Use AmountDisplay for debt to respect privacy mode */}
+              {account.type === "credit" && account.creditLimit != null && !hideAmounts && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <AppText variant="bodySmall" color={colors.expense}>
+                    {t("accounts.debt")}:
+                  </AppText>
+                  <AmountDisplay
+                    amount={(account.creditLimit ?? 0) - account.balance}
+                    currency={account.currency}
+                    type="expense"
+                    variant="bodySmall"
+                  />
+                </View>
               )}
               {account.institution ? (
                 <AppText variant="bodySmall" color={colors.textTertiary}>
@@ -105,7 +112,6 @@ export default function AccountDetailScreen() {
               ) : null}
             </View>
 
-            {/* Loan-specific info */}
             {isLoan && (
               <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
                 {account.counterparty ? (
@@ -149,7 +155,6 @@ export default function AccountDetailScreen() {
               </View>
             )}
 
-            {/* Investment info */}
             {isInvestment && account.interestRate != null && (
               <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
                 <View style={styles.infoRow}>
@@ -180,7 +185,6 @@ export default function AccountDetailScreen() {
         }
       />
 
-      {/* Payment modal */}
       {isLoan && !loanSettled && (
         <PaymentModal
           visible={showPaymentModal}
@@ -190,24 +194,25 @@ export default function AccountDetailScreen() {
           isBorrowed={isBorrowed}
           remaining={loanRemaining}
           onPayment={async (amount, paymentAccountId) => {
-            // For borrowed: transfer FROM payment account TO loan (reduces negative balance)
-            // For lent: transfer FROM loan TO payment account (reduces positive balance)
-            await createTransaction(
-              {
-                type: "transfer",
-                amount,
-                description: isBorrowed
-                  ? t("accounts.loanPaymentDesc", { name: account.name })
-                  : t("accounts.loanReceivedDesc", { name: account.name }),
-                accountId: isBorrowed ? paymentAccountId : account.id,
-                toAccountId: isBorrowed ? account.id : paymentAccountId,
-                date: new Date().toISOString().slice(0, 10),
-                time: new Date().toTimeString().slice(0, 5),
-              },
-              [],
-            );
-            invalidate("accounts", "transactions");
-            setShowPaymentModal(false);
+            try {
+              await createTransaction(
+                {
+                  type: "transfer",
+                  amount,
+                  description: isBorrowed
+                    ? t("accounts.loanPaymentDesc", { name: account.name })
+                    : t("accounts.loanReceivedDesc", { name: account.name }),
+                  accountId: isBorrowed ? paymentAccountId : account.id,
+                  toAccountId: isBorrowed ? account.id : paymentAccountId,
+                  date: new Date().toISOString().slice(0, 10),
+                  time: new Date().toTimeString().slice(0, 5),
+                },
+                [],
+              );
+              invalidate("accounts", "transactions");
+            } finally {
+              setShowPaymentModal(false);
+            }
           }}
         />
       )}
@@ -231,7 +236,7 @@ function PaymentModal({
   paymentAccounts: Account[];
   isBorrowed: boolean;
   remaining: number;
-  onPayment: (amount: number, paymentAccountId: number) => void;
+  onPayment: (amount: number, paymentAccountId: number) => Promise<void>;
 }) {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -243,7 +248,8 @@ function PaymentModal({
 
   const selectedAccount = paymentAccounts.find((a) => a.id === selectedAccountId);
   const parsed = parseFloat(amount) || 0;
-  const isValid = parsed > 0 && selectedAccountId !== null;
+  // #2: Cap at remaining balance
+  const isValid = parsed > 0 && parsed <= remaining && selectedAccountId !== null;
 
   const handlePayFull = () => {
     setAmount(remaining.toString());
@@ -251,69 +257,87 @@ function PaymentModal({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <View
-          style={[styles.modalContent, { backgroundColor: colors.surface }]}
-          onStartShouldSetResponder={() => true}
-        >
-          <AppText variant="h3">
-            {isBorrowed ? t("accounts.makePayment") : t("accounts.receivePayment")}
-          </AppText>
+      {/* #10: SafeAreaView */}
+      <SafeAreaView style={{ flex: 1 }}>
+        <Pressable style={styles.modalOverlay} onPress={onClose}>
+          <View
+            style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <AppText variant="h3">
+              {isBorrowed ? t("accounts.makePayment") : t("accounts.receivePayment")}
+            </AppText>
 
-          <AppText variant="bodySmall" color={colors.textSecondary}>
-            {t("accounts.remaining")}: {formatCurrency(remaining, loanAccount.currency)}
-          </AppText>
-
-          <View style={styles.amountRow}>
-            <View style={{ flex: 1 }}>
-              <AppInput
-                label={t("transactionForm.amount")}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-                placeholder="0"
-                autoFocus
+            {/* #5: Use AmountDisplay for remaining to respect privacy */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <AppText variant="bodySmall" color={colors.textSecondary}>
+                {t("accounts.remaining")}:
+              </AppText>
+              <AmountDisplay
+                amount={remaining}
+                currency={loanAccount.currency}
+                variant="bodySmall"
               />
             </View>
-            <AppButton
-              title={t("accounts.payFull")}
-              variant="ghost"
-              onPress={handlePayFull}
-              style={{ marginTop: 20 }}
+
+            <View style={styles.amountRow}>
+              <View style={{ flex: 1 }}>
+                <AppInput
+                  label={t("transactionForm.amount")}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  autoFocus
+                />
+              </View>
+              <AppButton
+                title={t("accounts.payFull")}
+                variant="ghost"
+                onPress={handlePayFull}
+                style={{ marginTop: 20 }}
+              />
+            </View>
+
+            {parsed > remaining && (
+              <AppText variant="caption" color={colors.danger}>
+                {t("accounts.exceedsRemaining")}
+              </AppText>
+            )}
+
+            <SelectInput
+              label={isBorrowed ? t("accounts.payFrom") : t("accounts.receiveTo")}
+              value={
+                selectedAccount ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <AppIcon name={selectedAccount.icon} size={18} color={selectedAccount.color} />
+                    <AppText variant="body">{selectedAccount.name}</AppText>
+                  </View>
+                ) : undefined
+              }
+              placeholder={t("common.select")}
+              onPress={() => setShowAccountPicker(true)}
             />
+
+            <View style={styles.paymentActions}>
+              <AppButton
+                title={t("common.cancel")}
+                variant="ghost"
+                onPress={onClose}
+                style={{ flex: 1 }}
+              />
+              <AppButton
+                title={t("common.confirm")}
+                onPress={() => onPayment(parsed, selectedAccountId!)}
+                disabled={!isValid}
+                style={{ flex: 1 }}
+              />
+            </View>
           </View>
+        </Pressable>
+      </SafeAreaView>
 
-          <SelectInput
-            label={isBorrowed ? t("accounts.payFrom") : t("accounts.receiveTo")}
-            value={
-              selectedAccount ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <AppIcon name={selectedAccount.icon} size={18} color={selectedAccount.color} />
-                  <AppText variant="body">{selectedAccount.name}</AppText>
-                </View>
-              ) : undefined
-            }
-            placeholder={t("common.select")}
-            onPress={() => setShowAccountPicker(true)}
-          />
-
-          <View style={styles.paymentActions}>
-            <AppButton
-              title={t("common.cancel")}
-              variant="ghost"
-              onPress={onClose}
-              style={{ flex: 1 }}
-            />
-            <AppButton
-              title={t("common.confirm")}
-              onPress={() => onPayment(parsed, selectedAccountId!)}
-              disabled={!isValid}
-              style={{ flex: 1 }}
-            />
-          </View>
-        </View>
-      </Pressable>
-
+      {/* #18: PickerModal inside the Modal to avoid z-index issues */}
       <PickerModal
         visible={showAccountPicker}
         title={isBorrowed ? t("accounts.payFrom") : t("accounts.receiveTo")}
@@ -353,9 +377,7 @@ function PaymentModal({
 }
 
 const styles = StyleSheet.create({
-  headerSection: {
-    paddingBottom: spacing.sm,
-  },
+  headerSection: { paddingBottom: spacing.sm },
   balanceSection: {
     alignItems: "center",
     paddingVertical: spacing["2xl"],
@@ -380,10 +402,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 10,
   },
-  divider: {
-    marginTop: spacing.lg,
-    alignSelf: "stretch",
-  },
+  divider: { marginTop: spacing.lg, alignSelf: "stretch" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

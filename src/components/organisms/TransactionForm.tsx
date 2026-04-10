@@ -180,7 +180,7 @@ export function TransactionForm({
         ),
       );
     }
-  }, [splitEnabled, amount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [splitEnabled, amount, splitPeople.length]);
 
   const handleAmountChange = (text: string) => {
     setAmount(formatAmountInput(text));

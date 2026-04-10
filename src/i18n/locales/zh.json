@@ -112,7 +112,8 @@
     "payFrom": "付款账户",
     "receiveTo": "收款账户",
     "loanPaymentDesc": "贷款还款：{{name}}",
-    "loanReceivedDesc": "贷款收回：{{name}}"
+    "loanReceivedDesc": "贷款收回：{{name}}",
+    "exceedsRemaining": "金额超过剩余余额"
   },
   "categories": {
     "title": "分类",

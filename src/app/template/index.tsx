@@ -52,7 +52,7 @@ export default function TemplatesScreen() {
         style={styles.row}
       >
         <View style={[styles.iconWrap, { backgroundColor: typeColor + "18" }]}>
-          <AppIcon name={item.icon || TYPE_ICONS[item.type]} size={22} color={typeColor} />
+          <AppIcon name={item.icon ?? TYPE_ICONS[item.type]} size={22} color={typeColor} />
         </View>
         <View style={styles.info}>
           <AppText variant="label" numberOfLines={1}>

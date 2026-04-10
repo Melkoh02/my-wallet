@@ -22,6 +22,8 @@ import {
   themes,
   settings,
   backups,
+  templates,
+  templateSubcategories,
 } from "@/db/schema";
 import { getSetting } from "@/db/queries/settings";
 import { eq, desc, sql } from "drizzle-orm";
@@ -50,6 +52,8 @@ async function exportAllData() {
     cashbackRules: await db.select().from(cashbackRules),
     themes: await db.select().from(themes),
     settings: await db.select().from(settings),
+    templates: await db.select().from(templates),
+    templateSubcategories: await db.select().from(templateSubcategories),
   };
   return JSON.stringify(data, null, 2);
 }
@@ -143,6 +147,8 @@ async function restoreData(
   await db.run(sql`BEGIN TRANSACTION`);
   try {
     // Clear existing data (order matters for foreign keys)
+    await db.delete(templateSubcategories);
+    await db.delete(templates);
     await db.delete(transactionSubcategories);
     await db.delete(recurringSubcategories);
     await db.delete(cashbackRules);
@@ -171,6 +177,9 @@ async function restoreData(
       await db.insert(cashbackRules).values(data.cashbackRules as never[]);
     if (data.themes?.length) await db.insert(themes).values(data.themes as never[]);
     if (data.settings?.length) await db.insert(settings).values(data.settings as never[]);
+    if (data.templates?.length) await db.insert(templates).values(data.templates as never[]);
+    if (data.templateSubcategories?.length)
+      await db.insert(templateSubcategories).values(data.templateSubcategories as never[]);
 
     await db.run(sql`COMMIT`);
     return { success: true };

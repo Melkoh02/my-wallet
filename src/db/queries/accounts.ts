@@ -114,9 +114,17 @@ export async function getAccountsTotals(
         totalLiabilities += converted;
       }
     } else {
-      // debit, cash, wallet, savings, loan_lent, investment — all assets
-      const converted = convertFn ? await convertFn(acc.balance, acc.currency) : acc.balance;
-      totalAssets += converted;
+      // debit, cash, wallet, savings, loan_lent, investment
+      // Positive balance = asset, negative = liability (e.g. overpaid loan_lent)
+      if (acc.balance >= 0) {
+        const converted = convertFn ? await convertFn(acc.balance, acc.currency) : acc.balance;
+        totalAssets += converted;
+      } else {
+        const converted = convertFn
+          ? await convertFn(Math.abs(acc.balance), acc.currency)
+          : Math.abs(acc.balance);
+        totalLiabilities += converted;
+      }
     }
   }
 

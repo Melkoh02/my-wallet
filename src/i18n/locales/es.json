@@ -112,7 +112,8 @@
     "payFrom": "Pagar Desde",
     "receiveTo": "Recibir En",
     "loanPaymentDesc": "Pago de préstamo: {{name}}",
-    "loanReceivedDesc": "Préstamo recibido: {{name}}"
+    "loanReceivedDesc": "Préstamo recibido: {{name}}",
+    "exceedsRemaining": "El monto excede el saldo restante"
   },
   "categories": {
     "title": "Categorías",

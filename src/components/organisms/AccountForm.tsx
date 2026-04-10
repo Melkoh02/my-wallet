@@ -42,7 +42,14 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [institution, setInstitution] = useState(initial?.institution ?? "");
   const [type, setType] = useState<AccountType>((initial?.type as AccountType) ?? "debit");
-  const [balance, setBalance] = useState(initial?.balance?.toString() ?? "");
+  // For borrowed loans, show absolute value (negative sign is handled in handleSubmit)
+  const [balance, setBalance] = useState(
+    initial?.balance != null
+      ? initial.type === "loan_borrowed"
+        ? Math.abs(initial.balance).toString()
+        : initial.balance.toString()
+      : "",
+  );
   const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() ?? "");
   const [color, setColor] = useState(initial?.color ?? PALETTE_COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
@@ -89,8 +96,9 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const handleSubmit = () => {
     let parsed = parseFloat(balance) || 0;
     // Borrowed loans are stored as negative balance (liability)
-    if (type === "loan_borrowed" && parsed > 0) {
-      parsed = -parsed;
+    // Always use absolute value then negate to prevent double-negation
+    if (type === "loan_borrowed") {
+      parsed = -Math.abs(parsed);
     }
     onSubmit({
       name: name.trim(),

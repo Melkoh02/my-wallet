@@ -84,9 +84,15 @@ async function applyInvestmentInterest() {
     );
 
   for (const acc of investmentAccounts) {
-    if (!acc.interestRate || acc.balance <= 0) continue;
+    if (!acc.interestRate) continue;
     const lastDate = acc.lastInterestDate ?? acc.createdAt.slice(0, 10);
     if (lastDate >= today) continue;
+
+    // Always advance the date to prevent retroactive interest on zero-balance periods
+    if (acc.balance <= 0) {
+      await db.update(accounts).set({ lastInterestDate: today }).where(eq(accounts.id, acc.id));
+      continue;
+    }
 
     const days = Math.floor((new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000);
     if (days <= 0) continue;
@@ -121,7 +127,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
         console.log(`Processed ${count} recurring transaction(s)`);
       }
     });
-    applyInvestmentInterest();
+    applyInvestmentInterest().catch((e) => console.warn("Investment interest failed:", e));
     checkAndRunAutoBackup().then((didBackup) => {
       if (didBackup) {
         console.log("Auto backup completed");

@@ -97,17 +97,24 @@ export async function getAccountsTotals(
     if (acc.type === "credit") {
       const debt = (acc.creditLimit ?? 0) - acc.balance;
       if (debt > 0) {
-        // Normal case: owe money on the card
         const converted = convertFn ? await convertFn(debt, acc.currency) : debt;
         totalLiabilities += converted;
       } else if (debt < 0) {
-        // Overpaid card: issuer owes us money — count as asset
         const converted = convertFn
           ? await convertFn(Math.abs(debt), acc.currency)
           : Math.abs(debt);
         totalAssets += converted;
       }
+    } else if (acc.type === "loan_borrowed") {
+      // Balance is negative (debt) — count absolute value as liability
+      if (acc.balance < 0) {
+        const converted = convertFn
+          ? await convertFn(Math.abs(acc.balance), acc.currency)
+          : Math.abs(acc.balance);
+        totalLiabilities += converted;
+      }
     } else {
+      // debit, cash, wallet, savings, loan_lent, investment — all assets
       const converted = convertFn ? await convertFn(acc.balance, acc.currency) : acc.balance;
       totalAssets += converted;
     }

@@ -6,6 +6,7 @@ import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
+import { DatePicker } from "@/components/molecules/DatePicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
@@ -21,7 +22,12 @@ const ACCOUNT_TYPE_DEFS: { value: AccountType; key: string; icon: string }[] = [
   { value: "cash", key: "accounts.cash", icon: "cash" },
   { value: "wallet", key: "accounts.wallet", icon: "wallet" },
   { value: "savings", key: "accounts.savings", icon: "piggy-bank" },
+  { value: "loan_borrowed", key: "accounts.loanBorrowed", icon: "bank-transfer-in" },
+  { value: "loan_lent", key: "accounts.loanLent", icon: "bank-transfer-out" },
+  { value: "investment", key: "accounts.investment", icon: "chart-line" },
 ];
+
+const isLoanType = (t: string) => t === "loan_borrowed" || t === "loan_lent";
 
 type AccountFormProps = {
   initial?: Account;
@@ -39,6 +45,9 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() ?? "");
   const [color, setColor] = useState(initial?.color ?? PALETTE_COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
+  const [counterparty, setCounterparty] = useState(initial?.counterparty ?? "");
+  const [interestRate, setInterestRate] = useState(initial?.interestRate?.toString() ?? "");
+  const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
 
   useEffect(() => {
     if (!initial) {
@@ -60,8 +69,20 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
 
   const selectedTypeDef = ACCOUNT_TYPE_DEFS.find((td) => td.value === type);
 
+  const getBalanceLabel = () => {
+    if (type === "credit") return t("accounts.availableCredit");
+    if (type === "loan_borrowed") return t("accounts.loanAmount");
+    if (type === "loan_lent") return t("accounts.loanAmount");
+    if (type === "investment") return t("accounts.currentValue");
+    return t("accounts.initialBalance");
+  };
+
   const handleSubmit = () => {
-    const parsed = parseFloat(balance) || 0;
+    let parsed = parseFloat(balance) || 0;
+    // Borrowed loans are stored as negative balance (liability)
+    if (type === "loan_borrowed" && parsed > 0) {
+      parsed = -parsed;
+    }
     onSubmit({
       name: name.trim(),
       institution: institution.trim(),
@@ -71,6 +92,10 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       currency,
       color,
       icon: selectedTypeDef?.icon ?? "wallet",
+      counterparty: isLoanType(type) ? counterparty.trim() || null : null,
+      interestRate:
+        isLoanType(type) || type === "investment" ? parseFloat(interestRate) || null : null,
+      dueDate: isLoanType(type) && dueDate ? dueDate : null,
     });
   };
 
@@ -167,8 +192,18 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
         </SafeAreaView>
       </Modal>
 
+      {/* Counterparty — loans only */}
+      {isLoanType(type) && (
+        <AppInput
+          label={t("accounts.counterparty")}
+          value={counterparty}
+          onChangeText={setCounterparty}
+          placeholder={t("accounts.counterpartyPlaceholder")}
+        />
+      )}
+
       <AppInput
-        label={type === "credit" ? t("accounts.availableCredit") : t("accounts.initialBalance")}
+        label={getBalanceLabel()}
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"
@@ -183,6 +218,47 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
           keyboardType="decimal-pad"
           placeholder="0.00"
         />
+      )}
+
+      {/* Interest rate — loans and investments */}
+      {(isLoanType(type) || type === "investment") && (
+        <AppInput
+          label={t("accounts.interestRate")}
+          value={interestRate}
+          onChangeText={setInterestRate}
+          keyboardType="decimal-pad"
+          placeholder={t("accounts.interestRatePlaceholder")}
+        />
+      )}
+
+      {/* Due date — loans only */}
+      {isLoanType(type) && (
+        <View style={styles.section}>
+          {dueDate ? (
+            <DatePicker label={t("accounts.dueDate")} value={dueDate} onChange={setDueDate} />
+          ) : (
+            <View style={styles.section}>
+              <AppText variant="label" color={colors.textSecondary}>
+                {t("accounts.dueDate")} ({t("common.optional")})
+              </AppText>
+              <Pressable
+                onPress={() => {
+                  const d = new Date();
+                  d.setMonth(d.getMonth() + 12);
+                  setDueDate(d.toISOString().slice(0, 10));
+                }}
+                style={[
+                  styles.selectTrigger,
+                  { borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
+              >
+                <AppText variant="body" color={colors.placeholder}>
+                  {t("transactions.notSet")}
+                </AppText>
+              </Pressable>
+            </View>
+          )}
+        </View>
       )}
 
       {/* Currency selector */}

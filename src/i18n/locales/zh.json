@@ -215,7 +215,29 @@
     "cashbackFlat": "返现金额",
     "cashbackFulfilled": "返现已到账",
     "cashbackPending": "待处理",
-    "cashbackAccount": "返现账户"
+    "cashbackAccount": "返现账户",
+    "templates": "模板",
+    "templatesDesc": "常用交易的快捷方式"
+  },
+  "templates": {
+    "title": "模板",
+    "noItems": "还没有模板",
+    "noItemsDesc": "为常用交易创建快捷方式",
+    "newTemplate": "新建模板",
+    "editTemplate": "编辑模板",
+    "createTemplate": "创建模板",
+    "templateName": "模板名称",
+    "templateNamePlaceholder": "例如：午餐、咖啡",
+    "deleteTitle": "删除模板",
+    "deleteMessage": "确认删除\"{{name}}\"？"
+  },
+  "splitBill": {
+    "title": "与他人分摊",
+    "description": "其他人将作为欠款记录",
+    "personName": "姓名",
+    "addPerson": "添加人员",
+    "splitEvenly": "平均分摊",
+    "loanName": "欠我：{{name}}"
   },
   "themes": {
     "title": "主题",

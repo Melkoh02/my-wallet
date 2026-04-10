@@ -102,3 +102,4 @@ export { cashbackRules, type CashbackRule, type NewCashbackRule } from "./cashba
 export { themes, type Theme, type NewTheme } from "./themes";
 export { settings, type Setting } from "./settings";
 export { backups, type Backup, type NewBackup } from "./backups";
+export { templates, templateSubcategories, type Template, type NewTemplate } from "./templates";

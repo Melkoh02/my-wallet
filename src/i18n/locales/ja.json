@@ -215,7 +215,29 @@
     "cashbackFlat": "キャッシュバック金額",
     "cashbackFulfilled": "キャッシュバック受領済み",
     "cashbackPending": "保留中",
-    "cashbackAccount": "キャッシュバック口座"
+    "cashbackAccount": "キャッシュバック口座",
+    "templates": "テンプレート",
+    "templatesDesc": "よく使う取引のショートカット"
+  },
+  "templates": {
+    "title": "テンプレート",
+    "noItems": "テンプレートはまだありません",
+    "noItemsDesc": "よく行う取引のショートカットを作成しましょう",
+    "newTemplate": "新しいテンプレート",
+    "editTemplate": "テンプレートを編集",
+    "createTemplate": "テンプレートを作成",
+    "templateName": "テンプレート名",
+    "templateNamePlaceholder": "例: ランチ、コーヒー",
+    "deleteTitle": "テンプレートを削除",
+    "deleteMessage": "\"{{name}}\"を削除しますか？"
+  },
+  "splitBill": {
+    "title": "割り勘",
+    "description": "他の人はあなたへの貸付として記録されます",
+    "personName": "名前",
+    "addPerson": "人を追加",
+    "splitEvenly": "均等に分ける",
+    "loanName": "貸付: {{name}}"
   },
   "themes": {
     "title": "テーマ",

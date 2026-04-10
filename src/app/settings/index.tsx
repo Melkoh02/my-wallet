@@ -387,6 +387,13 @@ export default function SettingsScreen() {
         onPress={() => router.push("/recurring")}
       />
       <Divider />
+      <SettingsRow
+        icon="file-document-multiple"
+        title={t("settings.templates")}
+        subtitle={t("settings.templatesDesc")}
+        onPress={() => router.push("/template" as never)}
+      />
+      <Divider />
       <SettingsToggle
         icon="map-marker"
         title={t("settings.locationStamps")}

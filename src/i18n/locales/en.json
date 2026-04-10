@@ -215,7 +215,29 @@
     "cashbackFlat": "Cashback amount",
     "cashbackFulfilled": "Cashback received",
     "cashbackPending": "Pending",
-    "cashbackAccount": "Cashback account"
+    "cashbackAccount": "Cashback account",
+    "templates": "Templates",
+    "templatesDesc": "Quick-fill transaction shortcuts"
+  },
+  "templates": {
+    "title": "Templates",
+    "noItems": "No templates yet",
+    "noItemsDesc": "Create shortcuts for transactions you do often",
+    "newTemplate": "New Template",
+    "editTemplate": "Edit Template",
+    "createTemplate": "Create Template",
+    "templateName": "Template Name",
+    "templateNamePlaceholder": "e.g. Lunch, Coffee",
+    "deleteTitle": "Delete Template",
+    "deleteMessage": "Remove \"{{name}}\"?"
+  },
+  "splitBill": {
+    "title": "Split with Others",
+    "description": "Others will be tracked as loans they owe you",
+    "personName": "Name",
+    "addPerson": "Add person",
+    "splitEvenly": "Split evenly",
+    "loanName": "Owes me: {{name}}"
   },
   "themes": {
     "title": "Themes",

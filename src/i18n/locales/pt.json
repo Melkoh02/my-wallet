@@ -215,7 +215,29 @@
     "cashbackFlat": "Valor do cashback",
     "cashbackFulfilled": "Cashback recebido",
     "cashbackPending": "Pendente",
-    "cashbackAccount": "Conta de cashback"
+    "cashbackAccount": "Conta de cashback",
+    "templates": "Modelos",
+    "templatesDesc": "Atalhos para transações frequentes"
+  },
+  "templates": {
+    "title": "Modelos",
+    "noItems": "Nenhum modelo ainda",
+    "noItemsDesc": "Crie atalhos para transações que você faz com frequência",
+    "newTemplate": "Novo Modelo",
+    "editTemplate": "Editar Modelo",
+    "createTemplate": "Criar Modelo",
+    "templateName": "Nome do Modelo",
+    "templateNamePlaceholder": "ex. Almoço, Café",
+    "deleteTitle": "Excluir Modelo",
+    "deleteMessage": "Remover \"{{name}}\"?"
+  },
+  "splitBill": {
+    "title": "Dividir com Outros",
+    "description": "Os demais serão rastreados como empréstimos que devem a você",
+    "personName": "Nome",
+    "addPerson": "Adicionar pessoa",
+    "splitEvenly": "Dividir igualmente",
+    "loanName": "Me deve: {{name}}"
   },
   "themes": {
     "title": "Temas",

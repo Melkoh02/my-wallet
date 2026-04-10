@@ -120,8 +120,10 @@ export async function checkAndRunAutoBackup(): Promise<boolean> {
 
 export async function exportBackup(): Promise<void> {
   const json = await exportAllData();
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const filename = `my-wallet-export-${dateStr}.json`;
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const timeStr = now.toTimeString().slice(0, 5).replace(":", "");
+  const filename = `my-wallet-export-${dateStr}-${timeStr}.json`;
   const tempPath = `${cacheDirectory}${filename}`;
 
   await writeAsStringAsync(tempPath, json);

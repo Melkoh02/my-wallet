@@ -1,5 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, PanResponder } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import Animated, {
   type SharedValue,
   useSharedValue,
@@ -38,6 +39,7 @@ const ANIM_EASING = Easing.out(Easing.cubic);
 export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const isFocused = useIsFocused();
   const expanded = useSharedValue(0);
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
@@ -50,6 +52,17 @@ export function FAB({ onPress, actions, onAction, icon = "plus" }: FABProps) {
   const fabTopPageY = useRef(0);
 
   const isSpeedDial = actions && actions.length > 0;
+
+  // Close speed dial when navigating away
+  useEffect(() => {
+    if (!isFocused && isOpenRef.current) {
+      expanded.value = withTiming(0, { duration: 0 });
+      setIsOpen(false);
+      setHoveredIndex(-1);
+      lastHoveredIndex.current = -1;
+      isOpenRef.current = false;
+    }
+  }, [isFocused, expanded]);
 
   const open = useCallback(() => {
     setIsOpen(true);

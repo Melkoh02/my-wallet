@@ -9,6 +9,8 @@ Track your income, expenses, and transfers across multiple accounts and currenci
 ### Transactions
 - Income, expense, and transfer types
 - Categorize with categories and subcategories (many-to-many)
+- Smart defaults: account and category suggestions based on recent usage
+- Thousand separator formatting on amount fields
 - Attach contacts from your address book
 - Optional location stamps with reverse geocoding
 - Cashback tracking with instant or deferred fulfillment
@@ -16,15 +18,17 @@ Track your income, expenses, and transfers across multiple accounts and currenci
 
 ### Accounts
 - 5 account types: Debit, Credit, Cash, Wallet, Savings
-- Credit cards with inverted balance logic (expenses increase debt)
+- Credit cards: balance = available credit, debt computed as limit − balance
 - Per-account currency (33 currencies supported)
 - Net worth calculation with cross-currency conversion
+- Account required guard — prompts to create an account before first transaction
 
 ### Analytics
 - Monthly overview: income, expenses, net
 - Category breakdown with proportional bars
 - Daily spending chart
 - Navigate between months
+- Respects display currency setting
 
 ### Recurring Transactions
 - Daily, weekly, biweekly, monthly, yearly frequencies
@@ -42,15 +46,16 @@ Track your income, expenses, and transfers across multiple accounts and currenci
 - Both modes configurable to activate on app open
 
 ### Customization
-- Light and dark mode
+- Light and dark mode with system default option
 - Custom themes with accent color and status bar style
+- Default themes seeded on first launch
 - 5 languages: English, Spanish, Portuguese, Japanese, Chinese
 
 ### Data Management
 - Automatic daily backups with configurable retention
 - Manual backup, export (share as JSON), and import
 - Atomic import with SQLite transaction rollback on failure
-- Data persists across app updates
+- Data persists across app updates (persistent release signing key)
 
 ## Tech Stack
 
@@ -79,22 +84,23 @@ src/
 │   ├── contact/            Contact transaction history
 │   └── settings/           Settings, themes, backup
 ├── components/
-│   ├── atoms/              AppText, AppButton, AppInput, AppIcon, FAB, Chip, Divider, Switch
-│   ├── molecules/          AmountDisplay, CategoryPill, DatePicker, TimePicker, EmptyState, etc.
+│   ├── atoms/              AppText, AppButton, AppInput, AppIcon, FAB, Chip, ConfirmModal, Divider
+│   ├── molecules/          AmountDisplay, SelectInput, PickerModal, DatePicker, TimePicker, etc.
 │   ├── organisms/          TransactionForm, AccountForm, CategoryPicker, ContactPicker, etc.
 │   └── templates/          ScreenLayout, ModalLayout, HeaderBar
 ├── db/
 │   ├── schema/             Drizzle table definitions (11 tables)
 │   ├── queries/            CRUD + business logic per entity
 │   ├── migrations/         SQL migrations (inlined for Metro compatibility)
-│   └── seed.ts             Default categories + settings
+│   └── seed.ts             Default categories, settings, and themes
 ├── providers/              DatabaseProvider, ThemeProvider, PrivacyProvider, DataRefreshProvider
 ├── services/               Backup, location, contacts, exchange rates
 ├── hooks/                  useAccounts, useTransactions, useCategories, useRecurring, etc.
 ├── theme/                  Color palettes, spacing, typography, tokens
 ├── i18n/                   i18next config + 5 locale JSON files
-├── constants/              Default categories, FAB actions, settings
-└── utils/                  Currency/date formatting, date math
+├── constants/              Currencies, palette colors, FAB actions
+├── plugins/                Expo config plugins (release signing)
+└── utils/                  Currency/date formatting, amount input helpers
 ```
 
 ## Getting Started
@@ -113,17 +119,19 @@ cd my-wallet
 npm install
 ```
 
-### Run on Android
+### Development Build
 
 ```bash
-npx expo run:android
+npm run android          # Dev build (development variant)
 ```
 
-### Run on iOS
+### Release Build
 
 ```bash
-npx expo run:ios
+npm run android:release  # Prebuild + assembleRelease
 ```
+
+Release builds are signed with `release.keystore` (project root). Passwords are in `keystore.properties` (gitignored). See `plugins/withReleaseSigning.js` for how signing is injected at prebuild time.
 
 ### Lint & Format
 

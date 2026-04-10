@@ -580,8 +580,38 @@ export function TransactionForm({
               </AppText>
 
               {splitPeople.map((person, idx) => (
-                <View key={idx} style={styles.splitPersonRow}>
-                  <View style={{ flex: 1 }}>
+                <View key={idx} style={styles.splitPersonCard}>
+                  <View style={styles.splitPersonTop}>
+                    <View style={{ flex: 1 }}>
+                      <ContactPicker
+                        selected={
+                          person.contactId ? { id: person.contactId, name: person.name } : null
+                        }
+                        onSelect={(c) =>
+                          setSplitPeople((prev) =>
+                            prev.map((p, i) =>
+                              i === idx
+                                ? {
+                                    ...p,
+                                    contactId: c?.id ?? null,
+                                    name: c?.name ?? p.name,
+                                  }
+                                : p,
+                            ),
+                          )
+                        }
+                      />
+                    </View>
+                    {splitPeople.length > 1 && (
+                      <Pressable
+                        onPress={() => setSplitPeople((prev) => prev.filter((_, i) => i !== idx))}
+                        style={{ marginTop: spacing.sm }}
+                      >
+                        <AppIcon name="close-circle" size={22} color={colors.iconSecondary} />
+                      </Pressable>
+                    )}
+                  </View>
+                  {!person.contactId && (
                     <AppInput
                       placeholder={t("splitBill.personName")}
                       value={person.name}
@@ -591,26 +621,18 @@ export function TransactionForm({
                         )
                       }
                     />
-                  </View>
-                  <View style={{ width: 100 }}>
-                    <AppInput
-                      placeholder="0"
-                      value={person.amount}
-                      onChangeText={(text) =>
-                        setSplitPeople((prev) =>
-                          prev.map((p, i) => (i === idx ? { ...p, amount: text } : p)),
-                        )
-                      }
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                  {splitPeople.length > 1 && (
-                    <Pressable
-                      onPress={() => setSplitPeople((prev) => prev.filter((_, i) => i !== idx))}
-                    >
-                      <AppIcon name="close-circle" size={22} color={colors.iconSecondary} />
-                    </Pressable>
                   )}
+                  <AppInput
+                    label={t("transactionForm.amount")}
+                    placeholder="0"
+                    value={person.amount}
+                    onChangeText={(text) =>
+                      setSplitPeople((prev) =>
+                        prev.map((p, i) => (i === idx ? { ...p, amount: text } : p)),
+                      )
+                    }
+                    keyboardType="decimal-pad"
+                  />
                 </View>
               ))}
 
@@ -813,9 +835,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  splitPersonRow: {
+  splitPersonCard: {
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: "#0000000F",
+    marginBottom: spacing.xs,
+  },
+  splitPersonTop: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.sm,
   },
   splitActions: {

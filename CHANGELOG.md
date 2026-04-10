@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-10
+
+### Added
+- **Loans**: borrowed and lent account types with counterparty (contact or manual), interest rate, due date
+- **Loan payments**: "Make Payment" / "Receive Payment" button with transfer creation, "Pay Full" shortcut, "Settled" badge at zero
+- **Investments**: account type with interest rate and daily compound interest auto-applied on app open
+- **Transaction templates**: create reusable shortcuts for frequent transactions (Settings → Templates)
+- **Template chips**: horizontal scrollable row at top of create transaction form, tap to pre-fill all fields
+- **Split bill**: toggle section on expense form to split with others, each person via contact picker or manual name
+- Split bill auto-creates loan_lent accounts for each person (or adds to existing if same contact)
+- "Split evenly" button divides total equally among all people
+- Templates screen with full CRUD (create, edit, delete)
+- Templates included in backup export/restore
+- Settings row for Templates management
+- Due date on loans can be cleared back to unset
+
+### Changed
+- Net worth calculation handles loan_borrowed (negative = liability), loan_lent (positive = asset), and edge cases (overpayment in either direction)
+- Investment `lastInterestDate` preserved on account edit (only set on creation)
+- Transaction edit wrapped in SQLite transaction for atomicity (BEGIN/COMMIT/ROLLBACK)
+- PaymentModal resets state (amount, account) on each open
+- Split bill currency sourced from fresh DB query instead of hook state
+- Backup export filename now includes time (matches auto-backup format)
+- FAB account check queries DB directly instead of relying on hook state
+
+### Fixed
+- Loan overpayment capped at remaining balance with validation warning
+- Investment interest no longer retroactively applied during zero-balance periods
+- Loan balance displays as positive number in edit form (no negative sign confusion)
+- Privacy mode respected in loan detail (debt display, payment remaining use AmountDisplay)
+- Error handling: try/catch on transaction submit, payment modal, template form; fire-and-forget interest accrual has .catch
+- Split person card border uses theme color instead of hardcoded value
+- Template queries deduplicated (single enrichTemplates function)
+
 ## [1.1.1] - 2026-04-10
 
 ### Fixed
@@ -281,6 +315,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.2.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.2.0
 [1.1.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.1.0
 [1.0.4]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.0.4

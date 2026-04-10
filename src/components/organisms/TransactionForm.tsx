@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, ScrollView, Switch, Pressable, StyleSheet } from "react-native";
+import { useState, useEffect, useRef } from "react";
+import { View, ScrollView, Switch, Pressable, StyleSheet, TextInput } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
@@ -13,8 +13,15 @@ import { CategoryPicker } from "@/components/organisms/CategoryPicker";
 import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
-import { todayDateString, nowTimeString, formatCurrency } from "@/utils/format";
+import {
+  todayDateString,
+  nowTimeString,
+  formatCurrency,
+  formatAmountInput,
+  unformatAmount,
+} from "@/utils/format";
 import { getCurrentLocation } from "@/services/location.service";
+import { getLastAccountByType, getFrequentCategoriesByType } from "@/db/queries/transactions";
 import type { Account, NewTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 import type { TransactionType } from "@/types";
@@ -47,16 +54,18 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const amountRef = useRef<TextInput>(null);
+  const isEditing = !!initialData;
 
   // Core fields
   const [type, setType] = useState<TransactionType>(
     (initialData?.type as TransactionType) ?? initialType,
   );
-  const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
-  const [description, setDescription] = useState(initialData?.description ?? "");
-  const [accountId, setAccountId] = useState<number | null>(
-    initialData?.accountId ?? accounts[0]?.id ?? null,
+  const [amount, setAmount] = useState(
+    initialData?.amount ? formatAmountInput(initialData.amount.toString()) : "",
   );
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [accountId, setAccountId] = useState<number | null>(initialData?.accountId ?? null);
   const [toAccountId, setToAccountId] = useState<number | null>(initialData?.toAccountId ?? null);
   const [date, setDate] = useState(initialData?.date ?? todayDateString());
   const [time, setTime] = useState(initialData?.time ?? nowTimeString());
@@ -104,8 +113,40 @@ export function TransactionForm({
   const selectedToAccount = accounts.find((a) => a.id === toAccountId);
   const selectedCashbackAccount = accounts.find((a) => a.id === cashbackAccountId);
 
+  // Item 2: Default account from last transaction of same type (new transactions only)
+  useEffect(() => {
+    if (isEditing || accountId !== null) return;
+    getLastAccountByType(type).then((lastAccId) => {
+      if (lastAccId && accounts.some((a) => a.id === lastAccId)) {
+        setAccountId(lastAccId);
+      } else if (accounts.length > 0) {
+        setAccountId(accounts[0].id);
+      }
+    });
+  }, [type, accounts, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Item 5: Suggest categories from last transaction of same type (new transactions only)
+  const [suggestedCategoryIds, setSuggestedCategoryIds] = useState<number[]>([]);
+  useEffect(() => {
+    if (isEditing) return;
+    getFrequentCategoriesByType(type, 3).then((ids) => {
+      setSuggestedCategoryIds(ids);
+    });
+  }, [type, isEditing]);
+
+  // Item 3: Autofocus amount field (new transactions only)
+  useEffect(() => {
+    if (!isEditing) {
+      setTimeout(() => amountRef.current?.focus(), 350);
+    }
+  }, [isEditing]);
+
+  const handleAmountChange = (text: string) => {
+    setAmount(formatAmountInput(text));
+  };
+
   const computedCashback = (() => {
-    const amt = parseFloat(amount) || 0;
+    const amt = parseFloat(unformatAmount(amount)) || 0;
     const val = parseFloat(cashbackValue) || 0;
     if (!cashbackEnabled || val <= 0 || amt <= 0) return 0;
     return cashbackMode === "percent" ? Math.round((val / 100) * amt * 100) / 100 : val;
@@ -121,7 +162,7 @@ export function TransactionForm({
   };
 
   const handleSubmit = () => {
-    const parsed = parseFloat(amount);
+    const parsed = parseFloat(unformatAmount(amount));
     if (!parsed || !accountId) return;
 
     onSubmit(
@@ -150,8 +191,9 @@ export function TransactionForm({
     );
   };
 
+  const parsedAmount = parseFloat(unformatAmount(amount));
   const isValid =
-    parseFloat(amount) > 0 &&
+    parsedAmount > 0 &&
     accountId !== null &&
     (type !== "transfer" || (toAccountId !== null && toAccountId !== accountId));
 
@@ -187,10 +229,21 @@ export function TransactionForm({
         })}
       </View>
 
+      {/* Item 8: Date & Time right below type (autocompleted fields) */}
+      <View style={styles.row}>
+        <View style={styles.halfInput}>
+          <DatePicker label={t("transactionForm.date")} value={date} onChange={setDate} />
+        </View>
+        <View style={styles.halfInput}>
+          <TimePicker label={t("transactionForm.time")} value={time} onChange={setTime} />
+        </View>
+      </View>
+
       <AppInput
+        ref={amountRef}
         label={t("transactionForm.amount")}
         value={amount}
-        onChangeText={setAmount}
+        onChangeText={handleAmountChange}
         keyboardType="decimal-pad"
         placeholder="0.00"
       />
@@ -201,7 +254,7 @@ export function TransactionForm({
         placeholder={t("transactionForm.descriptionPlaceholder")}
       />
 
-      {/* Account selector — modal based */}
+      {/* Item 9: Account and Contact on same row */}
       {accounts.length === 0 ? (
         <View
           style={[
@@ -216,21 +269,37 @@ export function TransactionForm({
         </View>
       ) : (
         <>
-          <SelectInput
-            label={
-              type === "transfer" ? t("transactionForm.fromAccount") : t("transactionForm.account")
-            }
-            value={
-              selectedAccount ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <AppIcon name={selectedAccount.icon} size={18} color={selectedAccount.color} />
-                  <AppText variant="body">{selectedAccount.name}</AppText>
-                </View>
-              ) : undefined
-            }
-            placeholder={t("common.select")}
-            onPress={() => setShowAccountPicker(true)}
-          />
+          <View style={type !== "transfer" ? styles.row : undefined}>
+            <View style={type !== "transfer" ? styles.halfInput : undefined}>
+              <SelectInput
+                label={
+                  type === "transfer"
+                    ? t("transactionForm.fromAccount")
+                    : t("transactionForm.account")
+                }
+                value={
+                  selectedAccount ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <AppIcon
+                        name={selectedAccount.icon}
+                        size={18}
+                        color={selectedAccount.color}
+                      />
+                      <AppText variant="body">{selectedAccount.name}</AppText>
+                    </View>
+                  ) : undefined
+                }
+                placeholder={t("common.select")}
+                onPress={() => setShowAccountPicker(true)}
+              />
+            </View>
+
+            {type !== "transfer" && (
+              <View style={styles.halfInput}>
+                <ContactPicker selected={contact} onSelect={setContact} />
+              </View>
+            )}
+          </View>
 
           {type === "transfer" && (
             <SelectInput
@@ -259,18 +328,9 @@ export function TransactionForm({
           categories={categories}
           selected={subcategoryIds}
           onSelectionChange={setSubcategoryIds}
+          suggestedIds={!isEditing ? suggestedCategoryIds : undefined}
         />
       )}
-      {type !== "transfer" && <ContactPicker selected={contact} onSelect={setContact} />}
-
-      <View style={styles.row}>
-        <View style={styles.halfInput}>
-          <DatePicker label={t("transactionForm.date")} value={date} onChange={setDate} />
-        </View>
-        <View style={styles.halfInput}>
-          <TimePicker label={t("transactionForm.time")} value={time} onChange={setTime} />
-        </View>
-      </View>
 
       {locationEnabled && (
         <View style={styles.section}>
@@ -383,7 +443,8 @@ export function TransactionForm({
               {/* Computed amount preview */}
               {computedCashback > 0 && (
                 <AppText variant="bodySmall" color={colors.income}>
-                  {t("settings.cashback")}: {formatCurrency(computedCashback)}
+                  {t("settings.cashback")}:{" "}
+                  {formatCurrency(computedCashback, selectedAccount?.currency)}
                 </AppText>
               )}
 

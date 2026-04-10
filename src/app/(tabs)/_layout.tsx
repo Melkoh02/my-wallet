@@ -27,7 +27,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tabs.home"),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" color={color} size={size} />
           ),
@@ -36,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: "Transactions",
+          title: t("tabs.transactions"),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="swap-horizontal" color={color} size={size} />
           ),
@@ -45,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="categories"
         options={{
-          title: "Categories",
+          title: t("tabs.categories"),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="shape" color={color} size={size} />
           ),
@@ -63,7 +63,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="accounts"
         options={{
-          title: "Accounts",
+          title: t("tabs.accounts"),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="wallet" color={color} size={size} />
           ),

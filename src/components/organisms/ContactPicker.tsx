@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { View, Pressable, FlatList, Modal, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,8 @@ import {
 } from "@/services/contacts.service";
 import { getFrequentContacts, getLastUsedContact } from "@/db/queries/transactions";
 
+const PAGE_SIZE = 50;
+
 type ContactPickerProps = {
   selected: { id: string; name: string } | null;
   onSelect: (contact: { id: string; name: string } | null) => void;
@@ -30,6 +32,9 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
   const [filteredContacts, setFilteredContacts] = useState<SimpleContact[]>([]);
   const [frequents, setFrequents] = useState<{ id: string; name: string }[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const hasMoreRef = useRef(true);
+  const pageRef = useRef(0);
 
   const openPicker = useCallback(async () => {
     let perm = await hasContactsPermission();
@@ -39,11 +44,11 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
     setHasPermission(perm);
     if (!perm) return;
 
-    // Load frequents + all contacts in parallel
+    // Load frequents + first page of contacts in parallel
     const [frequent, lastUsed, contacts] = await Promise.all([
       getFrequentContacts(5),
       getLastUsedContact(),
-      getAllContacts(50),
+      getAllContacts(PAGE_SIZE),
     ]);
 
     // Build unique frequents list: top 4 frequent + last used if different
@@ -62,9 +67,30 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
     setFrequents(freqList);
     setAllContacts(contacts);
     setFilteredContacts(contacts);
+    hasMoreRef.current = contacts.length === PAGE_SIZE;
+    pageRef.current = 1;
     setQuery("");
     setVisible(true);
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMoreRef.current || query.length >= 2) return;
+    setLoadingMore(true);
+    const offset = pageRef.current * PAGE_SIZE;
+    const moreContacts = await getAllContacts(PAGE_SIZE + offset);
+    // getAllContacts doesn't support offset, so we take the full set
+    // and only add contacts we don't have yet
+    const existingIds = new Set(allContacts.map((c) => c.id));
+    const newContacts = moreContacts.filter((c) => !existingIds.has(c.id));
+    if (newContacts.length > 0) {
+      const updated = [...allContacts, ...newContacts];
+      setAllContacts(updated);
+      setFilteredContacts(updated);
+    }
+    hasMoreRef.current = moreContacts.length > allContacts.length;
+    pageRef.current += 1;
+    setLoadingMore(false);
+  }, [loadingMore, query, allContacts]);
 
   const handleSearch = useCallback(
     async (text: string) => {
@@ -103,34 +129,36 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
   );
 
   return (
-    <View style={styles.container}>
-      <AppText variant="label" color={colors.textSecondary}>
-        {t("transactionForm.contact")} ({t("common.optional")})
-      </AppText>
+    <View>
       <Pressable
         onPress={selected ? () => onSelect(null) : openPicker}
         style={[styles.trigger, { borderColor: colors.border, backgroundColor: colors.surface }]}
       >
-        {selected ? (
-          <>
-            <AppIcon name="account" size={20} color={colors.primary} />
-            <AppText variant="body" style={styles.contactName}>
-              {selected.name}
-            </AppText>
-            <AppIcon name="close-circle" size={20} color={colors.iconSecondary} />
-          </>
-        ) : (
-          <>
-            <AppIcon name="account-plus-outline" size={20} color={colors.iconSecondary} />
-            <AppText variant="body" color={colors.placeholder}>
-              {t("transactionForm.selectContact")}
-            </AppText>
-          </>
-        )}
+        <AppText variant="label" color={colors.textSecondary} style={styles.triggerLabel}>
+          {t("transactionForm.contact")}
+        </AppText>
+        <View style={styles.triggerValue}>
+          {selected ? (
+            <>
+              <AppIcon name="account" size={20} color={colors.primary} />
+              <AppText variant="body" style={styles.contactName} numberOfLines={1}>
+                {selected.name}
+              </AppText>
+              <AppIcon name="close-circle" size={20} color={colors.iconSecondary} />
+            </>
+          ) : (
+            <>
+              <AppIcon name="account-plus-outline" size={20} color={colors.iconSecondary} />
+              <AppText variant="body" color={colors.placeholder} numberOfLines={1}>
+                {t("transactionForm.selectContact")}
+              </AppText>
+            </>
+          )}
+        </View>
       </Pressable>
 
       {hasPermission === false && (
-        <AppText variant="caption" color={colors.warning}>
+        <AppText variant="caption" color={colors.warning} style={{ marginTop: spacing.xs }}>
           {t("contacts.permissionDenied")}
         </AppText>
       )}
@@ -183,6 +211,8 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
               ) : null
             }
             renderItem={({ item }) => renderContactRow(item)}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
             ListEmptyComponent={
               query.length >= 2 ? (
                 <AppText variant="bodySmall" color={colors.textTertiary} style={styles.emptyText}>
@@ -198,16 +228,20 @@ export function ContactPicker({ selected, onSelect }: ContactPickerProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.xs },
   trigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: 48,
+    paddingVertical: spacing.sm,
+  },
+  triggerLabel: {
+    marginBottom: 2,
+  },
+  triggerValue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 32,
   },
   contactName: { flex: 1 },
   modal: { flex: 1 },

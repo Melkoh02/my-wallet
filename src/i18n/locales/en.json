@@ -22,7 +22,8 @@
     "error": "Error",
     "working": "Working...",
     "noResults": "No results",
-    "select": "Select..."
+    "select": "Select...",
+    "selected": "{{count}} selected"
   },
   "home": {
     "title": "My Wallet",
@@ -249,7 +250,8 @@
   },
   "categoryPicker": {
     "title": "Select Categories",
-    "selectPlaceholder": "Select categories..."
+    "selectPlaceholder": "Select categories...",
+    "suggested": "Suggested:"
   },
   "analytics": {
     "title": "Analytics",
@@ -259,6 +261,27 @@
     "noData": "No data for this period",
     "net": "Net",
     "uncategorized": "Uncategorized"
+  },
+  "format": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "todayAt": "Today at {{time}}"
+  },
+  "tabs": {
+    "home": "Home",
+    "transactions": "Transactions",
+    "categories": "Categories",
+    "accounts": "Accounts"
+  },
+  "fab": {
+    "expense": "Expense",
+    "income": "Income",
+    "transfer": "Transfer"
+  },
+  "noAccountModal": {
+    "title": "Account Required",
+    "message": "You need to create an account before adding transactions.",
+    "addAccount": "Add Account"
   },
   "iconPicker": {
     "title": "Choose Icon",

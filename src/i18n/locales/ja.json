@@ -21,7 +21,9 @@
     "success": "\u6210\u529f",
     "error": "\u30a8\u30e9\u30fc",
     "working": "\u51e6\u7406\u4e2d...",
-    "noResults": "\u7d50\u679c\u306a\u3057"
+    "noResults": "結果なし",
+    "select": "選択...",
+    "selected": "{{count}}件選択中"
   },
   "home": {
     "title": "\u30de\u30a4\u30a6\u30a9\u30ec\u30c3\u30c8",
@@ -194,8 +196,9 @@
     "noTransactionsDesc": "\u3053\u306e\u9023\u7d61\u5148\u3068\u306e\u53d6\u5f15\u306f\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f"
   },
   "categoryPicker": {
-    "title": "\u30ab\u30c6\u30b4\u30ea\u30fc\u3092\u9078\u629e",
-    "selectPlaceholder": "\u30ab\u30c6\u30b4\u30ea\u30fc\u3092\u9078\u629e..."
+    "title": "カテゴリーを選択",
+    "selectPlaceholder": "カテゴリーを選択...",
+    "suggested": "おすすめ:"
   },
   "analytics": {
     "title": "分析",
@@ -204,6 +207,27 @@
     "dailySpending": "日別支出",
     "noData": "この期間のデータはありません",
     "net": "収支"
+  },
+  "format": {
+    "today": "今日",
+    "yesterday": "昨日",
+    "todayAt": "今日 {{time}}"
+  },
+  "tabs": {
+    "home": "ホーム",
+    "transactions": "取引",
+    "categories": "カテゴリー",
+    "accounts": "口座"
+  },
+  "fab": {
+    "expense": "支出",
+    "income": "収入",
+    "transfer": "振替"
+  },
+  "noAccountModal": {
+    "title": "口座が必要です",
+    "message": "取引を追加するには、まず口座を作成してください。",
+    "addAccount": "口座を追加"
   },
   "iconPicker": {
     "title": "\u30a2\u30a4\u30b3\u30f3\u3092\u9078\u629e",

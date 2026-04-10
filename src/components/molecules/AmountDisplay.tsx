@@ -2,6 +2,7 @@ import { type TextStyle } from "react-native";
 import { AppText } from "@/components/atoms/AppText";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
+import { useAccounts } from "@/hooks/useAccounts";
 import { formatCurrency } from "@/utils/format";
 import type { TypographyVariant } from "@/theme/typography";
 
@@ -15,13 +16,16 @@ type AmountDisplayProps = {
 
 export function AmountDisplay({
   amount,
-  currency = "USD",
+  currency,
   type = "neutral",
   variant = "body",
   style,
 }: AmountDisplayProps) {
   const { colors } = useTheme();
   const { hideAmounts, maskAmount } = usePrivacy();
+  const { totals } = useAccounts();
+
+  const displayCurrency = currency ?? totals.displayCurrency;
 
   const colorMap = {
     income: colors.income,
@@ -35,7 +39,7 @@ export function AmountDisplay({
 
   return (
     <AppText variant={variant} color={colorMap[type]} style={style}>
-      {hideAmounts ? "••••" : `${prefix}${formatCurrency(displayAmount, currency)}`}
+      {hideAmounts ? "••••" : `${prefix}${formatCurrency(displayAmount, displayCurrency)}`}
     </AppText>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ import { typography } from "@/theme/typography";
 import { PALETTE_COLORS } from "@/constants/colors";
 import { SUPPORTED_CURRENCIES } from "@/constants/currencies";
 import type { Account, NewAccount } from "@/db/schema";
+import { getSetting } from "@/db/queries/settings";
 import type { AccountType } from "@/types";
 
 const ACCOUNT_TYPE_DEFS: { value: AccountType; key: string; icon: string }[] = [
@@ -34,10 +35,18 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [institution, setInstitution] = useState(initial?.institution ?? "");
   const [type, setType] = useState<AccountType>((initial?.type as AccountType) ?? "debit");
-  const [balance, setBalance] = useState(initial?.balance?.toString() ?? "0");
+  const [balance, setBalance] = useState(initial?.balance?.toString() ?? "");
   const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() ?? "");
   const [color, setColor] = useState(initial?.color ?? PALETTE_COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
+
+  useEffect(() => {
+    if (!initial) {
+      getSetting("display_currency").then((v) => {
+        if (v) setCurrency(v);
+      });
+    }
+  }, [initial]);
 
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
@@ -163,8 +172,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
         value={balance}
         onChangeText={setBalance}
         keyboardType="decimal-pad"
-        selectTextOnFocus
-        placeholder="0.00"
+        placeholder="0"
       />
 
       {type === "credit" && (

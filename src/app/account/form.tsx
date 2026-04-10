@@ -1,9 +1,9 @@
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ModalLayout } from "@/components/templates/ModalLayout";
 import { AccountForm } from "@/components/organisms/AccountForm";
+import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import {
   createAccount,
@@ -21,6 +21,7 @@ export default function AccountFormScreen() {
   const { invalidate } = useDataRefresh();
   const [initial, setInitial] = useState<Account | undefined>();
   const [loaded, setLoaded] = useState(!params.id);
+  const [confirmMode, setConfirmMode] = useState<"archive" | "delete" | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -42,34 +43,20 @@ export default function AccountFormScreen() {
   };
 
   const handleDelete = (mode: "archive" | "delete") => {
-    if (!initial) return;
+    setConfirmMode(mode);
+  };
 
-    if (mode === "archive") {
-      Alert.alert(t("accounts.archiveAccount"), t("accounts.archiveMessage"), [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("accounts.archiveAccount"),
-          onPress: async () => {
-            await archiveAccount(initial.id);
-            invalidate("accounts", "transactions");
-            router.back();
-          },
-        },
-      ]);
+  const handleConfirm = async () => {
+    if (!initial || !confirmMode) return;
+    if (confirmMode === "archive") {
+      await archiveAccount(initial.id);
     } else {
-      Alert.alert(t("accounts.deleteAccount"), t("accounts.deleteMessage"), [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("common.delete"),
-          style: "destructive",
-          onPress: async () => {
-            await deleteAccountPermanently(initial.id);
-            invalidate("accounts", "transactions");
-            router.back();
-          },
-        },
-      ]);
+      await deleteAccountPermanently(initial.id);
     }
+    invalidate("accounts", "transactions");
+    setConfirmMode(null);
+    router.dismissAll();
+    router.replace("/(tabs)/accounts");
   };
 
   if (!loaded) return null;
@@ -83,6 +70,21 @@ export default function AccountFormScreen() {
         initial={initial}
         onSubmit={handleSubmit}
         onDelete={initial ? handleDelete : undefined}
+      />
+
+      <ConfirmModal
+        visible={confirmMode !== null}
+        title={
+          confirmMode === "archive" ? t("accounts.archiveAccount") : t("accounts.deleteAccount")
+        }
+        message={
+          confirmMode === "archive" ? t("accounts.archiveMessage") : t("accounts.deleteMessage")
+        }
+        confirmLabel={confirmMode === "archive" ? t("accounts.archiveAccount") : t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmMode(null)}
       />
     </ModalLayout>
   );

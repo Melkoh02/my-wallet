@@ -21,7 +21,9 @@
     "success": "Sucesso",
     "error": "Erro",
     "working": "Processando...",
-    "noResults": "Sem resultados"
+    "noResults": "Sem resultados",
+    "select": "Selecionar...",
+    "selected": "{{count}} selecionados"
   },
   "home": {
     "title": "Minha Carteira",
@@ -195,7 +197,8 @@
   },
   "categoryPicker": {
     "title": "Selecionar Categorias",
-    "selectPlaceholder": "Selecionar categorias..."
+    "selectPlaceholder": "Selecionar categorias...",
+    "suggested": "Sugeridas:"
   },
   "analytics": {
     "title": "Estatísticas",
@@ -204,6 +207,27 @@
     "dailySpending": "Gastos Diários",
     "noData": "Sem dados para este período",
     "net": "Líquido"
+  },
+  "format": {
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "todayAt": "Hoje às {{time}}"
+  },
+  "tabs": {
+    "home": "Início",
+    "transactions": "Transações",
+    "categories": "Categorias",
+    "accounts": "Contas"
+  },
+  "fab": {
+    "expense": "Despesa",
+    "income": "Receita",
+    "transfer": "Transferência"
+  },
+  "noAccountModal": {
+    "title": "Conta Necessária",
+    "message": "Você precisa criar uma conta antes de adicionar transações.",
+    "addAccount": "Adicionar Conta"
   },
   "iconPicker": {
     "title": "Escolher \u00cdcone",

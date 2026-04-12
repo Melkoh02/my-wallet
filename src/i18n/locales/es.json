@@ -294,7 +294,8 @@
   "categoryPicker": {
     "title": "Seleccionar Categorías",
     "selectPlaceholder": "Seleccionar categorías...",
-    "suggested": "Sugeridas:"
+    "suggested": "Sugeridas:",
+    "addCategory": "Agregar"
   },
   "analytics": {
     "title": "Estadísticas",

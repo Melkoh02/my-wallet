@@ -294,7 +294,8 @@
   "categoryPicker": {
     "title": "カテゴリーを選択",
     "selectPlaceholder": "カテゴリーを選択...",
-    "suggested": "おすすめ:"
+    "suggested": "おすすめ:",
+    "addCategory": "追加"
   },
   "analytics": {
     "title": "分析",

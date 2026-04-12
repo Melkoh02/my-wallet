@@ -9,7 +9,7 @@ import { DatePicker } from "@/components/molecules/DatePicker";
 import { TimePicker } from "@/components/molecules/TimePicker";
 import { SelectInput } from "@/components/molecules/SelectInput";
 import { PickerModal } from "@/components/molecules/PickerModal";
-import { CategoryPicker } from "@/components/organisms/CategoryPicker";
+import { CategoryChipPicker } from "@/components/organisms/CategoryChipPicker";
 import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
@@ -401,7 +401,7 @@ export function TransactionForm({
       )}
 
       {type !== "transfer" && (
-        <CategoryPicker
+        <CategoryChipPicker
           categories={categories}
           selected={subcategoryIds}
           onSelectionChange={setSubcategoryIds}

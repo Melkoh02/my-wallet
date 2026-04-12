@@ -28,10 +28,12 @@ const FREQ_KEYS: Record<string, string> = {
 
 function RecurringRow({
   item,
+  onPress,
   onToggle,
   onDelete,
 }: {
   item: RecurringTransaction;
+  onPress: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
@@ -40,7 +42,7 @@ function RecurringRow({
   const typeColor = item.type === "income" ? colors.income : colors.expense;
 
   return (
-    <View style={[styles.row, { opacity: item.isActive ? 1 : 0.5 }]}>
+    <Pressable onPress={onPress} style={[styles.row, { opacity: item.isActive ? 1 : 0.5 }]}>
       <View style={[styles.iconWrap, { backgroundColor: typeColor + "18" }]}>
         <AppIcon
           name={item.type === "income" ? "arrow-down" : "arrow-up"}
@@ -73,7 +75,7 @@ function RecurringRow({
           <AppIcon name="delete-outline" size={22} color={colors.danger} />
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -99,7 +101,7 @@ export default function RecurringScreen() {
   return (
     <ScreenLayout edges={["top"]}>
       <HeaderBar
-        title="Recurring"
+        title={t("recurring.title")}
         onBack={() => router.back()}
         rightIcon="plus"
         onRightPress={() => router.push("/recurring/form")}
@@ -110,6 +112,7 @@ export default function RecurringScreen() {
         renderItem={({ item }) => (
           <RecurringRow
             item={item}
+            onPress={() => router.push(`/recurring/${item.id}` as never)}
             onToggle={() => handleToggle(item.id)}
             onDelete={() => setDeleteTarget({ id: item.id, name: item.description })}
           />
@@ -119,8 +122,8 @@ export default function RecurringScreen() {
           loading ? null : (
             <EmptyState
               icon="refresh"
-              title="No recurring items"
-              description="Set up salary, subscriptions, and other regular transactions"
+              title={t("recurring.noItems")}
+              description={t("recurring.noItemsDesc")}
             />
           )
         }

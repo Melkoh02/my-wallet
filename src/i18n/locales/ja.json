@@ -180,7 +180,24 @@
     "biweekly": "隔週",
     "monthly": "毎月",
     "yearly": "毎年",
-    "descriptionPlaceholder": "例: Netflix、給与"
+    "descriptionPlaceholder": "例: Netflix、給与",
+    "dayOfMonth": "日にち",
+    "dayOfWeek": "曜日",
+    "timeOfDay": "時間",
+    "monday": "月曜日",
+    "tuesday": "火曜日",
+    "wednesday": "水曜日",
+    "thursday": "木曜日",
+    "friday": "金曜日",
+    "saturday": "土曜日",
+    "sunday": "日曜日",
+    "status": "ステータス",
+    "active": "有効",
+    "paused": "一時停止",
+    "triggerNow": "今すぐ実行",
+    "triggerConfirm": "今日の取引を作成しますか？",
+    "generatedTransactions": "生成された取引",
+    "noGeneratedTransactions": "まだ取引は生成されていません"
   },
   "settings": {
     "title": "設定",
@@ -218,7 +235,9 @@
     "cashbackPending": "保留中",
     "cashbackAccount": "キャッシュバック口座",
     "templates": "テンプレート",
-    "templatesDesc": "よく使う取引のショートカット"
+    "templatesDesc": "よく使う取引のショートカット",
+    "changelog": "変更履歴",
+    "changelogDesc": "各バージョンの変更点を確認"
   },
   "templates": {
     "title": "テンプレート",
@@ -294,7 +313,8 @@
   "categoryPicker": {
     "title": "カテゴリーを選択",
     "selectPlaceholder": "カテゴリーを選択...",
-    "suggested": "おすすめ:"
+    "suggested": "おすすめ:",
+    "addCategory": "追加"
   },
   "analytics": {
     "title": "分析",

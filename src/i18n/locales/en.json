@@ -180,7 +180,24 @@
     "biweekly": "Biweekly",
     "monthly": "Monthly",
     "yearly": "Yearly",
-    "descriptionPlaceholder": "e.g. Netflix, Salary"
+    "descriptionPlaceholder": "e.g. Netflix, Salary",
+    "dayOfMonth": "Day of month",
+    "dayOfWeek": "Day of week",
+    "timeOfDay": "Time",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday",
+    "status": "Status",
+    "active": "Active",
+    "paused": "Paused",
+    "triggerNow": "Trigger Now",
+    "triggerConfirm": "Create a transaction for today?",
+    "generatedTransactions": "Generated Transactions",
+    "noGeneratedTransactions": "No transactions generated yet"
   },
   "settings": {
     "title": "Settings",
@@ -218,7 +235,9 @@
     "cashbackPending": "Pending",
     "cashbackAccount": "Cashback account",
     "templates": "Templates",
-    "templatesDesc": "Quick-fill transaction shortcuts"
+    "templatesDesc": "Quick-fill transaction shortcuts",
+    "changelog": "Changelog",
+    "changelogDesc": "See what's new in each version"
   },
   "templates": {
     "title": "Templates",
@@ -294,7 +313,8 @@
   "categoryPicker": {
     "title": "Select Categories",
     "selectPlaceholder": "Select categories...",
-    "suggested": "Suggested:"
+    "suggested": "Suggested:",
+    "addCategory": "Add"
   },
   "analytics": {
     "title": "Analytics",

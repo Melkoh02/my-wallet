@@ -180,7 +180,24 @@
     "biweekly": "Quincenal",
     "monthly": "Mensual",
     "yearly": "Anual",
-    "descriptionPlaceholder": "ej. Netflix, Salario"
+    "descriptionPlaceholder": "ej. Netflix, Salario",
+    "dayOfMonth": "Día del mes",
+    "dayOfWeek": "Día de la semana",
+    "timeOfDay": "Hora",
+    "monday": "Lunes",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles",
+    "thursday": "Jueves",
+    "friday": "Viernes",
+    "saturday": "Sábado",
+    "sunday": "Domingo",
+    "status": "Estado",
+    "active": "Activo",
+    "paused": "Pausado",
+    "triggerNow": "Ejecutar Ahora",
+    "triggerConfirm": "¿Crear una transacción para hoy?",
+    "generatedTransactions": "Transacciones Generadas",
+    "noGeneratedTransactions": "Aún no se han generado transacciones"
   },
   "settings": {
     "title": "Ajustes",
@@ -218,7 +235,9 @@
     "cashbackPending": "Pendiente",
     "cashbackAccount": "Cuenta de cashback",
     "templates": "Plantillas",
-    "templatesDesc": "Atajos para transacciones frecuentes"
+    "templatesDesc": "Atajos para transacciones frecuentes",
+    "changelog": "Historial de cambios",
+    "changelogDesc": "Ver las novedades de cada versión"
   },
   "templates": {
     "title": "Plantillas",
@@ -294,7 +313,8 @@
   "categoryPicker": {
     "title": "Seleccionar Categorías",
     "selectPlaceholder": "Seleccionar categorías...",
-    "suggested": "Sugeridas:"
+    "suggested": "Sugeridas:",
+    "addCategory": "Agregar"
   },
   "analytics": {
     "title": "Estadísticas",

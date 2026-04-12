@@ -12,7 +12,12 @@ import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
-import { getCategoryById, createSubcategory, deleteSubcategory } from "@/db/queries/categories";
+import {
+  getCategoryById,
+  createSubcategory,
+  updateSubcategory,
+  deleteSubcategory,
+} from "@/db/queries/categories";
 import { spacing } from "@/theme/spacing";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 
@@ -25,6 +30,8 @@ export default function CategoryDetailScreen() {
   const [category, setCategory] = useState<CategoryWithSubs | null>(null);
   const [newSubName, setNewSubName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [editingSubId, setEditingSubId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -38,6 +45,16 @@ export default function CategoryDetailScreen() {
     if (!newSubName.trim()) return;
     await createSubcategory(category.id, newSubName.trim());
     setNewSubName("");
+    invalidate("categories");
+  };
+
+  const handleRename = async () => {
+    // Guard against double-fire from onSubmitEditing + onBlur race
+    if (!editingSubId) return;
+    const subId = editingSubId;
+    setEditingSubId(null);
+    if (!editName.trim()) return;
+    await updateSubcategory(subId, editName.trim());
     invalidate("categories");
   };
 
@@ -77,9 +94,30 @@ export default function CategoryDetailScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={[styles.subRow, { borderBottomColor: colors.borderLight }]}>
-            <AppText variant="body" style={styles.subName}>
-              {item.name}
-            </AppText>
+            {editingSubId === item.id ? (
+              <AppInput
+                value={editName}
+                onChangeText={setEditName}
+                onSubmitEditing={handleRename}
+                onBlur={handleRename}
+                autoFocus
+                containerStyle={styles.subName}
+              />
+            ) : (
+              <Pressable
+                style={styles.subName}
+                onPress={
+                  item.isGeneral
+                    ? undefined
+                    : () => {
+                        setEditingSubId(item.id);
+                        setEditName(item.name);
+                      }
+                }
+              >
+                <AppText variant="body">{item.name}</AppText>
+              </Pressable>
+            )}
             {item.isGeneral ? (
               <AppText variant="caption" color={colors.textTertiary}>
                 {t("common.default")}

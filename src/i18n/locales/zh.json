@@ -180,7 +180,24 @@
     "biweekly": "每两周",
     "monthly": "每月",
     "yearly": "每年",
-    "descriptionPlaceholder": "例如：Netflix、工资"
+    "descriptionPlaceholder": "例如：Netflix、工资",
+    "dayOfMonth": "每月几号",
+    "dayOfWeek": "星期几",
+    "timeOfDay": "时间",
+    "monday": "星期一",
+    "tuesday": "星期二",
+    "wednesday": "星期三",
+    "thursday": "星期四",
+    "friday": "星期五",
+    "saturday": "星期六",
+    "sunday": "星期日",
+    "status": "状态",
+    "active": "活跃",
+    "paused": "已暂停",
+    "triggerNow": "立即执行",
+    "triggerConfirm": "为今天创建一笔交易？",
+    "generatedTransactions": "已生成的交易",
+    "noGeneratedTransactions": "尚未生成交易"
   },
   "settings": {
     "title": "设置",
@@ -218,7 +235,9 @@
     "cashbackPending": "待处理",
     "cashbackAccount": "返现账户",
     "templates": "模板",
-    "templatesDesc": "常用交易的快捷方式"
+    "templatesDesc": "常用交易的快捷方式",
+    "changelog": "更新日志",
+    "changelogDesc": "查看每个版本的更新内容"
   },
   "templates": {
     "title": "模板",
@@ -294,7 +313,8 @@
   "categoryPicker": {
     "title": "选择分类",
     "selectPlaceholder": "选择分类...",
-    "suggested": "推荐:"
+    "suggested": "推荐:",
+    "addCategory": "添加"
   },
   "analytics": {
     "title": "统计分析",

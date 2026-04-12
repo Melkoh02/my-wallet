@@ -1,4 +1,4 @@
-import { eq, and, lte } from "drizzle-orm";
+import { eq, and, lte, desc } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   recurringTransactions,
@@ -9,7 +9,7 @@ import {
   type NewRecurringTransaction,
 } from "@/db/schema";
 import { updateAccountBalance } from "./accounts";
-import { getNextDate, daysBetween } from "@/utils/date";
+import { getNextDate, daysBetween, frequencyToDays } from "@/utils/date";
 import { todayDateString, nowTimeString } from "@/utils/format";
 
 const MAX_CATCHUP_DAYS = 90;
@@ -116,7 +116,7 @@ export async function processDueRecurring(): Promise<number> {
           description: item.description,
           accountId: item.accountId,
           date: currentDate,
-          time,
+          time: item.timeOfDay ?? time,
           contactId: item.contactId,
           contactName: item.contactName,
           cashbackAmount: item.cashbackAmount,
@@ -145,7 +145,10 @@ export async function processDueRecurring(): Promise<number> {
       );
 
       processed++;
-      currentDate = getNextDate(currentDate, item.frequency);
+      currentDate = getNextDate(currentDate, item.frequency, {
+        dayOfMonth: item.dayOfMonth,
+        dayOfWeek: item.dayOfWeek,
+      });
 
       // If we already caught up past the max, stop
       if (gap > MAX_CATCHUP_DAYS) break;
@@ -154,7 +157,10 @@ export async function processDueRecurring(): Promise<number> {
     // Advance next_date past today
     let nextDate = currentDate;
     if (gap > MAX_CATCHUP_DAYS) {
-      nextDate = getNextDate(today, item.frequency);
+      nextDate = getNextDate(today, item.frequency, {
+        dayOfMonth: item.dayOfMonth,
+        dayOfWeek: item.dayOfWeek,
+      });
     }
 
     // Check if end date reached
@@ -172,4 +178,108 @@ export async function processDueRecurring(): Promise<number> {
   }
 
   return processed;
+}
+
+/**
+ * Trigger a recurring transaction immediately (e.g. salary came early).
+ * Creates one transaction for today and advances nextDate.
+ */
+export async function triggerRecurringNow(id: number): Promise<void> {
+  const item = await getRecurringById(id);
+  if (!item || !item.isActive) return;
+
+  const today = todayDateString();
+  const time = item.timeOfDay ?? nowTimeString();
+
+  const [txn] = await db
+    .insert(transactions)
+    .values({
+      type: item.type,
+      amount: item.amount,
+      description: item.description,
+      accountId: item.accountId,
+      date: today,
+      time,
+      contactId: item.contactId,
+      contactName: item.contactName,
+      cashbackAmount: item.cashbackAmount,
+      cashbackAccountId: item.cashbackAccountId,
+      recurringId: item.id,
+    })
+    .returning();
+
+  const subIds = await getRecurringSubcategoryIds(item.id);
+  if (subIds.length > 0) {
+    await db.insert(transactionSubcategories).values(
+      subIds.map((subId) => ({
+        transactionId: txn.id,
+        subcategoryId: subId,
+      })),
+    );
+  }
+
+  await updateAccountBalance(item.accountId, item.amount, item.type as "income" | "expense", true);
+
+  const nextDate = getNextDate(today, item.frequency, {
+    dayOfMonth: item.dayOfMonth,
+    dayOfWeek: item.dayOfWeek,
+  });
+
+  if (item.endDate && nextDate > item.endDate) {
+    await db
+      .update(recurringTransactions)
+      .set({ isActive: false, nextDate })
+      .where(eq(recurringTransactions.id, item.id));
+  } else {
+    await db
+      .update(recurringTransactions)
+      .set({ nextDate })
+      .where(eq(recurringTransactions.id, item.id));
+  }
+}
+
+/**
+ * Smart upcoming filter for home screen.
+ * Shows recurring where:
+ * - nextDate is within 30 days
+ * - Last generated transaction was more than half-period ago (or never)
+ */
+export async function getSmartUpcoming(limit = 3): Promise<RecurringTransaction[]> {
+  const today = todayDateString();
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  const thirtyDaysOut = d.toISOString().slice(0, 10);
+
+  const candidates = await db
+    .select()
+    .from(recurringTransactions)
+    .where(
+      and(
+        eq(recurringTransactions.isActive, true),
+        lte(recurringTransactions.nextDate, thirtyDaysOut),
+      ),
+    )
+    .orderBy(recurringTransactions.nextDate);
+
+  const results: RecurringTransaction[] = [];
+  for (const item of candidates) {
+    if (results.length >= limit) break;
+
+    const [lastTxn] = await db
+      .select({ date: transactions.date })
+      .from(transactions)
+      .where(eq(transactions.recurringId, item.id))
+      .orderBy(desc(transactions.date))
+      .limit(1);
+
+    if (lastTxn) {
+      const daysSinceLast = daysBetween(lastTxn.date, today);
+      const halfPeriod = frequencyToDays(item.frequency) / 2;
+      if (daysSinceLast < halfPeriod) continue;
+    }
+
+    results.push(item);
+  }
+
+  return results;
 }

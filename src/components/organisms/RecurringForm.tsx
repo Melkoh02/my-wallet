@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { View, ScrollView, Pressable, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
-import { Chip } from "@/components/atoms/Chip";
+import { AppIcon } from "@/components/atoms/AppIcon";
 import { DatePicker } from "@/components/molecules/DatePicker";
-import { CategoryPicker } from "@/components/organisms/CategoryPicker";
+import { TimePicker } from "@/components/molecules/TimePicker";
+import { SelectInput } from "@/components/molecules/SelectInput";
+import { PickerModal } from "@/components/molecules/PickerModal";
+import { CategoryChipPicker } from "@/components/organisms/CategoryChipPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import { todayDateString } from "@/utils/format";
@@ -13,32 +17,59 @@ import type { Account, NewRecurringTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 import type { Frequency } from "@/types";
 
-const FREQUENCIES: { value: Frequency; label: string }[] = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "biweekly", label: "Biweekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
+const FREQUENCIES: { value: Frequency }[] = [
+  { value: "daily" },
+  { value: "weekly" },
+  { value: "biweekly" },
+  { value: "monthly" },
+  { value: "yearly" },
+];
+
+const DAYS_OF_WEEK = [
+  { value: 1, key: "recurring.monday" },
+  { value: 2, key: "recurring.tuesday" },
+  { value: 3, key: "recurring.wednesday" },
+  { value: 4, key: "recurring.thursday" },
+  { value: 5, key: "recurring.friday" },
+  { value: 6, key: "recurring.saturday" },
+  { value: 0, key: "recurring.sunday" },
 ];
 
 type RecurringFormProps = {
   accounts: Account[];
   categories: CategoryWithSubs[];
   onSubmit: (data: NewRecurringTransaction, subcategoryIds: number[]) => void;
+  initial?: NewRecurringTransaction & { subcategoryIds?: number[] };
 };
 
-export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormProps) {
+export function RecurringForm({ accounts, categories, onSubmit, initial }: RecurringFormProps) {
   const { colors } = useTheme();
-  const [type, setType] = useState<"income" | "expense">("expense");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [accountId, setAccountId] = useState<number | null>(accounts[0]?.id ?? null);
-  const [frequency, setFrequency] = useState<Frequency>("monthly");
-  const [nextDate, setNextDate] = useState(todayDateString());
-  const [endDate, setEndDate] = useState("");
-  const [subcategoryIds, setSubcategoryIds] = useState<number[]>([]);
+  const { t } = useTranslation();
 
-  const filteredCategories = categories;
+  const [type, setType] = useState<"income" | "expense">(
+    (initial?.type as "income" | "expense") ?? "expense",
+  );
+  const [amount, setAmount] = useState(initial?.amount?.toString() ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [accountId, setAccountId] = useState<number | null>(
+    initial?.accountId ?? accounts[0]?.id ?? null,
+  );
+  const [frequency, setFrequency] = useState<Frequency>(
+    (initial?.frequency as Frequency) ?? "monthly",
+  );
+  const [nextDate, setNextDate] = useState(initial?.nextDate ?? todayDateString());
+  const [endDate, setEndDate] = useState(initial?.endDate ?? "");
+  const [subcategoryIds, setSubcategoryIds] = useState<number[]>(initial?.subcategoryIds ?? []);
+  const [dayOfMonth, setDayOfMonth] = useState<number | null>(initial?.dayOfMonth ?? null);
+  const [dayOfWeek, setDayOfWeek] = useState<number | null>(initial?.dayOfWeek ?? null);
+  const [timeOfDay, setTimeOfDay] = useState(initial?.timeOfDay ?? "");
+
+  const [showFreqPicker, setShowFreqPicker] = useState(false);
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [showDayOfMonthPicker, setShowDayOfMonthPicker] = useState(false);
+  const [showDayOfWeekPicker, setShowDayOfWeekPicker] = useState(false);
+
+  const selectedAccount = accounts.find((a) => a.id === accountId);
 
   const handleSubmit = () => {
     const parsed = parseFloat(amount);
@@ -52,6 +83,9 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
         frequency,
         nextDate,
         endDate: endDate || null,
+        dayOfMonth: frequency === "monthly" || frequency === "yearly" ? dayOfMonth : null,
+        dayOfWeek: frequency === "weekly" || frequency === "biweekly" ? dayOfWeek : null,
+        timeOfDay: frequency === "daily" && timeOfDay ? timeOfDay : null,
       },
       subcategoryIds,
     );
@@ -65,14 +99,15 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Type selector */}
       <View style={styles.typeRow}>
-        {(["expense", "income"] as const).map((t) => {
-          const isActive = type === t;
-          const tColor = t === "income" ? colors.income : colors.expense;
+        {(["expense", "income"] as const).map((tp) => {
+          const isActive = type === tp;
+          const tColor = tp === "income" ? colors.income : colors.expense;
           return (
             <Pressable
-              key={t}
-              onPress={() => setType(t)}
+              key={tp}
+              onPress={() => setType(tp)}
               style={[
                 styles.typeBtn,
                 {
@@ -82,7 +117,7 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
               ]}
             >
               <AppText variant="label" color={isActive ? tColor : colors.textSecondary}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {t(`transactionForm.${tp}`)}
               </AppText>
             </Pressable>
           );
@@ -90,76 +125,241 @@ export function RecurringForm({ accounts, categories, onSubmit }: RecurringFormP
       </View>
 
       <AppInput
-        label="Description"
+        label={t("transactionForm.description")}
         value={description}
         onChangeText={setDescription}
-        placeholder="e.g. Netflix, Salary"
+        placeholder={t("recurring.descriptionPlaceholder")}
       />
       <AppInput
-        label="Amount"
+        label={t("transactionForm.amount")}
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
         placeholder="0.00"
       />
 
-      <View style={styles.section}>
-        <AppText variant="label" color={colors.textSecondary}>
-          Frequency
-        </AppText>
-        <View style={styles.chipRow}>
-          {FREQUENCIES.map((f) => (
-            <Chip
-              key={f.value}
-              label={f.label}
-              selected={frequency === f.value}
-              onPress={() => setFrequency(f.value)}
-            />
-          ))}
-        </View>
-      </View>
+      {/* Frequency — SelectInput + PickerModal */}
+      <SelectInput
+        label={t("recurring.frequency")}
+        value={t(`recurring.${frequency}`)}
+        onPress={() => setShowFreqPicker(true)}
+      />
 
-      <View style={styles.section}>
-        <AppText variant="label" color={colors.textSecondary}>
-          Account
-        </AppText>
-        <View style={styles.chipRow}>
-          {accounts.map((acc) => (
-            <Chip
-              key={acc.id}
-              label={acc.name}
-              selected={accountId === acc.id}
-              onPress={() => setAccountId(acc.id)}
-            />
-          ))}
-        </View>
-      </View>
+      {/* Day of month — monthly/yearly */}
+      {(frequency === "monthly" || frequency === "yearly") && (
+        <SelectInput
+          label={t("recurring.dayOfMonth")}
+          value={dayOfMonth ? dayOfMonth.toString() : undefined}
+          placeholder={t("transactions.notSet")}
+          onPress={() => setShowDayOfMonthPicker(true)}
+        />
+      )}
 
-      <CategoryPicker
-        categories={filteredCategories}
+      {/* Day of week — weekly/biweekly */}
+      {(frequency === "weekly" || frequency === "biweekly") && (
+        <SelectInput
+          label={t("recurring.dayOfWeek")}
+          value={
+            dayOfWeek != null
+              ? t(DAYS_OF_WEEK.find((d) => d.value === dayOfWeek)?.key ?? "")
+              : undefined
+          }
+          placeholder={t("transactions.notSet")}
+          onPress={() => setShowDayOfWeekPicker(true)}
+        />
+      )}
+
+      {/* Time of day — daily */}
+      {frequency === "daily" && (
+        <View style={styles.halfInput}>
+          {timeOfDay ? (
+            <TimePicker
+              label={t("recurring.timeOfDay")}
+              value={timeOfDay}
+              onChange={setTimeOfDay}
+            />
+          ) : (
+            <View style={{ gap: spacing.xs }}>
+              <AppText variant="label" color={colors.textSecondary}>
+                {t("recurring.timeOfDay")} ({t("common.optional")})
+              </AppText>
+              <Pressable
+                onPress={() => setTimeOfDay("09:00")}
+                style={[
+                  styles.emptyPicker,
+                  { borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
+              >
+                <AppText variant="body" color={colors.placeholder}>
+                  {t("transactions.notSet")}
+                </AppText>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Account — SelectInput + PickerModal */}
+      <SelectInput
+        label={t("transactionForm.account")}
+        value={
+          selectedAccount ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <AppIcon name={selectedAccount.icon} size={18} color={selectedAccount.color} />
+              <AppText variant="body">{selectedAccount.name}</AppText>
+            </View>
+          ) : undefined
+        }
+        placeholder={t("common.select")}
+        onPress={() => setShowAccountPicker(true)}
+      />
+
+      <CategoryChipPicker
+        categories={categories}
         selected={subcategoryIds}
         onSelectionChange={setSubcategoryIds}
       />
 
+      {/* Dates */}
       <View style={styles.row}>
         <View style={styles.halfInput}>
-          <DatePicker label="Start Date" value={nextDate} onChange={setNextDate} />
+          <DatePicker label={t("recurring.startDate")} value={nextDate} onChange={setNextDate} />
         </View>
         <View style={styles.halfInput}>
           {endDate ? (
-            <DatePicker label="End Date" value={endDate} onChange={setEndDate} />
+            <View style={{ gap: spacing.xs }}>
+              <DatePicker label={t("recurring.endDate")} value={endDate} onChange={setEndDate} />
+              <Pressable onPress={() => setEndDate("")}>
+                <AppText variant="caption" color={colors.danger}>
+                  {t("common.remove")}
+                </AppText>
+              </Pressable>
+            </View>
           ) : (
-            <AppInput
-              label="End Date (optional)"
-              value=""
-              onFocus={() => setEndDate(nextDate)}
-              placeholder="No end date"
-            />
+            <View style={{ gap: spacing.xs }}>
+              <AppText variant="label" color={colors.textSecondary}>
+                {t("recurring.endDate")} ({t("common.optional")})
+              </AppText>
+              <Pressable
+                onPress={() => setEndDate(nextDate)}
+                style={[
+                  styles.emptyPicker,
+                  { borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
+              >
+                <AppText variant="body" color={colors.placeholder}>
+                  {t("recurring.endDateOptional")}
+                </AppText>
+              </Pressable>
+            </View>
           )}
         </View>
       </View>
 
-      <AppButton title="Create Recurring" onPress={handleSubmit} disabled={!isValid} />
+      <AppButton
+        title={initial ? t("accounts.saveChanges") : t("recurring.createRecurring")}
+        onPress={handleSubmit}
+        disabled={!isValid}
+      />
+
+      {/* Picker modals */}
+      <PickerModal
+        visible={showFreqPicker}
+        title={t("recurring.frequency")}
+        items={FREQUENCIES}
+        keyExtractor={(item) => item.value}
+        selectedKey={frequency}
+        onSelect={(item) => setFrequency(item.value)}
+        onClose={() => setShowFreqPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <AppText
+              variant="body"
+              color={isSelected ? colors.primary : colors.text}
+              style={{ flex: 1 }}
+            >
+              {t(`recurring.${item.value}`)}
+            </AppText>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
+      />
+      <PickerModal
+        visible={showAccountPicker}
+        title={t("transactionForm.account")}
+        items={accounts}
+        keyExtractor={(item) => item.id.toString()}
+        selectedKey={accountId?.toString()}
+        onSelect={(item) => setAccountId(item.id)}
+        onClose={() => setShowAccountPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: item.color + "20",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppIcon name={item.icon} size={20} color={item.color} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="body">{item.name}</AppText>
+              {item.institution ? (
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {item.institution}
+                </AppText>
+              ) : null}
+            </View>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
+      />
+      <PickerModal
+        visible={showDayOfMonthPicker}
+        title={t("recurring.dayOfMonth")}
+        items={Array.from({ length: 31 }, (_, i) => ({ value: i + 1 }))}
+        keyExtractor={(item) => item.value.toString()}
+        selectedKey={dayOfMonth?.toString()}
+        onSelect={(item) => setDayOfMonth(item.value)}
+        onClose={() => setShowDayOfMonthPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <AppText
+              variant="body"
+              color={isSelected ? colors.primary : colors.text}
+              style={{ flex: 1 }}
+            >
+              {item.value}
+            </AppText>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
+      />
+      <PickerModal
+        visible={showDayOfWeekPicker}
+        title={t("recurring.dayOfWeek")}
+        items={DAYS_OF_WEEK}
+        keyExtractor={(item) => item.value.toString()}
+        selectedKey={dayOfWeek?.toString()}
+        onSelect={(item) => setDayOfWeek(item.value)}
+        onClose={() => setShowDayOfWeekPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <AppText
+              variant="body"
+              color={isSelected ? colors.primary : colors.text}
+              style={{ flex: 1 }}
+            >
+              {t(item.key)}
+            </AppText>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
+      />
     </ScrollView>
   );
 }
@@ -175,8 +375,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1.5,
   },
-  section: { gap: spacing.sm },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   row: { flexDirection: "row", gap: spacing.md },
   halfInput: { flex: 1 },
+  emptyPicker: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+    justifyContent: "center",
+  },
 });

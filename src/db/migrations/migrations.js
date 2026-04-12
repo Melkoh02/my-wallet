@@ -25,6 +25,13 @@ export default {
         tag: "0002_templates",
         breakpoints: true,
       },
+      {
+        idx: 3,
+        version: "6",
+        when: 1776128400000,
+        tag: "0003_recurring_schedule",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -208,5 +215,10 @@ CREATE TABLE \`template_subcategories\` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX \`idx_tpl_sub_unique\` ON \`template_subcategories\` (\`template_id\`,\`subcategory_id\`);`,
+    m0003: `ALTER TABLE \`recurring_transactions\` ADD COLUMN \`day_of_month\` integer;
+--> statement-breakpoint
+ALTER TABLE \`recurring_transactions\` ADD COLUMN \`day_of_week\` integer;
+--> statement-breakpoint
+ALTER TABLE \`recurring_transactions\` ADD COLUMN \`time_of_day\` text;`,
   },
 };

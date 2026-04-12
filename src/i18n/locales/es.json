@@ -180,7 +180,17 @@
     "biweekly": "Quincenal",
     "monthly": "Mensual",
     "yearly": "Anual",
-    "descriptionPlaceholder": "ej. Netflix, Salario"
+    "descriptionPlaceholder": "ej. Netflix, Salario",
+    "dayOfMonth": "Día del mes",
+    "dayOfWeek": "Día de la semana",
+    "timeOfDay": "Hora",
+    "monday": "Lunes",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles",
+    "thursday": "Jueves",
+    "friday": "Viernes",
+    "saturday": "Sábado",
+    "sunday": "Domingo"
   },
   "settings": {
     "title": "Ajustes",

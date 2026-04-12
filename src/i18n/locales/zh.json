@@ -180,7 +180,17 @@
     "biweekly": "每两周",
     "monthly": "每月",
     "yearly": "每年",
-    "descriptionPlaceholder": "例如：Netflix、工资"
+    "descriptionPlaceholder": "例如：Netflix、工资",
+    "dayOfMonth": "每月几号",
+    "dayOfWeek": "星期几",
+    "timeOfDay": "时间",
+    "monday": "星期一",
+    "tuesday": "星期二",
+    "wednesday": "星期三",
+    "thursday": "星期四",
+    "friday": "星期五",
+    "saturday": "星期六",
+    "sunday": "星期日"
   },
   "settings": {
     "title": "设置",

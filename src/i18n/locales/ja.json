@@ -235,7 +235,9 @@
     "cashbackPending": "保留中",
     "cashbackAccount": "キャッシュバック口座",
     "templates": "テンプレート",
-    "templatesDesc": "よく使う取引のショートカット"
+    "templatesDesc": "よく使う取引のショートカット",
+    "changelog": "変更履歴",
+    "changelogDesc": "各バージョンの変更点を確認"
   },
   "templates": {
     "title": "テンプレート",

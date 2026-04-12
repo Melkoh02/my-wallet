@@ -439,6 +439,14 @@ export default function SettingsScreen() {
       />
       <Divider />
 
+      <SettingsRow
+        icon="text-box-outline"
+        title={t("settings.changelog")}
+        subtitle={t("settings.changelogDesc")}
+        onPress={() => router.push("/settings/changelog" as never)}
+      />
+      <Divider />
+
       {/* App version */}
       <View style={styles.versionContainer}>
         <AppText variant="caption" color={colors.textTertiary}>

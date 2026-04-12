@@ -235,7 +235,9 @@
     "cashbackPending": "Pending",
     "cashbackAccount": "Cashback account",
     "templates": "Templates",
-    "templatesDesc": "Quick-fill transaction shortcuts"
+    "templatesDesc": "Quick-fill transaction shortcuts",
+    "changelog": "Changelog",
+    "changelogDesc": "See what's new in each version"
   },
   "templates": {
     "title": "Templates",

@@ -235,7 +235,9 @@
     "cashbackPending": "待处理",
     "cashbackAccount": "返现账户",
     "templates": "模板",
-    "templatesDesc": "常用交易的快捷方式"
+    "templatesDesc": "常用交易的快捷方式",
+    "changelog": "更新日志",
+    "changelogDesc": "查看每个版本的更新内容"
   },
   "templates": {
     "title": "模板",

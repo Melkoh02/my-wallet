@@ -235,7 +235,9 @@
     "cashbackPending": "Pendente",
     "cashbackAccount": "Conta de cashback",
     "templates": "Modelos",
-    "templatesDesc": "Atalhos para transações frequentes"
+    "templatesDesc": "Atalhos para transações frequentes",
+    "changelog": "Histórico de alterações",
+    "changelogDesc": "Veja as novidades de cada versão"
   },
   "templates": {
     "title": "Modelos",

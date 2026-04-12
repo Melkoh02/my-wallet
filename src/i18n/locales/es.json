@@ -235,7 +235,9 @@
     "cashbackPending": "Pendiente",
     "cashbackAccount": "Cuenta de cashback",
     "templates": "Plantillas",
-    "templatesDesc": "Atajos para transacciones frecuentes"
+    "templatesDesc": "Atajos para transacciones frecuentes",
+    "changelog": "Historial de cambios",
+    "changelogDesc": "Ver las novedades de cada versión"
   },
   "templates": {
     "title": "Plantillas",

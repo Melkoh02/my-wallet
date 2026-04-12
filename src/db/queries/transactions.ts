@@ -51,6 +51,7 @@ export type TransactionFilters = {
   amountMin?: number;
   amountMax?: number;
   subcategoryIds?: number[];
+  recurringId?: number;
   limit?: number;
   offset?: number;
 };
@@ -70,6 +71,7 @@ export async function getTransactions(
     amountMin,
     amountMax,
     subcategoryIds: filterSubIds,
+    recurringId,
     limit = 30,
     offset = 0,
   } = filters;
@@ -97,6 +99,9 @@ export async function getTransactions(
   if (dateTo) conditions.push(lte(transactions.date, dateTo));
   if (amountMin !== undefined) conditions.push(gte(transactions.amount, amountMin));
   if (amountMax !== undefined) conditions.push(lte(transactions.amount, amountMax));
+  if (recurringId) {
+    conditions.push(eq(transactions.recurringId, recurringId));
+  }
   if (search) {
     conditions.push(
       or(like(transactions.description, `%${search}%`), like(transactions.notes, `%${search}%`))!,

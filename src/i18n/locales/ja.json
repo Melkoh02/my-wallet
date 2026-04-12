@@ -190,7 +190,14 @@
     "thursday": "木曜日",
     "friday": "金曜日",
     "saturday": "土曜日",
-    "sunday": "日曜日"
+    "sunday": "日曜日",
+    "status": "ステータス",
+    "active": "有効",
+    "paused": "一時停止",
+    "triggerNow": "今すぐ実行",
+    "triggerConfirm": "今日の取引を作成しますか？",
+    "generatedTransactions": "生成された取引",
+    "noGeneratedTransactions": "まだ取引は生成されていません"
   },
   "settings": {
     "title": "設定",

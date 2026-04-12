@@ -190,7 +190,14 @@
     "thursday": "星期四",
     "friday": "星期五",
     "saturday": "星期六",
-    "sunday": "星期日"
+    "sunday": "星期日",
+    "status": "状态",
+    "active": "活跃",
+    "paused": "已暂停",
+    "triggerNow": "立即执行",
+    "triggerConfirm": "为今天创建一笔交易？",
+    "generatedTransactions": "已生成的交易",
+    "noGeneratedTransactions": "尚未生成交易"
   },
   "settings": {
     "title": "设置",

@@ -43,7 +43,7 @@ export async function getCategoryById(id: number): Promise<CategoryWithSubs | un
   const subs = await db
     .select()
     .from(subcategories)
-    .where(eq(subcategories.categoryId, cat.id))
+    .where(and(eq(subcategories.categoryId, cat.id), eq(subcategories.isActive, true)))
     .orderBy(subcategories.sortOrder);
   return { ...cat, subcategories: subs };
 }

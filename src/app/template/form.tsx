@@ -9,7 +9,7 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { SelectInput } from "@/components/molecules/SelectInput";
 import { PickerModal } from "@/components/molecules/PickerModal";
-import { CategoryPicker } from "@/components/organisms/CategoryPicker";
+import { CategoryChipPicker } from "@/components/organisms/CategoryChipPicker";
 import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -198,7 +198,7 @@ export default function TemplateFormScreen() {
         )}
 
         {type !== "transfer" && (
-          <CategoryPicker
+          <CategoryChipPicker
             categories={categories}
             selected={subcategoryIds}
             onSelectionChange={setSubcategoryIds}

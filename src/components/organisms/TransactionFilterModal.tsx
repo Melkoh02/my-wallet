@@ -6,11 +6,10 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppInput } from "@/components/atoms/AppInput";
 import { AppButton } from "@/components/atoms/AppButton";
-import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { DatePicker } from "@/components/molecules/DatePicker";
 import { SelectInput } from "@/components/molecules/SelectInput";
-import { CategoryPicker } from "@/components/organisms/CategoryPicker";
+import { CategoryChipPicker } from "@/components/organisms/CategoryChipPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
@@ -135,15 +134,33 @@ export function TransactionFilterModal({
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {/* Transaction Type */}
           <Section title={t("transactions.type")} colors={colors}>
-            <View style={styles.chipRow}>
-              {["income", "expense", "transfer"].map((type) => (
-                <Chip
-                  key={type}
-                  label={t(`transactionForm.${type}`)}
-                  selected={types.includes(type)}
-                  onPress={() => toggleType(type)}
-                />
-              ))}
+            <View style={styles.typeRow}>
+              {(["expense", "income", "transfer"] as const).map((tp) => {
+                const isActive = types.includes(tp);
+                const tColor =
+                  tp === "income"
+                    ? colors.income
+                    : tp === "expense"
+                      ? colors.expense
+                      : colors.transfer;
+                return (
+                  <Pressable
+                    key={tp}
+                    onPress={() => toggleType(tp)}
+                    style={[
+                      styles.typeBtn,
+                      {
+                        backgroundColor: isActive ? tColor + "18" : colors.surface,
+                        borderColor: isActive ? tColor : colors.border,
+                      },
+                    ]}
+                  >
+                    <AppText variant="label" color={isActive ? tColor : colors.textSecondary}>
+                      {t(`transactionForm.${tp}`)}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
             </View>
           </Section>
 
@@ -274,7 +291,7 @@ export function TransactionFilterModal({
           )}
 
           {/* Categories / Subcategories — reuse CategoryPicker */}
-          <CategoryPicker
+          <CategoryChipPicker
             categories={categories}
             selected={subcategoryIds}
             onSelectionChange={setSubcategoryIds}
@@ -533,10 +550,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
+  typeRow: { flexDirection: "row", gap: spacing.sm },
+  typeBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1.5,
   },
   row: {
     flexDirection: "row",

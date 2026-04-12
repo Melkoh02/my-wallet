@@ -66,7 +66,6 @@ export function RecurringForm({ accounts, categories, onSubmit, initial }: Recur
 
   const [showFreqPicker, setShowFreqPicker] = useState(false);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
-  const [showDayOfMonthPicker, setShowDayOfMonthPicker] = useState(false);
   const [showDayOfWeekPicker, setShowDayOfWeekPicker] = useState(false);
 
   const selectedAccount = accounts.find((a) => a.id === accountId);
@@ -147,11 +146,16 @@ export function RecurringForm({ accounts, categories, onSubmit, initial }: Recur
 
       {/* Day of month — monthly/yearly */}
       {(frequency === "monthly" || frequency === "yearly") && (
-        <SelectInput
+        <AppInput
           label={t("recurring.dayOfMonth")}
-          value={dayOfMonth ? dayOfMonth.toString() : undefined}
-          placeholder={t("transactions.notSet")}
-          onPress={() => setShowDayOfMonthPicker(true)}
+          value={dayOfMonth ? dayOfMonth.toString() : ""}
+          onChangeText={(text) => {
+            const num = parseInt(text, 10);
+            if (text === "") setDayOfMonth(null);
+            else if (!isNaN(num) && num >= 1 && num <= 31) setDayOfMonth(num);
+          }}
+          keyboardType="number-pad"
+          placeholder="1-31"
         />
       )}
 
@@ -314,27 +318,6 @@ export function RecurringForm({ accounts, categories, onSubmit, initial }: Recur
                 </AppText>
               ) : null}
             </View>
-            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
-          </>
-        )}
-      />
-      <PickerModal
-        visible={showDayOfMonthPicker}
-        title={t("recurring.dayOfMonth")}
-        items={Array.from({ length: 31 }, (_, i) => ({ value: i + 1 }))}
-        keyExtractor={(item) => item.value.toString()}
-        selectedKey={dayOfMonth?.toString()}
-        onSelect={(item) => setDayOfMonth(item.value)}
-        onClose={() => setShowDayOfMonthPicker(false)}
-        renderItem={(item, isSelected) => (
-          <>
-            <AppText
-              variant="body"
-              color={isSelected ? colors.primary : colors.text}
-              style={{ flex: 1 }}
-            >
-              {item.value}
-            </AppText>
             {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
           </>
         )}

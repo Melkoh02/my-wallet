@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-12
+
+### Added
+- **CategoryChipPicker**: new inline chip-based category selector replaces dropdown-style picker across all forms
+- **Recurring detail screen**: view all fields + list of generated transactions, navigate from list or home
+- **Trigger Now**: manually fire a recurring transaction early (e.g. salary comes before scheduled date)
+- **Smart upcoming**: home section filters by 30-day window and skips recently-fired recurring
+- **Day/time scheduling**: monthly → day-of-month, weekly → day-of-week, daily → time-of-day
+- **Changelog screen**: view release history in-app (Settings → Changelog), parses CHANGELOG.md
+- Inline subcategory rename (tap name → edit → submit)
+- Clear 'x' button on transaction search bar (dismisses keyboard)
+
+### Changed
+- Recurring form: frequency/account use modal pickers, all strings use i18n
+- Filter screen: type selector uses same colored buttons as create transaction form
+- Filter screen + template form use CategoryChipPicker
+- Day of month: number input (1-31) instead of 31-item scrollable picker
+- Months with fewer days auto-clamp (e.g. day 31 in Feb → 28/29)
+
+### Fixed
+- Subcategory delete now works (getCategoryById was not filtering inactive subcategories)
+- getNextDate weekly/biweekly dayOfWeek no longer overshoots interval
+- Subcategory rename guards against double-fire (onSubmitEditing + onBlur race)
+- Recurring form screen title uses i18n instead of hardcoded English
+
 ## [1.2.0] - 2026-04-10
 
 ### Added
@@ -315,6 +340,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.3.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.2.0
 [1.1.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.1.0

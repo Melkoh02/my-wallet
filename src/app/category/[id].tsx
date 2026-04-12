@@ -49,13 +49,13 @@ export default function CategoryDetailScreen() {
   };
 
   const handleRename = async () => {
-    if (!editingSubId || !editName.trim()) {
-      setEditingSubId(null);
-      return;
-    }
-    await updateSubcategory(editingSubId, editName.trim());
-    invalidate("categories");
+    // Guard against double-fire from onSubmitEditing + onBlur race
+    if (!editingSubId) return;
+    const subId = editingSubId;
     setEditingSubId(null);
+    if (!editName.trim()) return;
+    await updateSubcategory(subId, editName.trim());
+    invalidate("categories");
   };
 
   const confirmDeleteSub = async () => {

@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ModalLayout } from "@/components/templates/ModalLayout";
 import { RecurringForm } from "@/components/organisms/RecurringForm";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -9,6 +10,7 @@ import type { NewRecurringTransaction } from "@/db/schema";
 
 export default function RecurringFormScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accounts } = useAccounts();
   const { categories } = useCategories();
   const { invalidate } = useDataRefresh();
@@ -20,7 +22,7 @@ export default function RecurringFormScreen() {
   };
 
   return (
-    <ModalLayout title="New Recurring" onClose={() => router.back()}>
+    <ModalLayout title={t("recurring.newRecurring")} onClose={() => router.back()}>
       <RecurringForm accounts={accounts} categories={categories} onSubmit={handleSubmit} />
     </ModalLayout>
   );

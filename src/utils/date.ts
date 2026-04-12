@@ -10,18 +10,22 @@ export function getNextDate(current: string, frequency: string, options?: NextDa
       d.setDate(d.getDate() + 1);
       break;
     case "weekly":
-      d.setDate(d.getDate() + 7);
       if (options?.dayOfWeek != null) {
-        // Adjust to the target day of week (0=Sun, 6=Sat)
-        const diff = options.dayOfWeek - d.getDay();
-        if (diff !== 0) d.setDate(d.getDate() + ((diff + 7) % 7 || 7));
+        // Find the next occurrence of target day that is >= 7 days from current
+        const wDiff = (options.dayOfWeek - d.getDay() + 7) % 7 || 7;
+        d.setDate(d.getDate() + wDiff);
+      } else {
+        d.setDate(d.getDate() + 7);
       }
       break;
     case "biweekly":
-      d.setDate(d.getDate() + 14);
       if (options?.dayOfWeek != null) {
-        const diff = options.dayOfWeek - d.getDay();
-        if (diff !== 0) d.setDate(d.getDate() + ((diff + 7) % 7 || 7));
+        // Find the next occurrence of target day that is >= 14 days from current
+        d.setDate(d.getDate() + 14);
+        const bDiff = (options.dayOfWeek - d.getDay() + 7) % 7;
+        d.setDate(d.getDate() + bDiff);
+      } else {
+        d.setDate(d.getDate() + 14);
       }
       break;
     case "monthly":

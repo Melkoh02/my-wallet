@@ -107,7 +107,13 @@ export default function TransactionsScreen() {
             placeholder={t("transactions.search")}
             value={search}
             onChangeText={setSearch}
+            style={search ? { paddingRight: 36 } : undefined}
           />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch("")} style={styles.clearBtn} hitSlop={8}>
+              <AppIcon name="close-circle" size={20} color={colors.iconSecondary} />
+            </Pressable>
+          )}
         </View>
         <Pressable
           onPress={() => setFilterModalVisible(true)}
@@ -224,6 +230,14 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    position: "relative" as const,
+  },
+  clearBtn: {
+    position: "absolute" as const,
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center" as const,
   },
   filterBtn: {
     width: 48,

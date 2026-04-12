@@ -180,7 +180,17 @@
     "biweekly": "隔週",
     "monthly": "毎月",
     "yearly": "毎年",
-    "descriptionPlaceholder": "例: Netflix、給与"
+    "descriptionPlaceholder": "例: Netflix、給与",
+    "dayOfMonth": "日にち",
+    "dayOfWeek": "曜日",
+    "timeOfDay": "時間",
+    "monday": "月曜日",
+    "tuesday": "火曜日",
+    "wednesday": "水曜日",
+    "thursday": "木曜日",
+    "friday": "金曜日",
+    "saturday": "土曜日",
+    "sunday": "日曜日"
   },
   "settings": {
     "title": "設定",

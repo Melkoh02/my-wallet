@@ -116,7 +116,7 @@ export async function processDueRecurring(): Promise<number> {
           description: item.description,
           accountId: item.accountId,
           date: currentDate,
-          time,
+          time: item.timeOfDay ?? time,
           contactId: item.contactId,
           contactName: item.contactName,
           cashbackAmount: item.cashbackAmount,
@@ -145,7 +145,10 @@ export async function processDueRecurring(): Promise<number> {
       );
 
       processed++;
-      currentDate = getNextDate(currentDate, item.frequency);
+      currentDate = getNextDate(currentDate, item.frequency, {
+        dayOfMonth: item.dayOfMonth,
+        dayOfWeek: item.dayOfWeek,
+      });
 
       // If we already caught up past the max, stop
       if (gap > MAX_CATCHUP_DAYS) break;
@@ -154,7 +157,10 @@ export async function processDueRecurring(): Promise<number> {
     // Advance next_date past today
     let nextDate = currentDate;
     if (gap > MAX_CATCHUP_DAYS) {
-      nextDate = getNextDate(today, item.frequency);
+      nextDate = getNextDate(today, item.frequency, {
+        dayOfMonth: item.dayOfMonth,
+        dayOfWeek: item.dayOfWeek,
+      });
     }
 
     // Check if end date reached

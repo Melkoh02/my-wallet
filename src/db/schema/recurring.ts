@@ -21,6 +21,9 @@ export const recurringTransactions = sqliteTable(
     contactName: text("contact_name"),
     cashbackAmount: real("cashback_amount"),
     cashbackAccountId: integer("cashback_account_id").references(() => accounts.id),
+    dayOfMonth: integer("day_of_month"),
+    dayOfWeek: integer("day_of_week"),
+    timeOfDay: text("time_of_day"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(datetime('now'))`),

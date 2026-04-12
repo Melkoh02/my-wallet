@@ -22,11 +22,12 @@ export function CategoryChipPicker({
   categories,
   selected,
   onSelectionChange,
-  label,
+  label: labelProp,
   suggestedIds,
 }: CategoryChipPickerProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const label = labelProp ?? t("transactions.categories");
   const [visible, setVisible] = useState(false);
   const [expandedCatId, setExpandedCatId] = useState<number | null>(null);
 

@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { View, Pressable, SectionList, Modal, StyleSheet } from "react-native";
+import { useRef, useState, useMemo } from "react";
+import { View, Pressable, SectionList, Modal, StyleSheet, TextInput, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -55,6 +55,7 @@ export default function TransactionsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
 
+  const searchRef = useRef<TextInput>(null);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -104,13 +105,22 @@ export default function TransactionsScreen() {
       <View style={styles.searchRow}>
         <View style={styles.searchInput}>
           <AppInput
+            ref={searchRef}
             placeholder={t("transactions.search")}
             value={search}
             onChangeText={setSearch}
             style={search ? { paddingRight: 36 } : undefined}
           />
           {search.length > 0 && (
-            <Pressable onPress={() => setSearch("")} style={styles.clearBtn} hitSlop={8}>
+            <Pressable
+              onPress={() => {
+                setSearch("");
+                searchRef.current?.blur();
+                Keyboard.dismiss();
+              }}
+              style={styles.clearBtn}
+              hitSlop={8}
+            >
               <AppIcon name="close-circle" size={20} color={colors.iconSecondary} />
             </Pressable>
           )}

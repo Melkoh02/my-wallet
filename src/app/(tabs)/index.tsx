@@ -17,7 +17,7 @@ import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getMonthSummary, getRecentTransactions } from "@/db/queries/transactions";
-import { getRecurringTransactions } from "@/db/queries/recurring";
+import { getSmartUpcoming } from "@/db/queries/recurring";
 import { getAccounts } from "@/db/queries/accounts";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
@@ -42,12 +42,11 @@ export default function HomeScreen() {
     Promise.all([
       getMonthSummary(now.getFullYear(), now.getMonth() + 1),
       getRecentTransactions(5),
-      getRecurringTransactions(true),
-    ]).then(([summary, txns, recurring]) => {
+      getSmartUpcoming(3),
+    ]).then(([summary, txns, upcoming]) => {
       setMonthSummary(summary);
       setRecent(txns);
-      // Show up to 3 upcoming recurring, sorted by next date
-      setUpcoming(recurring.slice(0, 3));
+      setUpcoming(upcoming);
     });
   }, [revisions.transactions, revisions.accounts, revisions.recurring]);
 
@@ -125,7 +124,10 @@ export default function HomeScreen() {
             return (
               <View key={item.id}>
                 {i > 0 && <Divider />}
-                <View style={styles.upcomingRow}>
+                <Pressable
+                  onPress={() => router.push(`/recurring/${item.id}` as never)}
+                  style={styles.upcomingRow}
+                >
                   <View style={[styles.upcomingIcon, { backgroundColor: typeColor + "18" }]}>
                     <AppIcon
                       name={item.type === "income" ? "arrow-down" : "arrow-up"}
@@ -146,7 +148,7 @@ export default function HomeScreen() {
                     type={item.type as "income" | "expense"}
                     variant="label"
                   />
-                </View>
+                </Pressable>
               </View>
             );
           })}

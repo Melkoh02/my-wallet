@@ -190,7 +190,14 @@
     "thursday": "Jueves",
     "friday": "Viernes",
     "saturday": "Sábado",
-    "sunday": "Domingo"
+    "sunday": "Domingo",
+    "status": "Estado",
+    "active": "Activo",
+    "paused": "Pausado",
+    "triggerNow": "Ejecutar Ahora",
+    "triggerConfirm": "¿Crear una transacción para hoy?",
+    "generatedTransactions": "Transacciones Generadas",
+    "noGeneratedTransactions": "Aún no se han generado transacciones"
   },
   "settings": {
     "title": "Ajustes",

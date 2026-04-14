@@ -1,3 +1,82 @@
+/**
+ * Map of default English category/subcategory names to i18n keys.
+ * Used for display-time translation of seeded categories.
+ */
+export const DEFAULT_NAME_KEYS: Record<string, string> = {
+  // Categories
+  "Food & Dining": "defaultCategories.foodDining",
+  Transport: "defaultCategories.transport",
+  Housing: "defaultCategories.housing",
+  Shopping: "defaultCategories.shopping",
+  Entertainment: "defaultCategories.entertainment",
+  Health: "defaultCategories.health",
+  Education: "defaultCategories.education",
+  Personal: "defaultCategories.personal",
+  Salary: "defaultCategories.salary",
+  Freelance: "defaultCategories.freelance",
+  Investments: "defaultCategories.investments",
+  "Other Income": "defaultCategories.otherIncome",
+  // Subcategories
+  Groceries: "defaultCategories.groceries",
+  Restaurants: "defaultCategories.restaurants",
+  Coffee: "defaultCategories.coffee",
+  "Fast Food": "defaultCategories.fastFood",
+  Delivery: "defaultCategories.delivery",
+  Fuel: "defaultCategories.fuel",
+  "Public Transit": "defaultCategories.publicTransit",
+  "Ride Share": "defaultCategories.rideShare",
+  Parking: "defaultCategories.parking",
+  Maintenance: "defaultCategories.maintenance",
+  Rent: "defaultCategories.rent",
+  Mortgage: "defaultCategories.mortgage",
+  Utilities: "defaultCategories.utilities",
+  Insurance: "defaultCategories.insurance",
+  Repairs: "defaultCategories.repairs",
+  Clothing: "defaultCategories.clothing",
+  Electronics: "defaultCategories.electronics",
+  "Home Goods": "defaultCategories.homeGoods",
+  Gifts: "defaultCategories.gifts",
+  Streaming: "defaultCategories.streaming",
+  Movies: "defaultCategories.movies",
+  Games: "defaultCategories.games",
+  Events: "defaultCategories.events",
+  Hobbies: "defaultCategories.hobbies",
+  Doctor: "defaultCategories.doctor",
+  Pharmacy: "defaultCategories.pharmacy",
+  Gym: "defaultCategories.gym",
+  Tuition: "defaultCategories.tuition",
+  Books: "defaultCategories.books",
+  Courses: "defaultCategories.courses",
+  Supplies: "defaultCategories.supplies",
+  Haircut: "defaultCategories.haircut",
+  Subscriptions: "defaultCategories.subscriptions",
+  Donations: "defaultCategories.donations",
+  Pets: "defaultCategories.pets",
+  "Main Job": "defaultCategories.mainJob",
+  "Side Job": "defaultCategories.sideJob",
+  Bonus: "defaultCategories.bonus",
+  Projects: "defaultCategories.projects",
+  Consulting: "defaultCategories.consulting",
+  Dividends: "defaultCategories.dividends",
+  Interest: "defaultCategories.interest",
+  "Capital Gains": "defaultCategories.capitalGains",
+  Refunds: "defaultCategories.refunds",
+  "Gifts Received": "defaultCategories.giftsReceived",
+  Cashback: "defaultCategories.cashback",
+};
+
+/**
+ * Translate a category or subcategory name if it's a known default.
+ * Falls back to the original name for user-created categories.
+ */
+export function translateCategoryName(name: string, t: (key: string) => string): string {
+  const key = DEFAULT_NAME_KEYS[name];
+  if (!key) return name;
+  const translated = t(key);
+  // If i18n returns the key itself (missing translation), fall back to English
+  return translated === key ? name : translated;
+}
+
 type CategorySeed = {
   name: string;
   color: string;

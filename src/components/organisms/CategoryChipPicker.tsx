@@ -8,6 +8,7 @@ import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
+import { translateCategoryName } from "@/constants/categories";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 
 type CategoryChipPickerProps = {
@@ -46,7 +47,9 @@ export function CategoryChipPicker({
       if (selected.includes(sub.id)) {
         selectedItems.push({
           id: sub.id,
-          name: sub.isGeneral ? cat.name : `${cat.name} › ${sub.name}`,
+          name: sub.isGeneral
+            ? translateCategoryName(cat.name, t)
+            : `${translateCategoryName(cat.name, t)} › ${translateCategoryName(sub.name, t)}`,
         });
       }
     }
@@ -60,7 +63,9 @@ export function CategoryChipPicker({
         if (suggestedIds.includes(sub.id)) {
           suggestedItems.push({
             id: sub.id,
-            name: sub.isGeneral ? cat.name : `${cat.name} › ${sub.name}`,
+            name: sub.isGeneral
+              ? translateCategoryName(cat.name, t)
+              : `${translateCategoryName(cat.name, t)} › ${translateCategoryName(sub.name, t)}`,
           });
         }
       }
@@ -139,7 +144,7 @@ export function CategoryChipPicker({
                     <AppIcon name={cat.icon} size={20} color={cat.color} />
                   </View>
                   <AppText variant="label" style={styles.catName}>
-                    {cat.name}
+                    {translateCategoryName(cat.name, t)}
                   </AppText>
                   <AppIcon
                     name={expandedCatId === cat.id ? "chevron-up" : "chevron-down"}
@@ -158,7 +163,7 @@ export function CategoryChipPicker({
                         color={selected.includes(sub.id) ? colors.primary : colors.iconSecondary}
                       />
                       <AppText variant="body" style={styles.subName}>
-                        {sub.name}
+                        {translateCategoryName(sub.name, t)}
                       </AppText>
                       {sub.isGeneral && (
                         <AppText variant="caption" color={colors.textTertiary}>

@@ -12,6 +12,7 @@ import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { getMonthSummary, getDailySpending, getCategorySummary } from "@/db/queries/transactions";
 import { formatCurrency } from "@/utils/format";
+import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
 
 export default function AnalyticsScreen() {
@@ -148,7 +149,7 @@ export default function AnalyticsScreen() {
                           <AppText variant="body" numberOfLines={1} style={styles.categoryName}>
                             {cat.categoryName === "__uncategorized__"
                               ? t("analytics.uncategorized")
-                              : cat.categoryName}
+                              : translateCategoryName(cat.categoryName, t)}
                           </AppText>
                         </View>
                         <AppText variant="label" color={colors.text}>

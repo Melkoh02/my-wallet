@@ -190,6 +190,8 @@ export default function TransactionFormScreen() {
               counterpartyContactId: person.contactId,
               icon: "bank-transfer-out",
               color: PALETTE_COLORS[2], // emerald green
+              interestRate: null,
+              lastInterestDate: null,
             });
           }
         }

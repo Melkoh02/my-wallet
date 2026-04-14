@@ -257,7 +257,8 @@
     "personName": "Nome",
     "addPerson": "Adicionar pessoa",
     "splitEvenly": "Dividir igualmente",
-    "loanName": "Me deve: {{name}}"
+    "loanName": "Me deve: {{name}}",
+    "alreadyPaid": "Já pagou"
   },
   "themes": {
     "title": "Temas",

@@ -22,6 +22,7 @@ import { db } from "@/db/client";
 import { transactions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { formatDate, formatTime } from "@/utils/format";
+import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
 
@@ -133,7 +134,7 @@ export default function TransactionDetailScreen() {
               {txn.subcategoryList.map((sub) => (
                 <CategoryPill
                   key={sub.id}
-                  name={`${sub.categoryName} \u203A ${sub.name}`}
+                  name={`${translateCategoryName(sub.categoryName, t)} \u203A ${translateCategoryName(sub.name, t)}`}
                   icon={sub.categoryIcon}
                   color={sub.categoryColor}
                 />

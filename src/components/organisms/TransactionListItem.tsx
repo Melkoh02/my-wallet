@@ -4,6 +4,8 @@ import { AppIcon } from "@/components/atoms/AppIcon";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { CategoryPill } from "@/components/molecules/CategoryPill";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useTranslation } from "react-i18next";
+import { translateCategoryName } from "@/constants/categories";
 import { formatDateShort } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
@@ -21,6 +23,7 @@ const TYPE_ICONS: Record<string, string> = {
 
 export function TransactionListItem({ transaction: txn, onPress }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const typeColor =
     txn.type === "income"
       ? colors.income
@@ -58,7 +61,7 @@ export function TransactionListItem({ transaction: txn, onPress }: Props) {
         {firstCat && (
           <View style={styles.pills}>
             <CategoryPill
-              name={firstCat.categoryName}
+              name={translateCategoryName(firstCat.categoryName, t)}
               icon={firstCat.categoryIcon}
               color={firstCat.categoryColor}
             />

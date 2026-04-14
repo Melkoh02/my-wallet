@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/molecules/EmptyState";
 import { FAB } from "@/components/atoms/FAB";
 import { useCategories } from "@/hooks/useCategories";
 import { useTheme } from "@/providers/ThemeProvider";
+import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 
@@ -29,7 +30,7 @@ function CategoryRow({ category, onPress }: { category: CategoryWithSubs; onPres
         <AppIcon name={category.icon} size={22} color={category.color} />
       </View>
       <View style={styles.rowInfo}>
-        <AppText variant="label">{category.name}</AppText>
+        <AppText variant="label">{translateCategoryName(category.name, t)}</AppText>
         <AppText variant="caption" color={colors.textSecondary}>
           {subCount} {subCount === 1 ? t("categories.subcategory") : t("categories.subcategories")}
         </AppText>

@@ -65,6 +65,7 @@ export default function TransactionFormScreen() {
 
   const handleSubmit = async (data: TransactionFormData, subcategoryIds: number[]) => {
     try {
+      let txn: { id: number } | undefined;
       if (params.id) {
         // Editing existing transaction — wrapped in SQLite transaction for atomicity
         const existingId = parseInt(params.id, 10);
@@ -136,7 +137,7 @@ export default function TransactionFormScreen() {
         }
       } else {
         // Creating new transaction
-        const txn = await createTransaction(data, subcategoryIds);
+        txn = await createTransaction(data, subcategoryIds);
 
         // Handle instant cashback
         if (data.instantCashback && data.cashbackAmount && data.cashbackAccountId) {
@@ -168,31 +169,50 @@ export default function TransactionFormScreen() {
         data.type === "expense"
       ) {
         const existingAccounts = await getAccounts(true);
+        // txn was created above in the "Creating new transaction" block
+        const originTxnId = txn?.id;
         for (const person of data.splitPeople) {
-          // Check if a loan_lent account already exists for this contact
           const existing = person.contactId
             ? existingAccounts.find(
                 (a) => a.type === "loan_lent" && a.counterpartyContactId === person.contactId,
               )
             : null;
 
+          let loanAccountId: number;
           if (existing) {
-            // Add to existing loan balance
             await updateAccountBalance(existing.id, person.amount, "income", false);
+            loanAccountId = existing.id;
           } else {
-            // Create new loan_lent account
-            await createAccount({
+            const loanAcc = await createAccount({
               name: t("splitBill.loanName", { name: person.name }),
               type: "loan_lent",
-              balance: person.amount,
+              balance: person.paid ? 0 : person.amount,
               currency: existingAccounts.find((a) => a.id === data.accountId)?.currency ?? "USD",
               counterparty: person.name,
               counterpartyContactId: person.contactId,
               icon: "bank-transfer-out",
-              color: PALETTE_COLORS[2], // emerald green
+              color: PALETTE_COLORS[2],
               interestRate: null,
               lastInterestDate: null,
+              originTransactionId: originTxnId,
             });
+            loanAccountId = loanAcc.id;
+          }
+
+          // If person already paid, create a settling transfer immediately
+          if (person.paid && !existing) {
+            await createTransaction(
+              {
+                type: "transfer",
+                amount: person.amount,
+                description: t("accounts.loanReceivedDesc", { name: person.name }),
+                accountId: loanAccountId,
+                toAccountId: data.accountId,
+                date: data.date,
+                time: data.time,
+              },
+              [],
+            );
           }
         }
       }

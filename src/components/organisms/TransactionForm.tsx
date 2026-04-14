@@ -31,6 +31,7 @@ export type SplitPerson = {
   contactId: string | null;
   name: string;
   amount: number;
+  paid: boolean;
 };
 
 export type TransactionFormData = NewTransaction & {
@@ -100,8 +101,8 @@ export function TransactionForm({
   // Split bill
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitPeople, setSplitPeople] = useState<
-    { contactId: string | null; name: string; amount: string }[]
-  >([{ contactId: null, name: "", amount: "" }]);
+    { contactId: string | null; name: string; amount: string; paid: boolean }[]
+  >([{ contactId: null, name: "", amount: "", paid: false }]);
 
   // Location
   const [locationLoading, setLocationLoading] = useState(false);
@@ -236,6 +237,7 @@ export function TransactionForm({
                   contactId: p.contactId,
                   name: p.name.trim(),
                   amount: parseFloat(p.amount),
+                  paid: p.paid,
                 }))
             : [],
       },
@@ -636,13 +638,29 @@ export function TransactionForm({
                     }
                     keyboardType="decimal-pad"
                   />
+                  <View style={styles.splitPaidRow}>
+                    <AppText variant="caption" color={colors.textSecondary} style={styles.flex}>
+                      {t("splitBill.alreadyPaid")}
+                    </AppText>
+                    <Switch
+                      value={person.paid}
+                      onValueChange={(val) =>
+                        setSplitPeople((prev) =>
+                          prev.map((p, i) => (i === idx ? { ...p, paid: val } : p)),
+                        )
+                      }
+                    />
+                  </View>
                 </View>
               ))}
 
               <View style={styles.splitActions}>
                 <Pressable
                   onPress={() =>
-                    setSplitPeople((prev) => [...prev, { contactId: null, name: "", amount: "" }])
+                    setSplitPeople((prev) => [
+                      ...prev,
+                      { contactId: null, name: "", amount: "", paid: false },
+                    ])
                   }
                   style={styles.splitAddBtn}
                 >
@@ -852,6 +870,11 @@ const styles = StyleSheet.create({
   splitPersonTop: {
     flexDirection: "row",
     alignItems: "flex-start",
+    gap: spacing.sm,
+  },
+  splitPaidRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   splitActions: {

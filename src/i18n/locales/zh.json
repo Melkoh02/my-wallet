@@ -257,7 +257,8 @@
     "personName": "姓名",
     "addPerson": "添加人员",
     "splitEvenly": "平均分摊",
-    "loanName": "欠我：{{name}}"
+    "loanName": "欠我：{{name}}",
+    "alreadyPaid": "已支付"
   },
   "themes": {
     "title": "主题",

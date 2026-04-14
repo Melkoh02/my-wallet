@@ -257,7 +257,8 @@
     "personName": "名前",
     "addPerson": "人を追加",
     "splitEvenly": "均等に分ける",
-    "loanName": "貸付: {{name}}"
+    "loanName": "貸付: {{name}}",
+    "alreadyPaid": "支払い済み"
   },
   "themes": {
     "title": "テーマ",

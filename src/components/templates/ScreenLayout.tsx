@@ -8,7 +8,11 @@ type ScreenLayoutProps = {
   edges?: ("top" | "bottom" | "left" | "right")[];
 };
 
-export function ScreenLayout({ children, scrollable = false, edges }: ScreenLayoutProps) {
+export function ScreenLayout({
+  children,
+  scrollable = false,
+  edges = ["top", "bottom"],
+}: ScreenLayoutProps) {
   const { colors } = useTheme();
 
   const content = scrollable ? (

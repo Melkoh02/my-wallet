@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing["5xl"],
+    paddingBottom: spacing["2xl"],
   },
   section: {
     gap: spacing.sm,

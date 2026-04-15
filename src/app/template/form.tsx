@@ -289,7 +289,7 @@ export default function TemplateFormScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  container: { gap: spacing.lg, paddingBottom: spacing["5xl"] },
+  container: { gap: spacing.lg, paddingBottom: spacing["2xl"] },
   typeRow: { flexDirection: "row", gap: spacing.sm },
   typeBtn: {
     flex: 1,

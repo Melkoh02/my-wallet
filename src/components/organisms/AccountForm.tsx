@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   container: {
     gap: spacing.lg,
-    paddingBottom: spacing["5xl"],
+    paddingBottom: spacing["2xl"],
   },
   section: {
     gap: spacing.xs,

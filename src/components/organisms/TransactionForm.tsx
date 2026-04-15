@@ -174,7 +174,7 @@ export function TransactionForm({
     const total = parseFloat(unformatAmount(amount)) || 0;
     const count = splitPeople.length + 1; // +1 for yourself
     if (total > 0 && count > 1) {
-      const share = Math.floor(total / count);
+      const share = Math.round((total / count) * 100) / 100;
       setSplitPeople((prev) =>
         prev.map((p) =>
           p.amount === "" || parseFloat(p.amount) === 0 ? { ...p, amount: share.toString() } : p,
@@ -674,8 +674,8 @@ export function TransactionForm({
                     const total = parseFloat(unformatAmount(amount)) || 0;
                     const count = splitPeople.length + 1;
                     if (total > 0 && count > 1) {
-                      const share = Math.floor(total / count);
-                      const remainder = total - share * count;
+                      const share = Math.round((total / count) * 100) / 100;
+                      const remainder = Math.round((total - share * count) * 100) / 100;
                       setSplitPeople((prev) =>
                         prev.map((p, i) => ({
                           ...p,

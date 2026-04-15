@@ -15,7 +15,10 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
   const { colors } = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
       <View style={styles.header}>
         <AppText variant="h3" style={styles.title}>
           {title}

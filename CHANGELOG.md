@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-15
+
+### Added
+- **Split debt display**: transaction detail shows linked loan debts with status (settled/remaining), tap to navigate to loan detail for payment
+- **Instant paid toggle**: mark split bill people as already paid — creates loan at zero balance with immediate settling transfer
+- **Category translations**: all 12 default categories and 45+ subcategories translated in all 5 languages via display-time lookup
+- Thousand separator formatting on account form balance and credit limit inputs
+
+### Changed
+- ScreenLayout defaults to top+bottom safe area edges (fixes content hidden behind 3-button Android nav)
+- Reduced form bottom padding from 48px to 24px across all forms (SafeAreaView already handles safe area)
+- Split loan accounts store `originTransactionId` linking them to the originating expense
+
+### Fixed
+- Split bill rounding: uses Math.round with 2 decimals + remainder distribution (reverted Math.floor which broke decimal currencies)
+- Split-created loans explicitly set `interestRate: null` and `lastInterestDate: null`
+
 ## [1.3.0] - 2026-04-12
 
 ### Added
@@ -340,6 +357,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.4.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.4.0
 [1.3.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.2.0
 [1.1.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.1.1

@@ -18,6 +18,7 @@ export const accounts = sqliteTable("accounts", {
   interestRate: real("interest_rate"),
   dueDate: text("due_date"),
   lastInterestDate: text("last_interest_date"),
+  originTransactionId: integer("origin_transaction_id"),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
@@ -19,9 +19,10 @@ import {
   createTransaction,
 } from "@/db/queries/transactions";
 import { db } from "@/db/client";
-import { transactions } from "@/db/schema";
+import { transactions, accounts, type Account } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { formatDate, formatTime } from "@/utils/format";
+import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
 
@@ -34,12 +35,16 @@ export default function TransactionDetailScreen() {
   const [txn, setTxn] = useState<TransactionWithRelations | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [splitDebts, setSplitDebts] = useState<Account[]>([]);
 
   useEffect(() => {
     if (id) {
-      getTransactionById(parseInt(id, 10)).then((result) => setTxn(result ?? null));
+      const txnId = parseInt(id, 10);
+      getTransactionById(txnId).then((result) => setTxn(result ?? null));
+      // Load loan accounts linked to this transaction (split bill)
+      db.select().from(accounts).where(eq(accounts.originTransactionId, txnId)).then(setSplitDebts);
     }
-  }, [id, revisions.transactions]);
+  }, [id, revisions.transactions, revisions.accounts]);
 
   if (!txn) return null;
 
@@ -133,7 +138,7 @@ export default function TransactionDetailScreen() {
               {txn.subcategoryList.map((sub) => (
                 <CategoryPill
                   key={sub.id}
-                  name={`${sub.categoryName} \u203A ${sub.name}`}
+                  name={`${translateCategoryName(sub.categoryName, t)} \u203A ${translateCategoryName(sub.name, t)}`}
                   icon={sub.categoryIcon}
                   color={sub.categoryColor}
                 />
@@ -172,6 +177,44 @@ export default function TransactionDetailScreen() {
                 disabled={confirming}
               />
             )}
+          </View>
+        )}
+
+        {/* Split debts */}
+        {splitDebts.length > 0 && (
+          <View style={styles.section}>
+            <AppText variant="label" color={colors.textSecondary}>
+              {t("splitBill.title")}
+            </AppText>
+            {splitDebts.map((debt) => {
+              const remaining = debt.balance;
+              const settled = remaining <= 0;
+              return (
+                <Pressable
+                  key={debt.id}
+                  onPress={() => router.push(`/account/${debt.id}`)}
+                  style={[styles.splitDebtRow, { backgroundColor: colors.card }]}
+                >
+                  <AppIcon
+                    name={settled ? "check-circle" : "account-clock"}
+                    size={22}
+                    color={settled ? colors.income : colors.expense}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="body">{debt.counterparty ?? debt.name}</AppText>
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      {settled ? t("accounts.settled") : t("accounts.remaining")}
+                    </AppText>
+                  </View>
+                  <AmountDisplay
+                    amount={Math.abs(remaining)}
+                    currency={debt.currency}
+                    type={settled ? "income" : "expense"}
+                    variant="label"
+                  />
+                </Pressable>
+              );
+            })}
           </View>
         )}
 
@@ -239,6 +282,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+  },
+  section: {
+    gap: spacing.sm,
+  },
+  splitDebtRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: 10,
   },
 });
 

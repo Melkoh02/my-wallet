@@ -8,6 +8,7 @@ import { Chip } from "@/components/atoms/Chip";
 import { Divider } from "@/components/atoms/Divider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
+import { translateCategoryName } from "@/constants/categories";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 
 type CategoryPickerProps = {
@@ -43,7 +44,11 @@ export function CategoryPicker({
   for (const cat of categories) {
     for (const sub of cat.subcategories) {
       if (selected.includes(sub.id)) {
-        selectedNames.push(sub.isGeneral ? cat.name : `${cat.name} › ${sub.name}`);
+        selectedNames.push(
+          sub.isGeneral
+            ? translateCategoryName(cat.name, t)
+            : `${translateCategoryName(cat.name, t)} › ${translateCategoryName(sub.name, t)}`,
+        );
       }
     }
   }
@@ -56,7 +61,9 @@ export function CategoryPicker({
         if (suggestedIds.includes(sub.id)) {
           suggestedItems.push({
             id: sub.id,
-            name: sub.isGeneral ? cat.name : `${cat.name} › ${sub.name}`,
+            name: sub.isGeneral
+              ? translateCategoryName(cat.name, t)
+              : `${translateCategoryName(cat.name, t)} › ${translateCategoryName(sub.name, t)}`,
           });
         }
       }
@@ -131,7 +138,7 @@ export function CategoryPicker({
                     <AppIcon name={cat.icon} size={20} color={cat.color} />
                   </View>
                   <AppText variant="label" style={styles.catName}>
-                    {cat.name}
+                    {translateCategoryName(cat.name, t)}
                   </AppText>
                   <AppIcon
                     name={expandedCatId === cat.id ? "chevron-up" : "chevron-down"}
@@ -150,7 +157,7 @@ export function CategoryPicker({
                         color={selected.includes(sub.id) ? colors.primary : colors.iconSecondary}
                       />
                       <AppText variant="body" style={styles.subName}>
-                        {sub.name}
+                        {translateCategoryName(sub.name, t)}
                       </AppText>
                       {sub.isGeneral && (
                         <AppText variant="caption" color={colors.textTertiary}>

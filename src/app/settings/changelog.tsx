@@ -111,7 +111,7 @@ export default function ChangelogScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
-    paddingBottom: spacing["5xl"],
+    paddingBottom: spacing["2xl"],
     gap: spacing.xl,
   },
   entry: {

@@ -11,6 +11,7 @@ import { ContactPicker } from "@/components/organisms/ContactPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { formatAmountInput, unformatAmount } from "@/utils/format";
 import { PALETTE_COLORS } from "@/constants/colors";
 import { SUPPORTED_CURRENCIES } from "@/constants/currencies";
 import type { Account, NewAccount } from "@/db/schema";
@@ -46,11 +47,13 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   const [balance, setBalance] = useState(
     initial?.balance != null
       ? initial.type === "loan_borrowed"
-        ? Math.abs(initial.balance).toString()
-        : initial.balance.toString()
+        ? formatAmountInput(Math.abs(initial.balance).toString())
+        : formatAmountInput(initial.balance.toString())
       : "",
   );
-  const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() ?? "");
+  const [creditLimit, setCreditLimit] = useState(
+    initial?.creditLimit != null ? formatAmountInput(initial.creditLimit.toString()) : "",
+  );
   const [color, setColor] = useState(initial?.color ?? PALETTE_COLORS[3]);
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
   const [counterparty, setCounterparty] = useState(initial?.counterparty ?? "");
@@ -94,7 +97,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   };
 
   const handleSubmit = () => {
-    let parsed = parseFloat(balance) || 0;
+    let parsed = parseFloat(unformatAmount(balance)) || 0;
     // Borrowed loans are stored as negative balance (liability)
     // Always use absolute value then negate to prevent double-negation
     if (type === "loan_borrowed") {
@@ -105,7 +108,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       institution: institution.trim(),
       type,
       balance: parsed,
-      creditLimit: type === "credit" ? parseFloat(creditLimit) || null : null,
+      creditLimit: type === "credit" ? parseFloat(unformatAmount(creditLimit)) || null : null,
       currency,
       color,
       icon: selectedTypeDef?.icon ?? "wallet",
@@ -238,7 +241,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       <AppInput
         label={getBalanceLabel()}
         value={balance}
-        onChangeText={setBalance}
+        onChangeText={(text) => setBalance(formatAmountInput(text))}
         keyboardType="decimal-pad"
         placeholder="0"
       />
@@ -247,7 +250,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
         <AppInput
           label={t("accounts.creditLimit")}
           value={creditLimit}
-          onChangeText={setCreditLimit}
+          onChangeText={(text) => setCreditLimit(formatAmountInput(text))}
           keyboardType="decimal-pad"
           placeholder="0.00"
         />
@@ -438,7 +441,7 @@ const styles = StyleSheet.create({
   },
   container: {
     gap: spacing.lg,
-    paddingBottom: spacing["5xl"],
+    paddingBottom: spacing["2xl"],
   },
   section: {
     gap: spacing.xs,

@@ -12,7 +12,7 @@ import { PickerModal } from "@/components/molecules/PickerModal";
 import { CategoryChipPicker } from "@/components/organisms/CategoryChipPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
-import { todayDateString } from "@/utils/format";
+import { todayDateString, formatAmountInput, unformatAmount } from "@/utils/format";
 import type { Account, NewRecurringTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 import type { Frequency } from "@/types";
@@ -49,7 +49,9 @@ export function RecurringForm({ accounts, categories, onSubmit, initial }: Recur
   const [type, setType] = useState<"income" | "expense">(
     (initial?.type as "income" | "expense") ?? "expense",
   );
-  const [amount, setAmount] = useState(initial?.amount?.toString() ?? "");
+  const [amount, setAmount] = useState(
+    initial?.amount ? formatAmountInput(initial.amount.toString()) : "",
+  );
   const [description, setDescription] = useState(initial?.description ?? "");
   const [accountId, setAccountId] = useState<number | null>(
     initial?.accountId ?? accounts[0]?.id ?? null,
@@ -71,7 +73,7 @@ export function RecurringForm({ accounts, categories, onSubmit, initial }: Recur
   const selectedAccount = accounts.find((a) => a.id === accountId);
 
   const handleSubmit = () => {
-    const parsed = parseFloat(amount);
+    const parsed = parseFloat(unformatAmount(amount));
     if (!parsed || !accountId) return;
     onSubmit(
       {
@@ -90,7 +92,8 @@ export function RecurringForm({ accounts, categories, onSubmit, initial }: Recur
     );
   };
 
-  const isValid = parseFloat(amount) > 0 && accountId !== null && description.trim().length > 0;
+  const isValid =
+    parseFloat(unformatAmount(amount)) > 0 && accountId !== null && description.trim().length > 0;
 
   return (
     <ScrollView
@@ -132,7 +135,7 @@ export function RecurringForm({ accounts, categories, onSubmit, initial }: Recur
       <AppInput
         label={t("transactionForm.amount")}
         value={amount}
-        onChangeText={setAmount}
+        onChangeText={(text) => setAmount(formatAmountInput(text))}
         keyboardType="decimal-pad"
         placeholder="0.00"
       />

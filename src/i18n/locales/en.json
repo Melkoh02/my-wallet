@@ -113,7 +113,8 @@
     "receiveTo": "Receive To",
     "loanPaymentDesc": "Loan payment: {{name}}",
     "loanReceivedDesc": "Loan received: {{name}}",
-    "exceedsRemaining": "Amount exceeds remaining balance"
+    "exceedsRemaining": "Amount exceeds remaining balance",
+    "payCard": "Pay Card"
   },
   "categories": {
     "title": "Categories",
@@ -167,6 +168,7 @@
     "noItems": "No recurring items",
     "noItemsDesc": "Set up salary, subscriptions, and other regular transactions",
     "newRecurring": "New Recurring",
+    "editRecurring": "Edit Recurring",
     "createRecurring": "Create Recurring",
     "frequency": "Frequency",
     "startDate": "Start Date",

@@ -113,7 +113,8 @@
     "receiveTo": "受取先",
     "loanPaymentDesc": "ローン返済: {{name}}",
     "loanReceivedDesc": "ローン回収: {{name}}",
-    "exceedsRemaining": "金額が残高を超えています"
+    "exceedsRemaining": "金額が残高を超えています",
+    "payCard": "カード支払い"
   },
   "categories": {
     "title": "カテゴリー",
@@ -167,6 +168,7 @@
     "noItems": "定期取引なし",
     "noItemsDesc": "給与、サブスクリプションなどの定期的な取引を設定しましょう",
     "newRecurring": "新しい定期取引",
+    "editRecurring": "定期取引を編集",
     "createRecurring": "定期取引を作成",
     "frequency": "頻度",
     "startDate": "開始日",

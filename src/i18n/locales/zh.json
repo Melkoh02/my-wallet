@@ -113,7 +113,8 @@
     "receiveTo": "收款账户",
     "loanPaymentDesc": "贷款还款：{{name}}",
     "loanReceivedDesc": "贷款收回：{{name}}",
-    "exceedsRemaining": "金额超过剩余余额"
+    "exceedsRemaining": "金额超过剩余余额",
+    "payCard": "还信用卡"
   },
   "categories": {
     "title": "分类",
@@ -167,6 +168,7 @@
     "noItems": "无定期交易",
     "noItemsDesc": "设置工资、订阅和其他定期交易",
     "newRecurring": "新建定期交易",
+    "editRecurring": "编辑定期交易",
     "createRecurring": "创建定期交易",
     "frequency": "频率",
     "startDate": "开始日期",

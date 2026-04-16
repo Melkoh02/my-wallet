@@ -113,7 +113,8 @@
     "receiveTo": "Recibir En",
     "loanPaymentDesc": "Pago de préstamo: {{name}}",
     "loanReceivedDesc": "Préstamo recibido: {{name}}",
-    "exceedsRemaining": "El monto excede el saldo restante"
+    "exceedsRemaining": "El monto excede el saldo restante",
+    "payCard": "Pagar Tarjeta"
   },
   "categories": {
     "title": "Categorías",
@@ -167,6 +168,7 @@
     "noItems": "Sin elementos recurrentes",
     "noItemsDesc": "Configura salario, suscripciones y otras transacciones periódicas",
     "newRecurring": "Nuevo Recurrente",
+    "editRecurring": "Editar Recurrente",
     "createRecurring": "Crear Recurrente",
     "frequency": "Frecuencia",
     "startDate": "Fecha de Inicio",

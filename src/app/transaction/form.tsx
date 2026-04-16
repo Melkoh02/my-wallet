@@ -22,7 +22,12 @@ import type { TransactionType } from "@/types";
 export default function TransactionFormScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ type?: string; id?: string }>();
+  const params = useLocalSearchParams<{
+    type?: string;
+    id?: string;
+    accountId?: string;
+    toAccountId?: string;
+  }>();
   const { accounts } = useAccounts();
   const { categories } = useCategories();
   const { templates } = useTemplates();
@@ -239,6 +244,8 @@ export default function TransactionFormScreen() {
         templates={templates}
         onSubmit={handleSubmit}
         initialType={(params.type as TransactionType) ?? "expense"}
+        initialAccountId={params.accountId ? parseInt(params.accountId, 10) : undefined}
+        initialToAccountId={params.toAccountId ? parseInt(params.toAccountId, 10) : undefined}
         initialData={initialData}
         locationEnabled={locationEnabled}
       />

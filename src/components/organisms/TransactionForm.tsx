@@ -49,6 +49,8 @@ type TransactionFormProps = {
   templates?: TemplateWithSubs[];
   onSubmit: (data: TransactionFormData, subcategoryIds: number[]) => void;
   initialType?: TransactionType;
+  initialAccountId?: number;
+  initialToAccountId?: number;
   initialData?: TransactionFormData & { subcategoryIds: number[] };
   locationEnabled?: boolean;
 };
@@ -60,6 +62,8 @@ export function TransactionForm({
   templates = [],
   onSubmit,
   initialType = "expense",
+  initialAccountId,
+  initialToAccountId,
   initialData,
   locationEnabled = false,
 }: TransactionFormProps) {
@@ -76,8 +80,12 @@ export function TransactionForm({
     initialData?.amount ? formatAmountInput(initialData.amount.toString()) : "",
   );
   const [description, setDescription] = useState(initialData?.description ?? "");
-  const [accountId, setAccountId] = useState<number | null>(initialData?.accountId ?? null);
-  const [toAccountId, setToAccountId] = useState<number | null>(initialData?.toAccountId ?? null);
+  const [accountId, setAccountId] = useState<number | null>(
+    initialData?.accountId ?? initialAccountId ?? null,
+  );
+  const [toAccountId, setToAccountId] = useState<number | null>(
+    initialData?.toAccountId ?? initialToAccountId ?? null,
+  );
   const [date, setDate] = useState(initialData?.date ?? todayDateString());
   const [time, setTime] = useState(initialData?.time ?? nowTimeString());
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>(initialData?.subcategoryIds ?? []);

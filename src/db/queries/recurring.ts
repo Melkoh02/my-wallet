@@ -60,8 +60,17 @@ export async function createRecurring(
 export async function updateRecurring(
   id: number,
   data: Partial<Omit<NewRecurringTransaction, "id">>,
+  subcategoryIds?: number[],
 ): Promise<void> {
   await db.update(recurringTransactions).set(data).where(eq(recurringTransactions.id, id));
+  if (subcategoryIds !== undefined) {
+    await db.delete(recurringSubcategories).where(eq(recurringSubcategories.recurringId, id));
+    if (subcategoryIds.length > 0) {
+      await db
+        .insert(recurringSubcategories)
+        .values(subcategoryIds.map((subId) => ({ recurringId: id, subcategoryId: subId })));
+    }
+  }
 }
 
 export async function deleteRecurring(id: number): Promise<void> {

@@ -15,6 +15,8 @@ import { AppInput } from "@/components/atoms/AppInput";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
+import { FAB } from "@/components/atoms/FAB";
+import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -112,6 +114,22 @@ export default function AccountDetailScreen() {
               ) : null}
             </View>
 
+            {/* Credit card pay button */}
+            {account.type === "credit" && (
+              <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+                <AppButton
+                  title={t("accounts.payCard")}
+                  icon="credit-card-check"
+                  variant="secondary"
+                  onPress={() =>
+                    router.push(
+                      `/transaction/form?type=transfer&toAccountId=${account.id}` as never,
+                    )
+                  }
+                />
+              </View>
+            )}
+
             {isLoan && (
               <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
                 {account.counterparty ? (
@@ -184,6 +202,16 @@ export default function AccountDetailScreen() {
           />
         }
       />
+
+      {/* FAB to add transaction with this account pre-selected */}
+      {!isLoan && !isInvestment && (
+        <FAB
+          actions={TRANSACTION_FAB_ACTIONS}
+          onAction={(key) =>
+            router.push(`/transaction/form?type=${key}&accountId=${account.id}` as never)
+          }
+        />
+      )}
 
       {isLoan && !loanSettled && (
         <PaymentModal

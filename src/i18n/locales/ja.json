@@ -113,7 +113,8 @@
     "receiveTo": "受取先",
     "loanPaymentDesc": "ローン返済: {{name}}",
     "loanReceivedDesc": "ローン回収: {{name}}",
-    "exceedsRemaining": "金額が残高を超えています"
+    "exceedsRemaining": "金額が残高を超えています",
+    "payCard": "カード支払い"
   },
   "categories": {
     "title": "カテゴリー",

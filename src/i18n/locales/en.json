@@ -113,7 +113,8 @@
     "receiveTo": "Receive To",
     "loanPaymentDesc": "Loan payment: {{name}}",
     "loanReceivedDesc": "Loan received: {{name}}",
-    "exceedsRemaining": "Amount exceeds remaining balance"
+    "exceedsRemaining": "Amount exceeds remaining balance",
+    "payCard": "Pay Card"
   },
   "categories": {
     "title": "Categories",

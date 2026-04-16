@@ -6,6 +6,7 @@ import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { EmptyState } from "@/components/molecules/EmptyState";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -31,6 +32,7 @@ export default function AnalyticsScreen() {
     { categoryName: string; categoryColor: string; categoryIcon: string; total: number }[]
   >([]);
   const [dailyData, setDailyData] = useState<{ date: string; total: number }[]>([]);
+  const [showHelp, setShowHelp] = useState(false);
 
   const loadData = useCallback(async () => {
     const [s, c, d] = await Promise.all([
@@ -71,7 +73,11 @@ export default function AnalyticsScreen() {
 
   return (
     <ScreenLayout scrollable edges={["top"]}>
-      <HeaderBar title={t("analytics.title")} />
+      <HeaderBar
+        title={t("analytics.title")}
+        rightIcon="help-circle-outline"
+        onRightPress={() => setShowHelp(true)}
+      />
 
       {/* Month selector */}
       <View style={[styles.monthSelector, { backgroundColor: colors.card }]}>
@@ -228,6 +234,12 @@ export default function AnalyticsScreen() {
 
       {/* Bottom spacing */}
       <View style={styles.bottomPad} />
+      <HelpModal
+        visible={showHelp}
+        title={t("analytics.title")}
+        content={t("help.analytics")}
+        onClose={() => setShowHelp(false)}
+      />
     </ScreenLayout>
   );
 }

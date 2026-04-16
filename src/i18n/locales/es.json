@@ -354,6 +354,16 @@
     "search": "Buscar íconos... (ej. carrito, música, estrella)",
     "noResults": "No se encontraron íconos para \u201c{{query}}\u201d"
   },
+  "help": {
+    "home": "Tu panel de un vistazo. Consulta tu patrimonio neto, ingresos y gastos del mes, transacciones recurrentes próximas y actividad reciente. Toca cualquier elemento para ver sus detalles.",
+    "transactions": "Todas tus transacciones en un solo lugar, agrupadas por fecha. Usa la barra de búsqueda para encontrar una en concreto, o toca el botón de filtro para acotar por tipo, fecha, monto, cuenta, contacto o categoría.",
+    "categories": "Organiza tus gastos con categorías y subcategorías. Toca una categoría para ver y gestionar sus subcategorías. Puedes renombrar subcategorías tocando su nombre.",
+    "analytics": "Desglose mensual de tus finanzas. Consulta ingresos vs gastos, gasto por categoría y patrones de gasto diarios. Navega entre meses con las flechas.",
+    "accounts": "Todas tus cuentas: banco, tarjetas de crédito, efectivo, préstamos e inversiones. Toca una cuenta para ver sus transacciones. El botón de archivar te permite ocultar cuentas sin eliminarlas.",
+    "recurring": "Transacciones programadas que se repiten automáticamente: salarios, suscripciones, facturas. Define la frecuencia, el día y el monto. Usa Ejecutar ahora si un pago llega antes de tiempo.",
+    "templates": "Atajos de llenado rápido para transacciones frecuentes. Crea una plantilla una vez y tócala al crear una transacción para rellenar todos los campos.",
+    "backup": "Mantén tus datos seguros. La copia de seguridad automática se ejecuta a diario. También puedes hacer una copia manual, exportar para compartir o importar desde un archivo. Restaurar reemplaza todos los datos actuales."
+  },
   "defaultCategories": {
     "foodDining": "Comida",
     "transport": "Transporte",

@@ -3,6 +3,7 @@ import { View, Pressable, Modal, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { TransactionListItem } from "@/components/organisms/TransactionListItem";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
@@ -36,6 +37,7 @@ export default function HomeScreen() {
   const [recent, setRecent] = useState<TransactionWithRelations[]>([]);
   const [upcoming, setUpcoming] = useState<RecurringTransaction[]>([]);
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -63,8 +65,10 @@ export default function HomeScreen() {
     <ScreenLayout scrollable edges={["top"]}>
       <HeaderBar
         title={t("home.title")}
-        rightIcon="cog"
-        onRightPress={() => router.push("/settings")}
+        leftIcon="cog"
+        onLeftPress={() => router.push("/settings")}
+        rightIcon="help-circle-outline"
+        onRightPress={() => setShowHelp(true)}
       />
 
       {/* Balance card with eye toggle */}
@@ -222,6 +226,12 @@ export default function HomeScreen() {
           </View>
         </Pressable>
       </Modal>
+      <HelpModal
+        visible={showHelp}
+        title={t("home.title")}
+        content={t("help.home")}
+        onClose={() => setShowHelp(false)}
+      />
     </ScreenLayout>
   );
 }

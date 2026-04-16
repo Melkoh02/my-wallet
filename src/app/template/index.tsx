@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/molecules/EmptyState";
 import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { FAB } from "@/components/atoms/FAB";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { useTemplates } from "@/hooks/useTemplates";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -31,6 +32,7 @@ export default function TemplatesScreen() {
   const { templates, loading } = useTemplates();
   const { invalidate } = useDataRefresh();
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -80,7 +82,12 @@ export default function TemplatesScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title={t("templates.title")} onBack={() => router.back()} />
+      <HeaderBar
+        title={t("templates.title")}
+        onBack={() => router.back()}
+        rightIcon="help-circle-outline"
+        onRightPress={() => setShowHelp(true)}
+      />
       <FlatList
         data={templates}
         keyExtractor={(item) => item.id.toString()}
@@ -105,6 +112,12 @@ export default function TemplatesScreen() {
         cancelLabel={t("common.cancel")}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <HelpModal
+        visible={showHelp}
+        title={t("templates.title")}
+        content={t("help.templates")}
+        onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>
   );

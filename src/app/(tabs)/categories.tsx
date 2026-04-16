@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -7,6 +8,7 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { FAB } from "@/components/atoms/FAB";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { useCategories } from "@/hooks/useCategories";
 import { useTheme } from "@/providers/ThemeProvider";
 import { translateCategoryName } from "@/constants/categories";
@@ -44,10 +46,15 @@ export default function CategoriesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { categories, loading } = useCategories();
+  const [showHelp, setShowHelp] = useState(false);
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title={t("categories.title")} />
+      <HeaderBar
+        title={t("categories.title")}
+        rightIcon="help-circle-outline"
+        onRightPress={() => setShowHelp(true)}
+      />
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id.toString()}
@@ -60,6 +67,12 @@ export default function CategoriesScreen() {
         }
       />
       <FAB onPress={() => router.push("/category/form")} />
+      <HelpModal
+        visible={showHelp}
+        title={t("categories.title")}
+        content={t("help.categories")}
+        onClose={() => setShowHelp(false)}
+      />
     </ScreenLayout>
   );
 }

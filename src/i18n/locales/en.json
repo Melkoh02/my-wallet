@@ -354,6 +354,16 @@
     "search": "Search icons... (e.g. cart, music, star)",
     "noResults": "No icons found for \u201c{{query}}\u201d"
   },
+  "help": {
+    "home": "Your dashboard at a glance. See your net worth, this month's income and expenses, upcoming recurring transactions, and recent activity. Tap any item to see its details.",
+    "transactions": "All your transactions in one place, grouped by date. Use the search bar to find specific ones, or tap the filter button to narrow by type, date, amount, account, contact, or category.",
+    "categories": "Organize your spending with categories and subcategories. Tap a category to see and manage its subcategories. You can rename subcategories by tapping their name.",
+    "analytics": "Monthly breakdown of your finances. See income vs expenses, spending by category, and daily spending patterns. Navigate between months with the arrows.",
+    "accounts": "All your accounts: bank, credit cards, cash, loans, and investments. Tap an account to see its transactions. The archive button lets you hide accounts without deleting them.",
+    "recurring": "Scheduled transactions that repeat automatically: salaries, subscriptions, bills. Set the frequency, day, and amount. Use Trigger Now if a payment comes early.",
+    "templates": "Quick-fill shortcuts for transactions you do often. Create a template once, then tap it when creating a transaction to pre-fill all the fields.",
+    "backup": "Keep your data safe. Auto-backup runs daily. You can also manually backup, export to share, or import from a file. Restoring replaces all current data."
+  },
   "defaultCategories": {
     "foodDining": "Food & Dining",
     "transport": "Transport",

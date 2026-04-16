@@ -168,6 +168,7 @@
     "noItems": "无定期交易",
     "noItemsDesc": "设置工资、订阅和其他定期交易",
     "newRecurring": "新建定期交易",
+    "editRecurring": "编辑定期交易",
     "createRecurring": "创建定期交易",
     "frequency": "频率",
     "startDate": "开始日期",

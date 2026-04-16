@@ -168,6 +168,7 @@
     "noItems": "Sem itens recorrentes",
     "noItemsDesc": "Configure salário, assinaturas e outras transações regulares",
     "newRecurring": "Nova Recorrência",
+    "editRecurring": "Editar Recorrência",
     "createRecurring": "Criar Recorrência",
     "frequency": "Frequência",
     "startDate": "Data de Início",

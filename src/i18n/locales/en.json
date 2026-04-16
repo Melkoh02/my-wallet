@@ -168,6 +168,7 @@
     "noItems": "No recurring items",
     "noItemsDesc": "Set up salary, subscriptions, and other regular transactions",
     "newRecurring": "New Recurring",
+    "editRecurring": "Edit Recurring",
     "createRecurring": "Create Recurring",
     "frequency": "Frequency",
     "startDate": "Start Date",

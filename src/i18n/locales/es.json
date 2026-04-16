@@ -168,6 +168,7 @@
     "noItems": "Sin elementos recurrentes",
     "noItemsDesc": "Configura salario, suscripciones y otras transacciones periódicas",
     "newRecurring": "Nuevo Recurrente",
+    "editRecurring": "Editar Recurrente",
     "createRecurring": "Crear Recurrente",
     "frequency": "Frecuencia",
     "startDate": "Fecha de Inicio",

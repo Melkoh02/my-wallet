@@ -12,6 +12,8 @@ type HeaderAction = {
 type HeaderBarProps = {
   title: string;
   onBack?: () => void;
+  leftIcon?: string;
+  onLeftPress?: () => void;
   rightIcon?: string;
   onRightPress?: () => void;
   rightActions?: HeaderAction[];
@@ -20,6 +22,8 @@ type HeaderBarProps = {
 export function HeaderBar({
   title,
   onBack,
+  leftIcon,
+  onLeftPress,
   rightIcon,
   onRightPress,
   rightActions,
@@ -35,6 +39,11 @@ export function HeaderBar({
         {onBack && (
           <Pressable onPress={onBack} hitSlop={8} style={styles.iconButton}>
             <AppIcon name="arrow-left" size={24} color={colors.text} />
+          </Pressable>
+        )}
+        {!onBack && leftIcon && onLeftPress && (
+          <Pressable onPress={onLeftPress} hitSlop={8} style={styles.iconButton}>
+            <AppIcon name={leftIcon} size={24} color={colors.text} />
           </Pressable>
         )}
       </View>

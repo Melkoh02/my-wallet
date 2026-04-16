@@ -13,6 +13,7 @@ import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useTransactions } from "@/hooks/useTransactions";
 import { getAccounts } from "@/db/queries/accounts";
@@ -60,6 +61,7 @@ export default function TransactionsScreen() {
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const fullFilters = useMemo(
     () => ({
@@ -101,7 +103,11 @@ export default function TransactionsScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title={t("transactions.title")} />
+      <HeaderBar
+        title={t("transactions.title")}
+        rightIcon="help-circle-outline"
+        onRightPress={() => setShowHelp(true)}
+      />
       <View style={styles.searchRow}>
         <View style={styles.searchInput}>
           <AppInput
@@ -226,6 +232,12 @@ export default function TransactionsScreen() {
           </View>
         </Pressable>
       </Modal>
+      <HelpModal
+        visible={showHelp}
+        title={t("transactions.title")}
+        content={t("help.transactions")}
+        onClose={() => setShowHelp(false)}
+      />
     </ScreenLayout>
   );
 }

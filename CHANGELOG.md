@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-04-16
+
+### Added
+- **Help modal** on all 8 main screens (Home, Transactions, Categories, Analytics, Accounts, Recurring, Templates, Backup) — '?' icon in header opens friendly explanation text
+- **HelpModal** molecule component — themed card with scrollable content, all 5 languages
+- **HeaderBar leftIcon/onLeftPress** props for custom left icons
+- **Credit card "Pay Card" button** on account detail — navigates to transfer form with card pre-filled as destination
+- **FAB on account detail** — quick-add transaction with account pre-selected
+- **Recurring transaction editing** — form supports loading by ID, edit button on detail screen
+- Subcategory name translations on category detail screen
+- Thousand separator formatting on recurring form amount input
+
+### Changed
+- Home screen: settings icon moved to left, help on right
+- Recurring screen: header '+' replaced with FAB (consistent with other list screens)
+- Accounts header: uses rightActions array for archive toggle + help icon
+- ModalLayout: bottom safe area handled by page sheet (removes double padding)
+
+### Fixed
+- Pay Card auto-select excludes the credit card itself from "from" account (prevents from==to invalid state)
+- Debt display always visible with AmountDisplay handling privacy (no longer hidden entirely when amounts masked)
+- Split bill rounding reverted to Math.round with 2 decimals (Math.floor broke decimal currencies)
+
 ## [1.4.0] - 2026-04-15
 
 ### Added
@@ -357,6 +380,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.5.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.4.0
 [1.3.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.2.0

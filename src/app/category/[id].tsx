@@ -12,6 +12,7 @@ import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
+import { translateCategoryName } from "@/constants/categories";
 import {
   getCategoryById,
   createSubcategory,
@@ -68,7 +69,7 @@ export default function CategoryDetailScreen() {
   return (
     <ScreenLayout edges={["top"]}>
       <HeaderBar
-        title={category.name}
+        title={translateCategoryName(category.name, t)}
         onBack={() => router.back()}
         rightIcon="pencil"
         onRightPress={() => router.push(`/category/form?id=${category.id}`)}
@@ -115,7 +116,7 @@ export default function CategoryDetailScreen() {
                       }
                 }
               >
-                <AppText variant="body">{item.name}</AppText>
+                <AppText variant="body">{translateCategoryName(item.name, t)}</AppText>
               </Pressable>
             )}
             {item.isGeneral ? (

@@ -10,6 +10,8 @@ import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
+import { FAB } from "@/components/atoms/FAB";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { useRecurring } from "@/hooks/useRecurring";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -85,6 +87,7 @@ export default function RecurringScreen() {
   const { items, loading } = useRecurring(false);
   const { invalidate } = useDataRefresh();
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleToggle = async (id: number) => {
     await toggleRecurring(id);
@@ -103,8 +106,8 @@ export default function RecurringScreen() {
       <HeaderBar
         title={t("recurring.title")}
         onBack={() => router.back()}
-        rightIcon="plus"
-        onRightPress={() => router.push("/recurring/form")}
+        rightIcon="help-circle-outline"
+        onRightPress={() => setShowHelp(true)}
       />
       <FlatList
         data={items}
@@ -128,6 +131,7 @@ export default function RecurringScreen() {
           )
         }
       />
+      <FAB onPress={() => router.push("/recurring/form")} />
       <ConfirmModal
         visible={!!deleteTarget}
         title={t("recurring.deleteTitle")}
@@ -136,6 +140,12 @@ export default function RecurringScreen() {
         cancelLabel={t("common.cancel")}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <HelpModal
+        visible={showHelp}
+        title={t("recurring.title")}
+        content={t("help.recurring")}
+        onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>
   );

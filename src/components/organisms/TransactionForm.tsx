@@ -49,6 +49,8 @@ type TransactionFormProps = {
   templates?: TemplateWithSubs[];
   onSubmit: (data: TransactionFormData, subcategoryIds: number[]) => void;
   initialType?: TransactionType;
+  initialAccountId?: number;
+  initialToAccountId?: number;
   initialData?: TransactionFormData & { subcategoryIds: number[] };
   locationEnabled?: boolean;
 };
@@ -60,6 +62,8 @@ export function TransactionForm({
   templates = [],
   onSubmit,
   initialType = "expense",
+  initialAccountId,
+  initialToAccountId,
   initialData,
   locationEnabled = false,
 }: TransactionFormProps) {
@@ -76,8 +80,12 @@ export function TransactionForm({
     initialData?.amount ? formatAmountInput(initialData.amount.toString()) : "",
   );
   const [description, setDescription] = useState(initialData?.description ?? "");
-  const [accountId, setAccountId] = useState<number | null>(initialData?.accountId ?? null);
-  const [toAccountId, setToAccountId] = useState<number | null>(initialData?.toAccountId ?? null);
+  const [accountId, setAccountId] = useState<number | null>(
+    initialData?.accountId ?? initialAccountId ?? null,
+  );
+  const [toAccountId, setToAccountId] = useState<number | null>(
+    initialData?.toAccountId ?? initialToAccountId ?? null,
+  );
   const [date, setDate] = useState(initialData?.date ?? todayDateString());
   const [time, setTime] = useState(initialData?.time ?? nowTimeString());
   const [subcategoryIds, setSubcategoryIds] = useState<number[]>(initialData?.subcategoryIds ?? []);
@@ -134,10 +142,16 @@ export function TransactionForm({
   useEffect(() => {
     if (isEditing || accountId !== null) return;
     getLastAccountByType(type).then((lastAccId) => {
-      if (lastAccId && accounts.some((a) => a.id === lastAccId)) {
+      // Exclude initialToAccountId to avoid from==to on transfers (e.g. Pay Card)
+      if (
+        lastAccId &&
+        lastAccId !== initialToAccountId &&
+        accounts.some((a) => a.id === lastAccId)
+      ) {
         setAccountId(lastAccId);
       } else if (accounts.length > 0) {
-        setAccountId(accounts[0].id);
+        const fallback = accounts.find((a) => a.id !== initialToAccountId) ?? accounts[0];
+        setAccountId(fallback.id);
       }
     });
   }, [type, accounts, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps

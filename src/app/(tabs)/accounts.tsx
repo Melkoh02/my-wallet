@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/molecules/EmptyState";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { FAB } from "@/components/atoms/FAB";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -21,6 +22,7 @@ export default function AccountsScreen() {
   const { colors } = useTheme();
   const { invalidate } = useDataRefresh();
   const [showArchived, setShowArchived] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const { accounts: activeAccounts, loading } = useAccounts(true);
   const { accounts: allAccounts } = useAccounts(false);
   const archivedAccounts = allAccounts.filter((a) => !a.isActive);
@@ -34,10 +36,17 @@ export default function AccountsScreen() {
     <ScreenLayout edges={["top"]}>
       <HeaderBar
         title={t("accounts.title")}
-        rightIcon={
-          archivedAccounts.length > 0 ? (showArchived ? "archive-off" : "archive") : undefined
-        }
-        onRightPress={archivedAccounts.length > 0 ? () => setShowArchived((p) => !p) : undefined}
+        rightActions={[
+          ...(archivedAccounts.length > 0
+            ? [
+                {
+                  icon: showArchived ? "archive-off" : "archive",
+                  onPress: () => setShowArchived((p: boolean) => !p),
+                },
+              ]
+            : []),
+          { icon: "help-circle-outline", onPress: () => setShowHelp(true) },
+        ]}
       />
       <FlatList
         data={showArchived ? archivedAccounts : activeAccounts}
@@ -76,6 +85,12 @@ export default function AccountsScreen() {
         }
       />
       {!showArchived && <FAB onPress={() => router.push("/account/form")} />}
+      <HelpModal
+        visible={showHelp}
+        title={t("accounts.title")}
+        content={t("help.accounts")}
+        onClose={() => setShowHelp(false)}
+      />
     </ScreenLayout>
   );
 }

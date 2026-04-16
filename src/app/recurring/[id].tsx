@@ -78,7 +78,12 @@ export default function RecurringDetailScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title={item.description} onBack={() => router.back()} />
+      <HeaderBar
+        title={item.description}
+        onBack={() => router.back()}
+        rightIcon="pencil"
+        onRightPress={() => router.push(`/recurring/form?id=${item.id}` as never)}
+      />
       <FlatList
         data={txns}
         keyExtractor={(txn) => txn.id.toString()}

@@ -15,8 +15,9 @@ import { AppInput } from "@/components/atoms/AppInput";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
+import { FAB } from "@/components/atoms/FAB";
+import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { useTheme } from "@/providers/ThemeProvider";
-import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { getAccountById } from "@/db/queries/accounts";
@@ -36,7 +37,6 @@ export default function AccountDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { hideAmounts } = usePrivacy();
   const { revisions, invalidate } = useDataRefresh();
   const { accounts: allAccounts } = useAccounts();
   const [account, setAccount] = useState<Account | null>(null);
@@ -92,7 +92,7 @@ export default function AccountDetailScreen() {
                 type={isBorrowed && !loanSettled ? "expense" : loanSettled ? "income" : "neutral"}
               />
               {/* #5: Use AmountDisplay for debt to respect privacy mode */}
-              {account.type === "credit" && account.creditLimit != null && !hideAmounts && (
+              {account.type === "credit" && account.creditLimit != null && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                   <AppText variant="bodySmall" color={colors.expense}>
                     {t("accounts.debt")}:
@@ -111,6 +111,22 @@ export default function AccountDetailScreen() {
                 </AppText>
               ) : null}
             </View>
+
+            {/* Credit card pay button */}
+            {account.type === "credit" && (
+              <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+                <AppButton
+                  title={t("accounts.payCard")}
+                  icon="credit-card-check"
+                  variant="secondary"
+                  onPress={() =>
+                    router.push(
+                      `/transaction/form?type=transfer&toAccountId=${account.id}` as never,
+                    )
+                  }
+                />
+              </View>
+            )}
 
             {isLoan && (
               <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
@@ -184,6 +200,16 @@ export default function AccountDetailScreen() {
           />
         }
       />
+
+      {/* FAB to add transaction with this account pre-selected */}
+      {!isLoan && !isInvestment && (
+        <FAB
+          actions={TRANSACTION_FAB_ACTIONS}
+          onAction={(key) =>
+            router.push(`/transaction/form?type=${key}&accountId=${account.id}` as never)
+          }
+        />
+      )}
 
       {isLoan && !loanSettled && (
         <PaymentModal

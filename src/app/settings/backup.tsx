@@ -8,6 +8,7 @@ import { AppIcon } from "@/components/atoms/AppIcon";
 import { AppButton } from "@/components/atoms/AppButton";
 import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
+import { HelpModal } from "@/components/molecules/HelpModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -36,6 +37,7 @@ export default function BackupScreen() {
   const [deleteBackupId, setDeleteBackupId] = useState<number | null>(null);
   const [restoreFilePath, setRestoreFilePath] = useState<string | null>(null);
   const [resultModal, setResultModal] = useState<{ title: string; message: string } | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const loadData = async () => {
     const [list, enabled, count] = await Promise.all([
@@ -147,7 +149,12 @@ export default function BackupScreen() {
 
   return (
     <ScreenLayout edges={["top"]}>
-      <HeaderBar title={t("backup.title")} onBack={() => router.back()} />
+      <HeaderBar
+        title={t("backup.title")}
+        onBack={() => router.back()}
+        rightIcon="help-circle-outline"
+        onRightPress={() => setShowHelp(true)}
+      />
       <FlatList
         data={backupList}
         keyExtractor={(item) => item.id.toString()}
@@ -283,6 +290,12 @@ export default function BackupScreen() {
         confirmLabel={t("common.done")}
         variant="primary"
         onConfirm={() => setResultModal(null)}
+      />
+      <HelpModal
+        visible={showHelp}
+        title={t("backup.title")}
+        content={t("help.backup")}
+        onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>
   );

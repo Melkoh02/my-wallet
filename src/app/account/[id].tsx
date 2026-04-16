@@ -18,7 +18,6 @@ import { Divider } from "@/components/atoms/Divider";
 import { FAB } from "@/components/atoms/FAB";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { useTheme } from "@/providers/ThemeProvider";
-import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import { getAccountById } from "@/db/queries/accounts";
@@ -38,7 +37,6 @@ export default function AccountDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { hideAmounts } = usePrivacy();
   const { revisions, invalidate } = useDataRefresh();
   const { accounts: allAccounts } = useAccounts();
   const [account, setAccount] = useState<Account | null>(null);
@@ -94,7 +92,7 @@ export default function AccountDetailScreen() {
                 type={isBorrowed && !loanSettled ? "expense" : loanSettled ? "income" : "neutral"}
               />
               {/* #5: Use AmountDisplay for debt to respect privacy mode */}
-              {account.type === "credit" && account.creditLimit != null && !hideAmounts && (
+              {account.type === "credit" && account.creditLimit != null && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                   <AppText variant="bodySmall" color={colors.expense}>
                     {t("accounts.debt")}:

@@ -142,10 +142,16 @@ export function TransactionForm({
   useEffect(() => {
     if (isEditing || accountId !== null) return;
     getLastAccountByType(type).then((lastAccId) => {
-      if (lastAccId && accounts.some((a) => a.id === lastAccId)) {
+      // Exclude initialToAccountId to avoid from==to on transfers (e.g. Pay Card)
+      if (
+        lastAccId &&
+        lastAccId !== initialToAccountId &&
+        accounts.some((a) => a.id === lastAccId)
+      ) {
         setAccountId(lastAccId);
       } else if (accounts.length > 0) {
-        setAccountId(accounts[0].id);
+        const fallback = accounts.find((a) => a.id !== initialToAccountId) ?? accounts[0];
+        setAccountId(fallback.id);
       }
     });
   }, [type, accounts, isEditing]); // eslint-disable-line react-hooks/exhaustive-deps

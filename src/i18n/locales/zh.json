@@ -328,7 +328,15 @@
     "dailySpending": "每日支出",
     "noData": "该时段暂无数据",
     "net": "净额",
-    "uncategorized": "未分类"
+    "uncategorized": "未分类",
+    "insights": "洞察",
+    "savingsRate": "储蓄率",
+    "vsLastMonth": "较上月",
+    "projected": "月末预计",
+    "lastSixMonths": "过去6个月",
+    "topContacts": "主要联系人",
+    "oneTransaction": "1笔交易",
+    "nTransactions": "{{count}}笔交易"
   },
   "format": {
     "today": "今天",

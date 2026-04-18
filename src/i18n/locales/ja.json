@@ -328,7 +328,15 @@
     "dailySpending": "日別支出",
     "noData": "この期間のデータはありません",
     "net": "収支",
-    "uncategorized": "未分類"
+    "uncategorized": "未分類",
+    "insights": "インサイト",
+    "savingsRate": "貯蓄率",
+    "vsLastMonth": "前月比",
+    "projected": "月末予測",
+    "lastSixMonths": "過去6ヶ月",
+    "topContacts": "よく取引する相手",
+    "oneTransaction": "取引1件",
+    "nTransactions": "取引{{count}}件"
   },
   "format": {
     "today": "今日",

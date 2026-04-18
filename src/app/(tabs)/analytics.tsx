@@ -11,7 +11,14 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { useAccounts } from "@/hooks/useAccounts";
-import { getMonthSummary, getDailySpending, getCategorySummary } from "@/db/queries/transactions";
+import {
+  getMonthSummary,
+  getDailySpending,
+  getCategorySummary,
+  getTrendData,
+  getTopContactsByMonth,
+  type TrendPoint,
+} from "@/db/queries/transactions";
 import { formatCurrency } from "@/utils/format";
 import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
@@ -28,21 +35,34 @@ export default function AnalyticsScreen() {
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
 
   const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
+  const [prevSummary, setPrevSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [categoryData, setCategoryData] = useState<
     { categoryName: string; categoryColor: string; categoryIcon: string; total: number }[]
   >([]);
   const [dailyData, setDailyData] = useState<{ date: string; total: number }[]>([]);
+  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
+  const [topContacts, setTopContacts] = useState<
+    { contactId: string; contactName: string; total: number; count: number }[]
+  >([]);
   const [showHelp, setShowHelp] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [s, c, d] = await Promise.all([
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const [s, c, d, trend, contacts, pv] = await Promise.all([
       getMonthSummary(year, month),
       getCategorySummary(year, month),
       getDailySpending(year, month),
+      getTrendData(6),
+      getTopContactsByMonth(year, month, 3),
+      getMonthSummary(prevYear, prevMonth),
     ]);
     setSummary(s);
     setCategoryData(c);
     setDailyData(d);
+    setTrendData(trend);
+    setTopContacts(contacts);
+    setPrevSummary(pv);
   }, [year, month]);
 
   useEffect(() => {
@@ -70,6 +90,28 @@ export default function AnalyticsScreen() {
   const maxCategory = categoryData.length > 0 ? categoryData[0].total : 0;
   const maxDaily = dailyData.length > 0 ? Math.max(...dailyData.map((d) => d.total)) : 0;
   const hasData = summary.income > 0 || summary.expense > 0;
+
+  const savingsRate =
+    summary.income > 0 ? ((summary.income - summary.expense) / summary.income) * 100 : null;
+  const expenseChange =
+    prevSummary.expense > 0
+      ? ((summary.expense - prevSummary.expense) / prevSummary.expense) * 100
+      : null;
+
+  const now = new Date();
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+  const projection = (() => {
+    if (!isCurrentMonth || dailyData.length === 0 || summary.expense === 0) return null;
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (dayOfMonth >= daysInMonth) return null;
+    return (summary.expense / dayOfMonth) * daysInMonth;
+  })();
+
+  const hasInsights = savingsRate != null || expenseChange != null || projection != null;
+  const trendMax = trendData.length
+    ? Math.max(...trendData.flatMap((t) => [t.income, t.expense]), 1)
+    : 1;
 
   return (
     <ScreenLayout scrollable edges={["top"]}>
@@ -128,6 +170,125 @@ export default function AnalyticsScreen() {
               </View>
             </View>
           </View>
+
+          {/* Insights: savings rate, MoM change, projection */}
+          {hasInsights && (
+            <View style={styles.section}>
+              <AppText variant="h3" style={styles.sectionTitle}>
+                {t("analytics.insights")}
+              </AppText>
+              <View style={[styles.overviewCard, { backgroundColor: colors.card }]}>
+                {savingsRate != null && (
+                  <View style={styles.overviewRow}>
+                    <View style={styles.insightLabel}>
+                      <AppIcon name="piggy-bank" size={18} color={colors.income} />
+                      <AppText variant="bodySmall" color={colors.textSecondary}>
+                        {t("analytics.savingsRate")}
+                      </AppText>
+                    </View>
+                    <AppText
+                      variant="label"
+                      color={savingsRate >= 0 ? colors.income : colors.expense}
+                    >
+                      {savingsRate.toFixed(0)}%
+                    </AppText>
+                  </View>
+                )}
+                {expenseChange != null && (
+                  <View style={styles.overviewRow}>
+                    <View style={styles.insightLabel}>
+                      <AppIcon
+                        name={expenseChange > 0 ? "trending-up" : "trending-down"}
+                        size={18}
+                        color={expenseChange > 0 ? colors.expense : colors.income}
+                      />
+                      <AppText variant="bodySmall" color={colors.textSecondary}>
+                        {t("analytics.vsLastMonth")}
+                      </AppText>
+                    </View>
+                    <AppText
+                      variant="label"
+                      color={expenseChange > 0 ? colors.expense : colors.income}
+                    >
+                      {expenseChange > 0 ? "+" : ""}
+                      {expenseChange.toFixed(0)}%
+                    </AppText>
+                  </View>
+                )}
+                {projection != null && (
+                  <View style={styles.overviewRow}>
+                    <View style={styles.insightLabel}>
+                      <AppIcon name="chart-timeline-variant" size={18} color={colors.primary} />
+                      <AppText variant="bodySmall" color={colors.textSecondary}>
+                        {t("analytics.projected")}
+                      </AppText>
+                    </View>
+                    <AppText variant="label" color={colors.text}>
+                      {hideAmounts ? "••••" : formatCurrency(maskAmount(projection), dc)}
+                    </AppText>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Last 6 months trend */}
+          {trendData.length > 0 && (
+            <View style={styles.section}>
+              <AppText variant="h3" style={styles.sectionTitle}>
+                {t("analytics.lastSixMonths")}
+              </AppText>
+              <View style={[styles.listCard, { backgroundColor: colors.card }]}>
+                {trendData.map((tp, i) => {
+                  const monthLabel = new Date(tp.year, tp.month - 1).toLocaleDateString(undefined, {
+                    month: "short",
+                  });
+                  const incomePct = (tp.income / trendMax) * 100;
+                  const expensePct = (tp.expense / trendMax) * 100;
+                  const net = tp.income - tp.expense;
+                  return (
+                    <View
+                      key={`${tp.year}-${tp.month}`}
+                      style={[
+                        styles.trendRow,
+                        i > 0 && { borderTopColor: colors.borderLight, borderTopWidth: 1 },
+                      ]}
+                    >
+                      <View style={styles.trendHeader}>
+                        <AppText variant="label">{monthLabel}</AppText>
+                        <AppText
+                          variant="caption"
+                          color={net >= 0 ? colors.income : colors.expense}
+                        >
+                          {hideAmounts
+                            ? "••••"
+                            : `${net >= 0 ? "+" : ""}${formatCurrency(maskAmount(net), dc)}`}
+                        </AppText>
+                      </View>
+                      <View style={styles.trendBars}>
+                        <View style={[styles.trendBarBg, { backgroundColor: colors.borderLight }]}>
+                          <View
+                            style={[
+                              styles.trendBarFill,
+                              { backgroundColor: colors.income, width: `${incomePct}%` },
+                            ]}
+                          />
+                        </View>
+                        <View style={[styles.trendBarBg, { backgroundColor: colors.borderLight }]}>
+                          <View
+                            style={[
+                              styles.trendBarFill,
+                              { backgroundColor: colors.expense, width: `${expensePct}%` },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* Category breakdown */}
           {categoryData.length > 0 && (
@@ -232,6 +393,42 @@ export default function AnalyticsScreen() {
         </>
       )}
 
+      {hasData && topContacts.length > 0 && (
+        <View style={styles.section}>
+          <AppText variant="h3" style={styles.sectionTitle}>
+            {t("analytics.topContacts")}
+          </AppText>
+          <View style={[styles.listCard, { backgroundColor: colors.card }]}>
+            {topContacts.map((tc, i) => (
+              <View
+                key={tc.contactId}
+                style={[
+                  styles.contactRow,
+                  i > 0 && { borderTopColor: colors.borderLight, borderTopWidth: 1 },
+                ]}
+              >
+                <View style={styles.contactLabel}>
+                  <AppIcon name="account-circle" size={22} color={colors.primary} />
+                  <AppText variant="body" numberOfLines={1} style={styles.contactName}>
+                    {tc.contactName}
+                  </AppText>
+                </View>
+                <View style={styles.contactMeta}>
+                  <AppText variant="label" color={colors.text}>
+                    {hideAmounts ? "••••" : formatCurrency(maskAmount(tc.total), dc)}
+                  </AppText>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    {tc.count === 1
+                      ? t("analytics.oneTransaction")
+                      : t("analytics.nTransactions", { count: tc.count })}
+                  </AppText>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* Bottom spacing */}
       <View style={styles.bottomPad} />
       <HelpModal
@@ -334,5 +531,51 @@ const styles = StyleSheet.create({
   },
   bottomPad: {
     height: spacing["3xl"],
+  },
+  insightLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  trendRow: {
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  trendHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  trendBars: {
+    gap: 3,
+  },
+  trendBarBg: {
+    height: 5,
+    borderRadius: 2.5,
+    overflow: "hidden",
+  },
+  trendBarFill: {
+    height: 5,
+    borderRadius: 2.5,
+  },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  contactLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    flex: 1,
+  },
+  contactName: {
+    flex: 1,
+  },
+  contactMeta: {
+    alignItems: "flex-end",
+    gap: 2,
   },
 });

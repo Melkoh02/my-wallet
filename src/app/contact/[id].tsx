@@ -24,7 +24,7 @@ export default function ContactDetailScreen() {
   }, [id]);
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar title={params.name || "Contact"} onBack={() => router.back()} />
       <FlatList
         data={transactions}

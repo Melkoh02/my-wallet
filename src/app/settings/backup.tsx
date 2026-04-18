@@ -148,7 +148,7 @@ export default function BackupScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={t("backup.title")}
         onBack={() => router.back()}

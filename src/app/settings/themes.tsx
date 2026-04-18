@@ -80,7 +80,7 @@ export default function ThemesScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar title="Themes" onBack={() => router.back()} />
       <FlatList
         data={themeList}

@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-04-18
+
+### Added
+- **Analytics insights** card: savings rate, month-over-month expense change, and end-of-month expense projection (current month, mid-month)
+- **6-month trend**: rolling window of income vs expense bars per month with net per row; empty months render as zero-height bars so gaps in activity are visible
+- **Top Contacts** section on analytics: top 3 people by expense total for the viewed month with transaction count per contact
+- **Automatically add location** setting, nested under Location Stamps — when enabled, new-transaction forms fetch GPS on mount without tapping
+- **Help modal sections**: every screen's help now opens with Overview / How to use / Tips instead of a single paragraph, rewritten across all 8 help-enabled screens and translated into all 5 locales
+- `getTrendData` and `getTopContactsByMonth` queries
+
+### Changed
+- Location field on the transaction form now has a titled label and renders as a bordered card when set, matching the rest of the form
+- HelpModal takes a `helpKey` prop and pulls sectioned content from i18n; section headings live under `help.sections`
+- HelpModal spacing loosened (bigger section gaps, heading-to-body breathing, larger line-height, more header padding)
+- ModalLayout skips KeyboardAvoidingView on Android (the system's `adjustResize` handles it) and honours the bottom safe area on Android; iOS keeps `KeyboardAvoidingView behavior="padding"` with pageSheet handling its own bottom inset
+
+### Fixed
+- **Credit card limit adjustment**: when a credit card's limit changes on edit and the user hasn't touched the balance field, balance shifts by the limit delta so `debt = limit − balance` stays constant — matches what users mean when their bank raises or lowers a limit
+- Auto-add-location didn't actually fire: the settings load asynchronously after the form mounts, so a mount-only effect always saw `false`. Fixed with a ref-guarded prop-reactive effect
+- AccountForm "balance untouched" detection uses a touched ref instead of float equality, so retyping the same value no longer silently triggers the limit-delta shift
+- Non-tab screens restored to top+bottom safe area (11 screens had locally overridden `ScreenLayout`'s default, undoing the v1.4.0 fix). Version label on Settings is no longer hidden behind the Android 3-button nav
+- Transaction form bottom dead space: dropped excessive `paddingBottom`, removed Android's unnecessary KeyboardAvoidingView, trimmed container spacing so the Save button sits just above the gesture bar without a visible gap
+- `@xmldom/xmldom` bumped to 0.8.13 via `npm audit fix` (transitive dev-only advisory)
+
 ## [1.5.0] - 2026-04-16
 
 ### Added
@@ -380,6 +404,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.6.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.6.0
 [1.5.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.4.0
 [1.3.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.3.0

@@ -116,7 +116,7 @@ export default function TemplatesScreen() {
       <HelpModal
         visible={showHelp}
         title={t("templates.title")}
-        content={t("help.templates")}
+        helpKey="templates"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

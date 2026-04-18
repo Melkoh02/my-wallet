@@ -294,7 +294,7 @@ export default function BackupScreen() {
       <HelpModal
         visible={showHelp}
         title={t("backup.title")}
-        content={t("help.backup")}
+        helpKey="backup"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

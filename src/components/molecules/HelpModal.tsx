@@ -1,4 +1,5 @@
 import { Modal, Pressable, View, ScrollView, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/providers/ThemeProvider";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
@@ -7,12 +8,15 @@ import { spacing } from "@/theme/spacing";
 type HelpModalProps = {
   visible: boolean;
   title: string;
-  content: string;
+  helpKey: string;
   onClose: () => void;
 };
 
-export function HelpModal({ visible, title, content, onClose }: HelpModalProps) {
+const SECTIONS = ["overview", "howTo", "tips"] as const;
+
+export function HelpModal({ visible, title, helpKey, onClose }: HelpModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -30,10 +34,21 @@ export function HelpModal({ visible, title, content, onClose }: HelpModalProps) 
               <AppIcon name="close" size={22} color={colors.iconSecondary} />
             </Pressable>
           </View>
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            <AppText variant="body" color={colors.textSecondary} style={styles.content}>
-              {content}
-            </AppText>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {SECTIONS.map((section) => (
+              <View key={section} style={styles.section}>
+                <AppText variant="label" color={colors.primary} style={styles.sectionHeading}>
+                  {t(`help.sections.${section}`)}
+                </AppText>
+                <AppText variant="body" color={colors.textSecondary} style={styles.sectionBody}>
+                  {t(`help.${helpKey}.${section}`)}
+                </AppText>
+              </View>
+            ))}
           </ScrollView>
         </View>
       </Pressable>
@@ -51,7 +66,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    maxHeight: "70%",
+    maxHeight: "80%",
     borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
@@ -69,10 +84,19 @@ const styles = StyleSheet.create({
   },
   body: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
   },
-  content: {
-    lineHeight: 22,
+  bodyContent: {
     paddingBottom: spacing.lg,
+    gap: spacing.lg,
+  },
+  section: {
+    gap: spacing.xs,
+  },
+  sectionHeading: {
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sectionBody: {
+    lineHeight: 22,
   },
 });

@@ -229,7 +229,7 @@ export default function HomeScreen() {
       <HelpModal
         visible={showHelp}
         title={t("home.title")}
-        content={t("help.home")}
+        helpKey="home"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

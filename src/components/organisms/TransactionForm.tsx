@@ -219,15 +219,19 @@ export function TransactionForm({
     setLocationLoading(false);
   };
 
-  // Auto-fetch location on mount for new transactions when the setting is on.
-  // Guarded by locationLoading so only the initial render triggers it; if the user
-  // removes the auto-added stamp, re-renders won't re-fetch.
+  // Auto-fetch location on new transactions when the setting is on. The parent
+  // screen hydrates both location-related settings asynchronously, so the flags
+  // can flip from false to true after mount — we react to that but only fire
+  // once per form instance, even if props oscillate or the user later removes
+  // the stamp.
+  const autoFetchedRef = useRef(false);
   useEffect(() => {
-    if (!isEditing && locationEnabled && autoAddLocation && !location && !locationLoading) {
+    if (!isEditing && locationEnabled && autoAddLocation && !location && !autoFetchedRef.current) {
+      autoFetchedRef.current = true;
       handleAddLocation();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locationEnabled, autoAddLocation, isEditing]);
 
   const handleSubmit = () => {
     const parsed = parseFloat(unformatAmount(amount));

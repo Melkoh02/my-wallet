@@ -17,7 +17,7 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={Platform.OS === "android" ? ["top", "bottom"] : ["top"]}
     >
       <View style={styles.header}>
         <AppText variant="h3" style={styles.title}>

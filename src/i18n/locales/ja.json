@@ -211,6 +211,8 @@
     "recurringDesc": "サブスクリプションと給与の管理",
     "locationStamps": "位置情報スタンプ",
     "locationDesc": "新しい取引に位置情報を付加",
+    "autoAddLocation": "位置情報を自動で追加",
+    "autoAddLocationDesc": "新しい取引ごとにタップせず位置情報を取得",
     "displayCurrency": "表示通貨",
     "displayCurrencyDesc": "すべての残高をこの通貨に変換して表示",
     "updateRates": "為替レートを更新",

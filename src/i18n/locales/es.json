@@ -211,6 +211,8 @@
     "recurringDesc": "Administrar suscripciones y salario",
     "locationStamps": "Marcas de Ubicación",
     "locationDesc": "Adjuntar ubicación a nuevas transacciones",
+    "autoAddLocation": "Añadir ubicación automáticamente",
+    "autoAddLocationDesc": "Obtener la ubicación en cada nueva transacción sin tocar",
     "displayCurrency": "Moneda de Visualización",
     "displayCurrencyDesc": "Todos los saldos se convierten a esta moneda",
     "updateRates": "Actualizar tipos de cambio",

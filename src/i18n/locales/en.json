@@ -211,6 +211,8 @@
     "recurringDesc": "Manage subscriptions and salary",
     "locationStamps": "Location Stamps",
     "locationDesc": "Attach location to new transactions",
+    "autoAddLocation": "Automatically add location",
+    "autoAddLocationDesc": "Fetch location on each new transaction without tapping",
     "displayCurrency": "Display Currency",
     "displayCurrencyDesc": "All balances converted to this currency",
     "updateRates": "Update exchange rates",

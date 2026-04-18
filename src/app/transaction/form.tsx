@@ -33,6 +33,7 @@ export default function TransactionFormScreen() {
   const { templates } = useTemplates();
   const { invalidate } = useDataRefresh();
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [autoAddLocation, setAutoAddLocation] = useState(false);
   const [initialData, setInitialData] = useState<
     (TransactionFormData & { subcategoryIds: number[] }) | undefined
   >();
@@ -44,6 +45,12 @@ export default function TransactionFormScreen() {
       .where(eq(settings.key, "location_enabled"))
       .then(([s]) => {
         if (s?.value === "true") setLocationEnabled(true);
+      });
+    db.select()
+      .from(settings)
+      .where(eq(settings.key, "auto_add_location"))
+      .then(([s]) => {
+        if (s?.value === "true") setAutoAddLocation(true);
       });
   }, []);
 
@@ -248,6 +255,7 @@ export default function TransactionFormScreen() {
         initialToAccountId={params.toAccountId ? parseInt(params.toAccountId, 10) : undefined}
         initialData={initialData}
         locationEnabled={locationEnabled}
+        autoAddLocation={autoAddLocation}
       />
     </ModalLayout>
   );

@@ -322,7 +322,7 @@ export default function SettingsScreen() {
     SUPPORTED_LANGUAGES.find((l) => l.code === language)?.label ?? language;
 
   return (
-    <ScreenLayout scrollable edges={["top"]}>
+    <ScreenLayout scrollable>
       <HeaderBar title={t("settings.title")} onBack={() => router.back()} />
 
       {/* Display Currency */}

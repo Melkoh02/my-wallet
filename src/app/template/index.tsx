@@ -81,7 +81,7 @@ export default function TemplatesScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={t("templates.title")}
         onBack={() => router.back()}

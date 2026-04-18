@@ -102,7 +102,7 @@ export default function RecurringScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={t("recurring.title")}
         onBack={() => router.back()}

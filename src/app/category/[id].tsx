@@ -67,7 +67,7 @@ export default function CategoryDetailScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={translateCategoryName(category.name, t)}
         onBack={() => router.back()}

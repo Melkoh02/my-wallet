@@ -211,6 +211,8 @@
     "recurringDesc": "管理订阅和工资",
     "locationStamps": "位置标记",
     "locationDesc": "为新交易添加位置信息",
+    "autoAddLocation": "自动添加位置",
+    "autoAddLocationDesc": "创建新交易时自动获取位置，无需点击",
     "displayCurrency": "显示币种",
     "displayCurrencyDesc": "所有余额将转换为此币种显示",
     "updateRates": "更新汇率",

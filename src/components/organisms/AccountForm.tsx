@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -67,6 +67,10 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   );
   const [interestRate, setInterestRate] = useState(initial?.interestRate?.toString() ?? "");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
+  // Tracks whether the user has typed in the balance field this session. Used so
+  // that changing only the credit limit shifts balance, but explicitly retyping
+  // the balance (even to the same value) is respected as-is.
+  const balanceTouchedRef = useRef(false);
 
   useEffect(() => {
     if (!initial) {
@@ -114,7 +118,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       newLimit != null &&
       initial.creditLimit != null &&
       newLimit !== initial.creditLimit &&
-      parsed === initial.balance
+      !balanceTouchedRef.current
     ) {
       parsed += newLimit - initial.creditLimit;
     }
@@ -256,7 +260,10 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       <AppInput
         label={getBalanceLabel()}
         value={balance}
-        onChangeText={(text) => setBalance(formatAmountInput(text))}
+        onChangeText={(text) => {
+          balanceTouchedRef.current = true;
+          setBalance(formatAmountInput(text));
+        }}
         keyboardType="decimal-pad"
         placeholder="0"
       />

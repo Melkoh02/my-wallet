@@ -328,7 +328,15 @@
     "dailySpending": "Daily Spending",
     "noData": "No data for this period",
     "net": "Net",
-    "uncategorized": "Uncategorized"
+    "uncategorized": "Uncategorized",
+    "insights": "Insights",
+    "savingsRate": "Savings Rate",
+    "vsLastMonth": "vs Last Month",
+    "projected": "Projected End of Month",
+    "lastSixMonths": "Last 6 Months",
+    "topContacts": "Top Contacts",
+    "oneTransaction": "1 transaction",
+    "nTransactions": "{{count}} transactions"
   },
   "format": {
     "today": "Today",

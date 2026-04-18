@@ -328,7 +328,15 @@
     "dailySpending": "Gastos Diários",
     "noData": "Sem dados para este período",
     "net": "Líquido",
-    "uncategorized": "Sem categoria"
+    "uncategorized": "Sem categoria",
+    "insights": "Insights",
+    "savingsRate": "Taxa de Poupança",
+    "vsLastMonth": "vs Mês Anterior",
+    "projected": "Projeção Fim de Mês",
+    "lastSixMonths": "Últimos 6 Meses",
+    "topContacts": "Principais Contatos",
+    "oneTransaction": "1 transação",
+    "nTransactions": "{{count}} transações"
   },
   "format": {
     "today": "Hoje",

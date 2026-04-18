@@ -458,3 +458,81 @@ export async function getCategorySummary(
 
   return Array.from(categoryMap.values()).sort((a, b) => b.total - a.total);
 }
+
+export type TrendPoint = { year: number; month: number; income: number; expense: number };
+
+export async function getTrendData(monthsBack: number): Promise<TrendPoint[]> {
+  const now = new Date();
+  const targets: { year: number; month: number; monthStr: string }[] = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    targets.push({ year: y, month: m, monthStr: `${y}-${String(m).padStart(2, "0")}` });
+  }
+
+  const earliest = targets[0].monthStr;
+  const rows = await db
+    .select({
+      month: sql<string>`substr(${transactions.date}, 1, 7)`.as("m"),
+      type: transactions.type,
+      total: sql<number>`SUM(${transactions.amount})`,
+    })
+    .from(transactions)
+    .where(sql`substr(${transactions.date}, 1, 7) >= ${earliest}`)
+    .groupBy(sql`substr(${transactions.date}, 1, 7)`, transactions.type);
+
+  // Pre-seed every target month with zeros so gaps in activity still render in the trend.
+  const map = new Map<string, { income: number; expense: number }>();
+  for (const t of targets) {
+    map.set(t.monthStr, { income: 0, expense: 0 });
+  }
+  for (const row of rows) {
+    const existing = map.get(row.month);
+    if (!existing) continue;
+    if (row.type === "income") existing.income = row.total;
+    else if (row.type === "expense") existing.expense = row.total;
+  }
+
+  return targets.map((t) => ({
+    year: t.year,
+    month: t.month,
+    income: map.get(t.monthStr)!.income,
+    expense: map.get(t.monthStr)!.expense,
+  }));
+}
+
+export async function getTopContactsByMonth(
+  year: number,
+  month: number,
+  limit = 3,
+): Promise<{ contactId: string; contactName: string; total: number; count: number }[]> {
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const rows = await db
+    .select({
+      contactId: transactions.contactId,
+      contactName: transactions.contactName,
+      total: sql<number>`SUM(${transactions.amount})`.as("tot"),
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        like(transactions.date, `${monthStr}%`),
+        eq(transactions.type, "expense"),
+        sql`${transactions.contactId} IS NOT NULL`,
+      ),
+    )
+    .groupBy(transactions.contactId, transactions.contactName)
+    .orderBy(sql`tot DESC`)
+    .limit(limit);
+
+  return rows
+    .filter((r) => r.contactId && r.contactName)
+    .map((r) => ({
+      contactId: r.contactId!,
+      contactName: r.contactName!,
+      total: r.total,
+      count: r.count,
+    }));
+}

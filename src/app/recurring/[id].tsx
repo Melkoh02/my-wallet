@@ -77,7 +77,7 @@ export default function RecurringDetailScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={item.description}
         onBack={() => router.back()}

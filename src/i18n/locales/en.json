@@ -211,6 +211,8 @@
     "recurringDesc": "Manage subscriptions and salary",
     "locationStamps": "Location Stamps",
     "locationDesc": "Attach location to new transactions",
+    "autoAddLocation": "Automatically add location",
+    "autoAddLocationDesc": "Fetch location on each new transaction without tapping",
     "displayCurrency": "Display Currency",
     "displayCurrencyDesc": "All balances converted to this currency",
     "updateRates": "Update exchange rates",
@@ -326,7 +328,15 @@
     "dailySpending": "Daily Spending",
     "noData": "No data for this period",
     "net": "Net",
-    "uncategorized": "Uncategorized"
+    "uncategorized": "Uncategorized",
+    "insights": "Insights",
+    "savingsRate": "Savings Rate",
+    "vsLastMonth": "vs Last Month",
+    "projected": "Projected End of Month",
+    "lastSixMonths": "Last 6 Months",
+    "topContacts": "Top Contacts",
+    "oneTransaction": "1 transaction",
+    "nTransactions": "{{count}} transactions"
   },
   "format": {
     "today": "Today",
@@ -355,14 +365,51 @@
     "noResults": "No icons found for \u201c{{query}}\u201d"
   },
   "help": {
-    "home": "Your dashboard at a glance. See your net worth, this month's income and expenses, upcoming recurring transactions, and recent activity. Tap any item to see its details.",
-    "transactions": "All your transactions in one place, grouped by date. Use the search bar to find specific ones, or tap the filter button to narrow by type, date, amount, account, contact, or category.",
-    "categories": "Organize your spending with categories and subcategories. Tap a category to see and manage its subcategories. You can rename subcategories by tapping their name.",
-    "analytics": "Monthly breakdown of your finances. See income vs expenses, spending by category, and daily spending patterns. Navigate between months with the arrows.",
-    "accounts": "All your accounts: bank, credit cards, cash, loans, and investments. Tap an account to see its transactions. The archive button lets you hide accounts without deleting them.",
-    "recurring": "Scheduled transactions that repeat automatically: salaries, subscriptions, bills. Set the frequency, day, and amount. Use Trigger Now if a payment comes early.",
-    "templates": "Quick-fill shortcuts for transactions you do often. Create a template once, then tap it when creating a transaction to pre-fill all the fields.",
-    "backup": "Keep your data safe. Auto-backup runs daily. You can also manually backup, export to share, or import from a file. Restoring replaces all current data."
+    "sections": {
+      "overview": "Overview",
+      "howTo": "How to use",
+      "tips": "Tips"
+    },
+    "home": {
+      "overview": "Your wallet's front door. It rolls up your total net worth, this month's income vs expenses, upcoming scheduled transactions, and your most recent activity into a single scannable view.",
+      "howTo": "Tap the eye icon on the balance card to hide amounts. Tap any recent transaction to see its details. Tap 'See all' to jump to the full transactions list. Use the floating + button to create a new transaction.",
+      "tips": "Net worth combines every account, converted to your display currency. Credit card debt and outstanding borrowed loans count as liabilities. If net worth is negative, that means you owe more than you have."
+    },
+    "transactions": {
+      "overview": "Every transaction you've recorded, grouped by date with 'Today' and 'Yesterday' labels at the top. This is where you go to find, edit, or delete past entries.",
+      "howTo": "Use the search bar for keywords in the description or notes. Tap the filter icon to narrow by type, date range, amount, accounts, contacts, or categories. Scroll to load older entries. Tap a transaction to edit or delete it.",
+      "tips": "The filter icon shows a badge with the number of active filters. Clear them all with one tap in the filter modal. Transfers appear once but affect both accounts so your balances stay correct."
+    },
+    "categories": {
+      "overview": "Organize spending with categories and subcategories. Every category has a 'General' subcategory as a fallback, and a single transaction can belong to multiple subcategories.",
+      "howTo": "Tap a category to manage its subcategories — add new ones, rename by tapping a name, or delete. Pick a color and icon when creating or editing so each category is easy to spot. Use the + button to create a new category.",
+      "tips": "Multi-subcategory is handy for cross-cutting tags like 'birthday' or 'work'. The analytics screen breaks down spending by category, so cleaning up your categories makes insights sharper."
+    },
+    "analytics": {
+      "overview": "See your money flow month by month: income, expenses, net change, the categories you spent the most on, and daily spending patterns.",
+      "howTo": "Use the arrows at the top to move between months. The category section ranks top expense categories by total. The daily chart shows spikes and quiet days across the month.",
+      "tips": "Compare months to spot trends — if one category keeps climbing, that's where to focus. Privacy mode (hide amounts, random numbers) applies here too if you want to check things without exposing real figures."
+    },
+    "accounts": {
+      "overview": "All your accounts in one place: banks, credit cards, cash, wallets, savings, loans (borrowed and lent), and investments. Each account tracks its own transactions and balance.",
+      "howTo": "Tap an account to see its transactions and actions (Pay Card, Make Payment, quick-add). Use the archive icon in the header to toggle the archived-accounts view. The floating + button creates a new account.",
+      "tips": "Credit card 'balance' means available credit. Debt is computed as limit minus balance. Loans track interest if you set a rate. Investments compound daily when you open the app."
+    },
+    "recurring": {
+      "overview": "Scheduled transactions that repeat automatically — salaries, subscriptions, rent, bills. Set it once and the app creates entries on the right dates.",
+      "howTo": "Create a recurring item and pick a frequency (daily, weekly, biweekly, monthly, yearly). Monthly uses a day-of-month, weekly uses a day-of-week. Pause to stop without deleting. Use Trigger Now when a payment arrives early.",
+      "tips": "The app catches up on missed runs when you open it, capped at 90 days. If you were offline longer, backfill manually. Upcoming items within 30 days show on the home screen."
+    },
+    "templates": {
+      "overview": "Reusable shortcuts for the transactions you enter over and over — lunch, coffee, weekly groceries, whatever has the same shape each time.",
+      "howTo": "Create a template with the fields you want pre-filled (amount, account, category, contact, description). On the new-transaction screen, tap a template chip at the top to apply everything at once.",
+      "tips": "Templates ride along with your backups, so they follow your data across restores. Unlike recurring transactions, templates don't auto-run — they're just a faster starting point."
+    },
+    "backup": {
+      "overview": "Protect your data. An automatic backup runs once a day when you open the app. You can also export to share a file or import to restore from one.",
+      "howTo": "Use 'Backup Now' for a manual snapshot. 'Export' sends a JSON file to the system share sheet. 'Import' replaces all current data with the selected backup — everything, not a merge.",
+      "tips": "Use 'Keep Last' to set how many auto-backups live on device. Export to cloud storage or email for off-device safety. Imports are atomic: if anything fails, nothing changes."
+    }
   },
   "defaultCategories": {
     "foodDining": "Food & Dining",

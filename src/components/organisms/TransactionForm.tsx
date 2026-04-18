@@ -53,6 +53,7 @@ type TransactionFormProps = {
   initialToAccountId?: number;
   initialData?: TransactionFormData & { subcategoryIds: number[] };
   locationEnabled?: boolean;
+  autoAddLocation?: boolean;
 };
 
 /* ---------- Main Form ---------- */
@@ -66,6 +67,7 @@ export function TransactionForm({
   initialToAccountId,
   initialData,
   locationEnabled = false,
+  autoAddLocation = false,
 }: TransactionFormProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -216,6 +218,20 @@ export function TransactionForm({
     else setLocationError(t("transactionForm.locationFailed"));
     setLocationLoading(false);
   };
+
+  // Auto-fetch location on new transactions when the setting is on. The parent
+  // screen hydrates both location-related settings asynchronously, so the flags
+  // can flip from false to true after mount — we react to that but only fire
+  // once per form instance, even if props oscillate or the user later removes
+  // the stamp.
+  const autoFetchedRef = useRef(false);
+  useEffect(() => {
+    if (!isEditing && locationEnabled && autoAddLocation && !location && !autoFetchedRef.current) {
+      autoFetchedRef.current = true;
+      handleAddLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationEnabled, autoAddLocation, isEditing]);
 
   const handleSubmit = () => {
     const parsed = parseFloat(unformatAmount(amount));
@@ -427,14 +443,22 @@ export function TransactionForm({
 
       {locationEnabled && (
         <View style={styles.section}>
+          <AppText variant="label" color={colors.textSecondary}>
+            {t("transactionForm.location")}
+          </AppText>
           {location ? (
-            <View style={styles.locationRow}>
-              <AppText variant="bodySmall" color={colors.textSecondary} style={styles.locationText}>
-                {"📍 "}
+            <View
+              style={[
+                styles.locationCard,
+                { borderColor: colors.border, backgroundColor: colors.surface },
+              ]}
+            >
+              <AppIcon name="map-marker" size={18} color={colors.primary} />
+              <AppText variant="body" style={styles.locationText} numberOfLines={2}>
                 {location.name ||
                   `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
               </AppText>
-              <Pressable onPress={() => setLocation(null)}>
+              <Pressable onPress={() => setLocation(null)} hitSlop={8}>
                 <AppText variant="caption" color={colors.danger}>
                   {t("common.remove")}
                 </AppText>
@@ -828,7 +852,7 @@ export function TransactionForm({
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  container: { gap: spacing.lg, paddingBottom: spacing["2xl"] },
+  container: { gap: spacing.lg, paddingBottom: spacing.sm },
   typeRow: { flexDirection: "row", gap: spacing.sm },
   typeBtn: {
     flex: 1,
@@ -849,7 +873,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  locationRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  locationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+  },
   locationText: { flex: 1 },
   cashbackCard: { borderWidth: 1, borderRadius: 12, padding: spacing.md, gap: spacing.md },
   cashbackHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

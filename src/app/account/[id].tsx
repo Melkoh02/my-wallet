@@ -63,7 +63,7 @@ export default function AccountDetailScreen() {
   const paymentAccounts = allAccounts.filter((a) => a.id !== account.id && !isLoanType(a.type));
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={account.name}
         onBack={() => router.back()}

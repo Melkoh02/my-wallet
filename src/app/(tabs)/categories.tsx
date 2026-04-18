@@ -70,7 +70,7 @@ export default function CategoriesScreen() {
       <HelpModal
         visible={showHelp}
         title={t("categories.title")}
-        content={t("help.categories")}
+        helpKey="categories"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

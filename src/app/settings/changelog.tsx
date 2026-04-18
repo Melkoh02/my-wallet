@@ -69,7 +69,7 @@ export default function ChangelogScreen() {
   }, []);
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar title={t("settings.changelog")} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content}>
         {entries.map((entry) => (

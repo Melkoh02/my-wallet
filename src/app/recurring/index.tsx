@@ -102,7 +102,7 @@ export default function RecurringScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={t("recurring.title")}
         onBack={() => router.back()}
@@ -144,7 +144,7 @@ export default function RecurringScreen() {
       <HelpModal
         visible={showHelp}
         title={t("recurring.title")}
-        content={t("help.recurring")}
+        helpKey="recurring"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

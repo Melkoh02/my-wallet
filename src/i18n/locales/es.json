@@ -211,6 +211,8 @@
     "recurringDesc": "Administrar suscripciones y salario",
     "locationStamps": "Marcas de Ubicación",
     "locationDesc": "Adjuntar ubicación a nuevas transacciones",
+    "autoAddLocation": "Añadir ubicación automáticamente",
+    "autoAddLocationDesc": "Obtener la ubicación en cada nueva transacción sin tocar",
     "displayCurrency": "Moneda de Visualización",
     "displayCurrencyDesc": "Todos los saldos se convierten a esta moneda",
     "updateRates": "Actualizar tipos de cambio",
@@ -326,7 +328,15 @@
     "dailySpending": "Gastos Diarios",
     "noData": "Sin datos para este período",
     "net": "Neto",
-    "uncategorized": "Sin categoría"
+    "uncategorized": "Sin categoría",
+    "insights": "Perspectivas",
+    "savingsRate": "Tasa de Ahorro",
+    "vsLastMonth": "vs Mes Anterior",
+    "projected": "Proyección Fin de Mes",
+    "lastSixMonths": "Últimos 6 Meses",
+    "topContacts": "Contactos Principales",
+    "oneTransaction": "1 transacción",
+    "nTransactions": "{{count}} transacciones"
   },
   "format": {
     "today": "Hoy",
@@ -355,14 +365,51 @@
     "noResults": "No se encontraron íconos para \u201c{{query}}\u201d"
   },
   "help": {
-    "home": "Tu panel de un vistazo. Consulta tu patrimonio neto, ingresos y gastos del mes, transacciones recurrentes próximas y actividad reciente. Toca cualquier elemento para ver sus detalles.",
-    "transactions": "Todas tus transacciones en un solo lugar, agrupadas por fecha. Usa la barra de búsqueda para encontrar una en concreto, o toca el botón de filtro para acotar por tipo, fecha, monto, cuenta, contacto o categoría.",
-    "categories": "Organiza tus gastos con categorías y subcategorías. Toca una categoría para ver y gestionar sus subcategorías. Puedes renombrar subcategorías tocando su nombre.",
-    "analytics": "Desglose mensual de tus finanzas. Consulta ingresos vs gastos, gasto por categoría y patrones de gasto diarios. Navega entre meses con las flechas.",
-    "accounts": "Todas tus cuentas: banco, tarjetas de crédito, efectivo, préstamos e inversiones. Toca una cuenta para ver sus transacciones. El botón de archivar te permite ocultar cuentas sin eliminarlas.",
-    "recurring": "Transacciones programadas que se repiten automáticamente: salarios, suscripciones, facturas. Define la frecuencia, el día y el monto. Usa Ejecutar ahora si un pago llega antes de tiempo.",
-    "templates": "Atajos de llenado rápido para transacciones frecuentes. Crea una plantilla una vez y tócala al crear una transacción para rellenar todos los campos.",
-    "backup": "Mantén tus datos seguros. La copia de seguridad automática se ejecuta a diario. También puedes hacer una copia manual, exportar para compartir o importar desde un archivo. Restaurar reemplaza todos los datos actuales."
+    "sections": {
+      "overview": "Resumen",
+      "howTo": "Cómo usarlo",
+      "tips": "Consejos"
+    },
+    "home": {
+      "overview": "La entrada principal de tu billetera. Reúne tu patrimonio neto total, los ingresos y gastos del mes, las transacciones programadas próximas y tu actividad más reciente en una sola vista fácil de leer.",
+      "howTo": "Toca el ícono del ojo en la tarjeta de saldo para ocultar los montos. Toca cualquier transacción reciente para ver sus detalles. Toca 'Ver todo' para ir a la lista completa de transacciones. Usa el botón flotante + para crear una nueva transacción.",
+      "tips": "El patrimonio neto combina todas tus cuentas, convertidas a tu moneda de visualización. La deuda de tarjetas de crédito y los préstamos pendientes cuentan como pasivos. Si el patrimonio neto es negativo, significa que debes más de lo que tienes."
+    },
+    "transactions": {
+      "overview": "Todas las transacciones que has registrado, agrupadas por fecha con etiquetas 'Hoy' y 'Ayer' en la parte superior. Aquí puedes encontrar, editar o eliminar entradas pasadas.",
+      "howTo": "Usa la barra de búsqueda para buscar palabras clave en la descripción o las notas. Toca el ícono de filtro para acotar por tipo, rango de fechas, monto, cuentas, contactos o categorías. Desplázate para cargar entradas más antiguas. Toca una transacción para editarla o eliminarla.",
+      "tips": "El ícono de filtro muestra una insignia con la cantidad de filtros activos. Puedes borrarlos todos con un toque en el modal de filtros. Las transferencias aparecen una sola vez pero afectan a ambas cuentas, así tus saldos se mantienen correctos."
+    },
+    "categories": {
+      "overview": "Organiza tus gastos con categorías y subcategorías. Cada categoría tiene una subcategoría 'General' como respaldo, y una misma transacción puede pertenecer a varias subcategorías.",
+      "howTo": "Toca una categoría para gestionar sus subcategorías: agrega nuevas, renómbralas tocando el nombre o elimínalas. Elige un color y un ícono al crear o editar para que cada categoría sea fácil de identificar. Usa el botón + para crear una nueva categoría.",
+      "tips": "Las múltiples subcategorías son útiles para etiquetas transversales como 'cumpleaños' o 'trabajo'. La pantalla de análisis desglosa los gastos por categoría, así que mantener tus categorías ordenadas hace que los datos sean más claros."
+    },
+    "analytics": {
+      "overview": "Mira cómo fluye tu dinero mes a mes: ingresos, gastos, cambio neto, las categorías en las que más gastaste y los patrones de gasto diarios.",
+      "howTo": "Usa las flechas de la parte superior para moverte entre meses. La sección de categorías ordena las principales categorías de gasto por total. El gráfico diario muestra los picos y los días tranquilos a lo largo del mes.",
+      "tips": "Compara los meses para detectar tendencias: si una categoría sigue subiendo, ahí es donde enfocarte. El modo de privacidad (ocultar montos, números aleatorios) también aplica aquí, por si quieres revisar todo sin exponer cifras reales."
+    },
+    "accounts": {
+      "overview": "Todas tus cuentas en un solo lugar: bancos, tarjetas de crédito, efectivo, billeteras, ahorros, préstamos (prestados y recibidos) e inversiones. Cada cuenta lleva el registro de sus propias transacciones y su saldo.",
+      "howTo": "Toca una cuenta para ver sus transacciones y acciones (Pagar Tarjeta, Realizar Pago, agregado rápido). Usa el ícono de archivar en el encabezado para alternar la vista de cuentas archivadas. El botón flotante + crea una nueva cuenta.",
+      "tips": "El 'saldo' de una tarjeta de crédito es el crédito disponible. La deuda se calcula como el límite menos el saldo. Los préstamos registran intereses si configuras una tasa. Las inversiones se capitalizan diariamente cuando abres la app."
+    },
+    "recurring": {
+      "overview": "Transacciones programadas que se repiten automáticamente: salarios, suscripciones, alquiler, facturas. Configúralas una vez y la app creará las entradas en las fechas correctas.",
+      "howTo": "Crea un elemento recurrente y elige una frecuencia (diaria, semanal, quincenal, mensual, anual). La mensual usa un día del mes, la semanal usa un día de la semana. Pausa para detener sin eliminar. Usa Ejecutar Ahora cuando un pago llega antes.",
+      "tips": "La app se pone al día con las ejecuciones perdidas cuando la abres, con un límite de 90 días. Si estuviste sin conexión más tiempo, registra las faltantes manualmente. Los próximos elementos dentro de 30 días aparecen en la pantalla de inicio."
+    },
+    "templates": {
+      "overview": "Atajos reutilizables para las transacciones que registras una y otra vez: almuerzo, café, compras semanales, lo que sea que tenga la misma forma cada vez.",
+      "howTo": "Crea una plantilla con los campos que quieras prellenados (monto, cuenta, categoría, contacto, descripción). En la pantalla de nueva transacción, toca el chip de una plantilla arriba para aplicar todo de una vez.",
+      "tips": "Las plantillas viajan con tus respaldos, así que te acompañan cuando restauras tus datos. A diferencia de las transacciones recurrentes, las plantillas no se ejecutan solas: son solo un punto de partida más rápido."
+    },
+    "backup": {
+      "overview": "Protege tus datos. Una copia automática se ejecuta una vez al día cuando abres la app. También puedes exportar para compartir un archivo o importar para restaurar desde uno.",
+      "howTo": "Usa 'Respaldar Ahora' para una copia manual. 'Exportar' envía un archivo JSON a la hoja de compartir del sistema. 'Importar' reemplaza todos los datos actuales con el respaldo seleccionado: todo, no es una fusión.",
+      "tips": "Usa 'Conservar Últimos' para definir cuántos respaldos automáticos se guardan en el dispositivo. Exporta a la nube o a tu correo para tener seguridad fuera del dispositivo. Las importaciones son atómicas: si algo falla, nada cambia."
+    }
   },
   "defaultCategories": {
     "foodDining": "Comida",

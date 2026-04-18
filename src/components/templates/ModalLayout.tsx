@@ -17,7 +17,7 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={Platform.OS === "android" ? ["top", "bottom"] : ["top"]}
     >
       <View style={styles.header}>
         <AppText variant="h3" style={styles.title}>
@@ -29,13 +29,15 @@ export function ModalLayout({ title, children, onClose }: ModalLayoutProps) {
           </Pressable>
         )}
       </View>
-      <KeyboardAvoidingView
-        style={styles.content}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
-      >
-        {children}
-      </KeyboardAvoidingView>
+      {Platform.OS === "ios" ? (
+        <KeyboardAvoidingView style={styles.content} behavior="padding">
+          {children}
+        </KeyboardAvoidingView>
+      ) : (
+        // Android handles the keyboard via windowSoftInputMode=adjustResize at the
+        // activity level, so a KeyboardAvoidingView here only adds sizing quirks.
+        <View style={styles.content}>{children}</View>
+      )}
     </SafeAreaView>
   );
 }

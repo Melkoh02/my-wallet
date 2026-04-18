@@ -148,7 +148,7 @@ export default function BackupScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={t("backup.title")}
         onBack={() => router.back()}
@@ -294,7 +294,7 @@ export default function BackupScreen() {
       <HelpModal
         visible={showHelp}
         title={t("backup.title")}
-        content={t("help.backup")}
+        helpKey="backup"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

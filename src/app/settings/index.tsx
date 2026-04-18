@@ -255,6 +255,7 @@ export default function SettingsScreen() {
   const { language, changeLanguage } = useLanguage();
   const { randomNumbers, toggleRandomNumbers } = usePrivacy();
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [autoAddLocation, setAutoAddLocation] = useState(false);
   const [hideDefault, setHideDefault] = useState(false);
   const [randomDefault, setRandomDefault] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
@@ -266,6 +267,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     getSetting("location_enabled").then((v) => setLocationEnabled(v === "true"));
+    getSetting("auto_add_location").then((v) => setAutoAddLocation(v === "true"));
     getSetting("privacy_hide_default").then((v) => setHideDefault(v === "true"));
     getSetting("privacy_random_default").then((v) => setRandomDefault(v === "true"));
     getSetting("display_currency").then((v) => setDisplayCurrency(v ?? "USD"));
@@ -285,6 +287,18 @@ export default function SettingsScreen() {
   const handleLocationToggle = async (value: boolean) => {
     setLocationEnabled(value);
     await setSetting("location_enabled", value.toString());
+    // Turning the parent setting off implicitly turns the child off too, so the UI
+    // and the persisted flag stay in sync.
+    if (!value && autoAddLocation) {
+      setAutoAddLocation(false);
+      await setSetting("auto_add_location", "false");
+    }
+    invalidate("settings");
+  };
+
+  const handleAutoAddLocationToggle = async (value: boolean) => {
+    setAutoAddLocation(value);
+    await setSetting("auto_add_location", value.toString());
     invalidate("settings");
   };
 
@@ -308,7 +322,7 @@ export default function SettingsScreen() {
     SUPPORTED_LANGUAGES.find((l) => l.code === language)?.label ?? language;
 
   return (
-    <ScreenLayout scrollable edges={["top"]}>
+    <ScreenLayout scrollable>
       <HeaderBar title={t("settings.title")} onBack={() => router.back()} />
 
       {/* Display Currency */}
@@ -401,6 +415,15 @@ export default function SettingsScreen() {
         value={locationEnabled}
         onToggle={handleLocationToggle}
       />
+      {locationEnabled && (
+        <SettingsToggle
+          icon="map-marker-plus"
+          title={t("settings.autoAddLocation")}
+          subtitle={t("settings.autoAddLocationDesc")}
+          value={autoAddLocation}
+          onToggle={handleAutoAddLocationToggle}
+        />
+      )}
       <Divider />
 
       {/* Privacy */}
@@ -450,7 +473,7 @@ export default function SettingsScreen() {
       {/* App version */}
       <View style={styles.versionContainer}>
         <AppText variant="caption" color={colors.textTertiary}>
-          {t("settings.version", { version: "1.5.0" })}
+          {t("settings.version", { version: "1.6.0" })}
         </AppText>
       </View>
 

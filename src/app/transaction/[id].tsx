@@ -90,7 +90,7 @@ export default function TransactionDetailScreen() {
   };
 
   return (
-    <ScreenLayout edges={["top"]}>
+    <ScreenLayout>
       <HeaderBar
         title={t("transactions.transaction")}
         onBack={() => router.back()}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -67,6 +67,10 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   );
   const [interestRate, setInterestRate] = useState(initial?.interestRate?.toString() ?? "");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
+  // Tracks whether the user has typed in the balance field this session. Used so
+  // that changing only the credit limit shifts balance, but explicitly retyping
+  // the balance (even to the same value) is respected as-is.
+  const balanceTouchedRef = useRef(false);
 
   useEffect(() => {
     if (!initial) {
@@ -103,12 +107,27 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
     if (type === "loan_borrowed") {
       parsed = -Math.abs(parsed);
     }
+    const newLimit = type === "credit" ? parseFloat(unformatAmount(creditLimit)) || null : null;
+    // When a credit card's limit changes (e.g. bank raises/lowers it) and the user hasn't
+    // manually edited the available-credit field, shift balance by the limit delta so that
+    // debt (= creditLimit - balance) stays constant. Without this, changing the limit alone
+    // silently changes the debt figure, which isn't what the user means.
+    if (
+      initial?.type === "credit" &&
+      type === "credit" &&
+      newLimit != null &&
+      initial.creditLimit != null &&
+      newLimit !== initial.creditLimit &&
+      !balanceTouchedRef.current
+    ) {
+      parsed += newLimit - initial.creditLimit;
+    }
     onSubmit({
       name: name.trim(),
       institution: institution.trim(),
       type,
       balance: parsed,
-      creditLimit: type === "credit" ? parseFloat(unformatAmount(creditLimit)) || null : null,
+      creditLimit: newLimit,
       currency,
       color,
       icon: selectedTypeDef?.icon ?? "wallet",
@@ -241,7 +260,10 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       <AppInput
         label={getBalanceLabel()}
         value={balance}
-        onChangeText={(text) => setBalance(formatAmountInput(text))}
+        onChangeText={(text) => {
+          balanceTouchedRef.current = true;
+          setBalance(formatAmountInput(text));
+        }}
         keyboardType="decimal-pad"
         placeholder="0"
       />

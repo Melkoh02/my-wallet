@@ -103,12 +103,27 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
     if (type === "loan_borrowed") {
       parsed = -Math.abs(parsed);
     }
+    const newLimit = type === "credit" ? parseFloat(unformatAmount(creditLimit)) || null : null;
+    // When a credit card's limit changes (e.g. bank raises/lowers it) and the user hasn't
+    // manually edited the available-credit field, shift balance by the limit delta so that
+    // debt (= creditLimit - balance) stays constant. Without this, changing the limit alone
+    // silently changes the debt figure, which isn't what the user means.
+    if (
+      initial?.type === "credit" &&
+      type === "credit" &&
+      newLimit != null &&
+      initial.creditLimit != null &&
+      newLimit !== initial.creditLimit &&
+      parsed === initial.balance
+    ) {
+      parsed += newLimit - initial.creditLimit;
+    }
     onSubmit({
       name: name.trim(),
       institution: institution.trim(),
       type,
       balance: parsed,
-      creditLimit: type === "credit" ? parseFloat(unformatAmount(creditLimit)) || null : null,
+      creditLimit: newLimit,
       currency,
       color,
       icon: selectedTypeDef?.icon ?? "wallet",

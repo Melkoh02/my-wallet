@@ -74,29 +74,30 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.md,
   },
   title: {
     flex: 1,
   },
   body: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
   },
   bodyContent: {
-    paddingBottom: spacing.lg,
-    gap: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.xl,
   },
   section: {
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   sectionHeading: {
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   sectionBody: {
-    lineHeight: 22,
+    lineHeight: 24,
   },
 });

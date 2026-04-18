@@ -852,7 +852,7 @@ export function TransactionForm({
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  container: { gap: spacing.lg, paddingBottom: spacing["4xl"], flexGrow: 1 },
+  container: { gap: spacing.lg, paddingBottom: spacing.sm },
   typeRow: { flexDirection: "row", gap: spacing.sm },
   typeBtn: {
     flex: 1,

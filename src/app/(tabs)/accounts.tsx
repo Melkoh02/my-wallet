@@ -88,7 +88,7 @@ export default function AccountsScreen() {
       <HelpModal
         visible={showHelp}
         title={t("accounts.title")}
-        content={t("help.accounts")}
+        helpKey="accounts"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

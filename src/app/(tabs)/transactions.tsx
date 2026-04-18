@@ -235,7 +235,7 @@ export default function TransactionsScreen() {
       <HelpModal
         visible={showHelp}
         title={t("transactions.title")}
-        content={t("help.transactions")}
+        helpKey="transactions"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

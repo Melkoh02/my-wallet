@@ -237,7 +237,7 @@ export default function AnalyticsScreen() {
       <HelpModal
         visible={showHelp}
         title={t("analytics.title")}
-        content={t("help.analytics")}
+        helpKey="analytics"
         onClose={() => setShowHelp(false)}
       />
     </ScreenLayout>

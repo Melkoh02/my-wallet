@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-04-29
+
+### Added
+- **Net worth toggle** on accounts: each account can now be excluded from the net worth, total assets, and total liabilities calculation. Surfaced as a Switch on the account details screen and the create/edit form
+- Small badge on `AccountCard` when an account is excluded from net worth (`minus-circle-outline` icon next to the name) so the exclusion is visible from the accounts list
+- `accounts.includeInNetWorth`, `accounts.includeInNetWorthHint`, and `accounts.excluded` strings in all 5 locales
+- `include_in_net_worth` column on `accounts` table (migration 0005), defaults to `true` so existing accounts are unaffected
+
+### Changed
+- `getAccountsTotals` skips accounts where `includeInNetWorth` is false — flag flows through to home tab net worth and analytics totals via the same query
+
 ## [1.6.0] - 2026-04-18
 
 ### Added
@@ -404,6 +415,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.7.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.7.0
 [1.6.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.6.0
 [1.5.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.4.0

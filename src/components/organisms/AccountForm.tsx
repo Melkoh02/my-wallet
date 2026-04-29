@@ -1,5 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Modal, FlatList, TextInput } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Modal,
+  FlatList,
+  TextInput,
+  Switch,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
@@ -67,6 +76,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
   );
   const [interestRate, setInterestRate] = useState(initial?.interestRate?.toString() ?? "");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
+  const [includeInNetWorth, setIncludeInNetWorth] = useState(initial?.includeInNetWorth ?? true);
   // Tracks whether the user has typed in the balance field this session. Used so
   // that changing only the credit limit shifts balance, but explicitly retyping
   // the balance (even to the same value) is respected as-is.
@@ -140,6 +150,7 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
       dueDate: isLoanType(type) && dueDate ? dueDate : null,
       lastInterestDate:
         !initial && type === "investment" ? new Date().toISOString().slice(0, 10) : undefined,
+      includeInNetWorth,
     });
   };
 
@@ -430,6 +441,21 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
         </View>
       </View>
 
+      <View style={[styles.toggleRow, { backgroundColor: colors.card }]}>
+        <AppIcon name="scale-balance" size={22} color={colors.primary} />
+        <View style={styles.toggleText}>
+          <AppText variant="body">{t("accounts.includeInNetWorth")}</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            {t("accounts.includeInNetWorthHint")}
+          </AppText>
+        </View>
+        <Switch
+          accessibilityLabel={t("accounts.includeInNetWorth")}
+          value={includeInNetWorth}
+          onValueChange={setIncludeInNetWorth}
+        />
+      </View>
+
       <View style={styles.actions}>
         <AppButton
           title={initial ? t("accounts.saveChanges") : t("accounts.createAccount")}
@@ -497,6 +523,18 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.md,
     marginTop: spacing.lg,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+  },
+  toggleText: {
+    flex: 1,
+    gap: 2,
   },
   modalContainer: {
     flex: 1,

@@ -39,6 +39,13 @@ export default {
         tag: "0004_split_origin",
         breakpoints: true,
       },
+      {
+        idx: 5,
+        version: "6",
+        when: 1777428000000,
+        tag: "0005_account_include_in_net_worth",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -228,5 +235,6 @@ ALTER TABLE \`recurring_transactions\` ADD COLUMN \`day_of_week\` integer;
 --> statement-breakpoint
 ALTER TABLE \`recurring_transactions\` ADD COLUMN \`time_of_day\` text;`,
     m0004: `ALTER TABLE \`accounts\` ADD COLUMN \`origin_transaction_id\` integer;`,
+    m0005: `ALTER TABLE \`accounts\` ADD COLUMN \`include_in_net_worth\` integer DEFAULT true NOT NULL;`,
   },
 };

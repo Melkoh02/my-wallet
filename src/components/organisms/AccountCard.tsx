@@ -1,4 +1,5 @@
 import { View, Pressable, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
@@ -21,6 +22,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function AccountCard({ account, onPress }: AccountCardProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Pressable
@@ -38,9 +40,16 @@ export function AccountCard({ account, onPress }: AccountCardProps) {
         <AppIcon name={account.icon} size={24} color={account.color} />
       </View>
       <View style={styles.info}>
-        <AppText variant="label" numberOfLines={1}>
-          {account.name}
-        </AppText>
+        <View style={styles.nameRow}>
+          <AppText variant="label" numberOfLines={1} style={styles.name}>
+            {account.name}
+          </AppText>
+          {!account.includeInNetWorth && (
+            <View accessible accessibilityLabel={t("accounts.excluded")}>
+              <AppIcon name="minus-circle-outline" size={14} color={colors.textTertiary} />
+            </View>
+          )}
+        </View>
         <AppText variant="caption" color={colors.textSecondary}>
           {account.institution || TYPE_LABELS[account.type] || account.type}
         </AppText>
@@ -74,5 +83,13 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
     gap: 2,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  name: {
+    flexShrink: 1,
   },
 });

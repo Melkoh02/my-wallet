@@ -94,6 +94,7 @@ export async function getAccountsTotals(
   let totalLiabilities = 0;
 
   for (const acc of allAccounts) {
+    if (!acc.includeInNetWorth) continue;
     if (acc.type === "credit") {
       const debt = (acc.creditLimit ?? 0) - acc.balance;
       if (debt > 0) {

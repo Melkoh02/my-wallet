@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, FlatList, Pressable, Modal, StyleSheet } from "react-native";
+import { View, FlatList, Pressable, Modal, StyleSheet, Switch } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -20,7 +20,7 @@ import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { useAccounts } from "@/hooks/useAccounts";
-import { getAccountById } from "@/db/queries/accounts";
+import { getAccountById, updateAccount } from "@/db/queries/accounts";
 import {
   getTransactions,
   createTransaction,
@@ -181,6 +181,31 @@ export default function AccountDetailScreen() {
                 </View>
               </View>
             )}
+
+            <View style={[styles.toggleRow, { backgroundColor: colors.card }]}>
+              <AppIcon name="scale-balance" size={22} color={colors.primary} />
+              <View style={styles.toggleText}>
+                <AppText variant="body">{t("accounts.includeInNetWorth")}</AppText>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {t("accounts.includeInNetWorthHint")}
+                </AppText>
+              </View>
+              <Switch
+                accessibilityLabel={t("accounts.includeInNetWorth")}
+                value={account.includeInNetWorth}
+                onValueChange={async (v) => {
+                  const prev = account.includeInNetWorth;
+                  setAccount({ ...account, includeInNetWorth: v });
+                  try {
+                    await updateAccount(account.id, { includeInNetWorth: v });
+                    invalidate("accounts");
+                  } catch (e) {
+                    setAccount({ ...account, includeInNetWorth: prev });
+                    console.error("Net worth toggle failed:", e);
+                  }
+                }}
+              />
+            </View>
 
             <Divider style={styles.divider} />
           </View>
@@ -424,6 +449,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: spacing.lg,
     gap: spacing.md,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+  },
+  toggleText: {
+    flex: 1,
+    gap: 2,
   },
   infoRow: {
     flexDirection: "row",

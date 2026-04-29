@@ -12,6 +12,7 @@ export const accounts = sqliteTable("accounts", {
   color: text("color").notNull().default("#607D8B"),
   icon: text("icon").notNull().default("wallet"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  includeInNetWorth: integer("include_in_net_worth", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   counterparty: text("counterparty"),
   counterpartyContactId: text("counterparty_contact_id"),

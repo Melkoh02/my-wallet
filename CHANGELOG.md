@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-04-30
+
+### Added — External backup folder
+- **Storage Access Framework integration on Android**: pick a folder once via the system file picker; auto-daily backups go into a `MyWallet` subfolder inside it that survives uninstall. Migrates existing internal backups into the chosen folder on first selection.
+- **Files app integration on iOS** via `UIFileSharingEnabled` + `LSSupportsOpeningDocumentsInPlace` — backups in `documentDirectory` now show up in the Files app under On My iPhone › My Wallet.
+- **First-launch setup gate** explains the storage choice and prompts for a folder (Android) or acknowledges the Files-app integration (iOS). Skip path requires a confirm dialog.
+- **Backup folder row** in Backup settings shows current folder, change/clear actions, and a red warning banner on Android when no folder is selected or the SAF permission was revoked.
+- `i18next` plural keys migrated to CLDR `_one`/`_other` (the legacy `_plural` suffix was inert under i18next 26).
+
+### Added — Multi-currency overhaul
+- **Per-row display in account currency**: transaction lists, transaction detail, recurring lists/detail, templates, and home upcoming all display each row in its own account's currency instead of swapping only the symbol.
+- **Currency-aware aggregations**: `getMonthSummary`, `getDailySpending`, `getCategorySummary`, `getTrendData`, and `getTopContactsByMonth` now convert each row to display currency using a `CurrencyConverter` instead of summing raw amounts. Rows with no rate are excluded; aggregates report `missingRates` and `usedTodaysRate`.
+- **Stable historical conversion**: new `transactions.currency`, `transactions.rate_to_display`, `transactions.display_currency_snapshot` (migration 0006, same on `recurring_transactions`) capture the currency + rate at insert time. Aggregations use stored rates when valid; only fall back to today's rate (with `≈`) for legacy rows or when the user has changed display currency since.
+- **Cross-currency transfer dual-amount form** (migration 0007 adds `transactions.to_amount`): when source and destination accounts use different currencies, the form shows a second "Amount received" input — auto-filled from today's rate, user-overridable. Source side and destination side update with the correct currency-specific amounts. Fixes the long-standing phantom FX gain/loss bug for cross-currency transfers, including on edits.
+- **Per-row dual display** (`TransactionAmount`): when a transaction's source currency differs from display currency, the row shows the display-currency value as primary (with `≈` if today's rate was used) and the source-currency value as a caption.
+- **AccountCard dual-line**: foreign-currency accounts show display-currency equivalent above the account-currency original.
+- **Display-currency change warning**: switching display currency on a multi-currency wallet now requires confirmation explaining that stored rates become stale and analytics totals will display at today's rate until newer transactions are recorded.
+- **Account-currency lock**: editing an account's currency is blocked once any transaction references it (UI lock + query-layer guard via `AccountCurrencyLockedError`). Prevents silent corruption of stored rate snapshots.
+- **Hard-delete guard on accounts**: deleting an account that has transactions is blocked at the query layer (`AccountInUseError`) since `expo-sqlite` runs with `PRAGMA foreign_keys = OFF`. The user is directed to archive instead.
+- New analytics banner explains conversion state: appears only when rates were missing or today's rate was used as a fallback.
+- New i18n strings in all 5 locales for the above (`amountSent`, `amountReceived`, `receivedAt`, `currencyLocked`, `changeCurrencyTitle`, `changeCurrencyMessage`, banner copy, etc.).
+
+### Notes
+- iOS `UIFileSharingEnabled` / `LSSupportsOpeningDocumentsInPlace` only take effect on a fresh native build — released APK has them; sideloading an existing iOS dev build won't.
+- Existing transactions are backfilled with `currency = account.currency` on first launch after upgrade. `rate_to_display` and `display_currency_snapshot` are intentionally left NULL on legacy rows — the app falls back to today's rate (with `≈`) until a transaction is recorded post-upgrade.
+
 ## [1.7.0] - 2026-04-29
 
 ### Added
@@ -415,6 +441,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.8.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.0
 [1.7.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.7.0
 [1.6.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.6.0
 [1.5.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.5.0

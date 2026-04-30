@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-04-30
+
+### Fixed
+- App crashed on launch with `useTheme must be used within ThemeProvider`. `BackupSetupModal` was being rendered as a sibling of `DatabaseProvider`'s children, but `ThemeProvider` lives *inside* those children — so the modal called `useTheme()` outside the theme context and threw. The modal now renders inside `AppStack` (within `ThemeProvider`), with setup state exposed via the `DatabaseContext`. The modal still appears at the same point in the boot flow and still blocks the user via its no-op `onRequestClose`.
+
 ## [1.8.0] - 2026-04-30
 
 ### Added — External backup folder
@@ -441,6 +446,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.8.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.1
 [1.8.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.0
 [1.7.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.7.0
 [1.6.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.6.0

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
-import { getRecurringTransactions } from "@/db/queries/recurring";
-import type { RecurringTransaction } from "@/db/schema";
+import { getRecurringTransactions, type RecurringWithAccount } from "@/db/queries/recurring";
 
 export function useRecurring(activeOnly = true) {
-  const [items, setItems] = useState<RecurringTransaction[]>([]);
+  const [items, setItems] = useState<RecurringWithAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const { revisions } = useDataRefresh();
 

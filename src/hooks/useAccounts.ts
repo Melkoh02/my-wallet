@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getAccounts, getAccountsTotals } from "@/db/queries/accounts";
-import { convertToDisplayCurrency, getDisplayCurrency } from "@/services/exchangeRate.service";
+import {
+  convertToDisplayCurrency,
+  getDisplayCurrency,
+  getAccountCurrencies,
+} from "@/services/exchangeRate.service";
 import type { Account } from "@/db/schema";
 
 type AccountTotals = {
@@ -9,6 +13,7 @@ type AccountTotals = {
   totalAssets: number;
   totalLiabilities: number;
   displayCurrency: string;
+  hasMultipleCurrencies: boolean;
 };
 
 export function useAccounts(activeOnly = true) {
@@ -18,19 +23,25 @@ export function useAccounts(activeOnly = true) {
     totalAssets: 0,
     totalLiabilities: 0,
     displayCurrency: "USD",
+    hasMultipleCurrencies: false,
   });
   const [loading, setLoading] = useState(true);
   const { revisions } = useDataRefresh();
 
   const fetch = useCallback(async () => {
     setLoading(true);
-    const [accs, tots, dispCurrency] = await Promise.all([
+    // hasMultipleCurrencies considers archived accounts too — historical
+    // aggregates still convert their transactions, and the ≈ marker should
+    // surface that even after the user archives every foreign account.
+    const [accs, tots, dispCurrency, allCurrencies] = await Promise.all([
       getAccounts(activeOnly),
       getAccountsTotals(convertToDisplayCurrency),
       getDisplayCurrency(),
+      getAccountCurrencies(false),
     ]);
     setAccounts(accs);
-    setTotals({ ...tots, displayCurrency: dispCurrency });
+    const hasMultipleCurrencies = allCurrencies.some((c) => c !== dispCurrency);
+    setTotals({ ...tots, displayCurrency: dispCurrency, hasMultipleCurrencies });
     setLoading(false);
   }, [activeOnly]);
 

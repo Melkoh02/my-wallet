@@ -24,6 +24,9 @@ export const recurringTransactions = sqliteTable(
     dayOfMonth: integer("day_of_month"),
     dayOfWeek: integer("day_of_week"),
     timeOfDay: text("time_of_day"),
+    currency: text("currency"),
+    rateToDisplay: real("rate_to_display"),
+    displayCurrencySnapshot: text("display_currency_snapshot"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(datetime('now'))`),

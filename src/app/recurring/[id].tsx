@@ -19,7 +19,7 @@ import { getRecurringById, triggerRecurringNow } from "@/db/queries/recurring";
 import { getTransactions, type TransactionWithRelations } from "@/db/queries/transactions";
 import { formatDate } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
-import type { RecurringTransaction } from "@/db/schema";
+import type { RecurringWithAccount } from "@/db/queries/recurring";
 
 const FREQ_KEYS: Record<string, string> = {
   daily: "recurring.daily",
@@ -46,7 +46,7 @@ export default function RecurringDetailScreen() {
   const { colors } = useTheme();
   const { revisions, invalidate } = useDataRefresh();
   const { accounts } = useAccounts();
-  const [item, setItem] = useState<RecurringTransaction | null>(null);
+  const [item, setItem] = useState<RecurringWithAccount | null>(null);
   const [txns, setTxns] = useState<TransactionWithRelations[]>([]);
   const [showTriggerConfirm, setShowTriggerConfirm] = useState(false);
   const [triggering, setTriggering] = useState(false);
@@ -100,6 +100,7 @@ export default function RecurringDetailScreen() {
               </View>
               <AmountDisplay
                 amount={item.amount}
+                currency={item.accountCurrency}
                 type={item.type as "income" | "expense"}
                 variant="amountLarge"
               />

@@ -88,7 +88,9 @@ export default function TransactionFormScreen() {
             if (existing.linkedTransactionId) {
               await deleteTransaction(existing.linkedTransactionId);
             }
-            // Reverse old balance
+            // Reverse old balance. For cross-currency transfers, the
+            // destination side was credited in destination-currency units
+            // (existing.toAmount), not source-currency units.
             await updateAccountBalance(
               existing.accountId,
               -existing.amount,
@@ -96,7 +98,8 @@ export default function TransactionFormScreen() {
               true,
             );
             if (existing.toAccountId && existing.type === "transfer") {
-              await updateAccountBalance(existing.toAccountId, -existing.amount, "transfer", false);
+              const oldDestAmount = existing.toAmount ?? existing.amount;
+              await updateAccountBalance(existing.toAccountId, -oldDestAmount, "transfer", false);
             }
             // Update transaction
             await db
@@ -104,6 +107,7 @@ export default function TransactionFormScreen() {
               .set({
                 type: data.type,
                 amount: data.amount,
+                toAmount: data.toAmount,
                 description: data.description,
                 accountId: data.accountId,
                 toAccountId: data.toAccountId,
@@ -131,7 +135,8 @@ export default function TransactionFormScreen() {
                 })),
               );
             }
-            // Apply new balance
+            // Apply new balance — same toAmount-aware split for the
+            // destination side as the reversal above.
             await updateAccountBalance(
               data.accountId,
               data.amount,
@@ -139,7 +144,8 @@ export default function TransactionFormScreen() {
               true,
             );
             if (data.toAccountId && data.type === "transfer") {
-              await updateAccountBalance(data.toAccountId, data.amount, "transfer", false);
+              const newDestAmount = data.toAmount ?? data.amount;
+              await updateAccountBalance(data.toAccountId, newDestAmount, "transfer", false);
             }
             await db.run(sql`COMMIT`);
           } catch (e) {

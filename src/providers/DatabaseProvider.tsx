@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { accounts, settings, themes } from "@/db/schema";
 import { seed } from "@/db/seed";
@@ -43,6 +43,38 @@ async function migrateCreditCardBalances() {
   await db
     .insert(settings)
     .values({ key: "credit_balance_migrated", value: "true" })
+    .onConflictDoNothing();
+}
+
+/**
+ * One-time backfill: copy account.currency into transactions.currency and
+ * recurring_transactions.currency for rows created before Phase 2 (where the
+ * column was added nullable). rate_to_display and display_currency_snapshot
+ * are intentionally left NULL — we don't have historical rate data, so
+ * aggregations will fall back to today's rate (with an ≈ marker) for those
+ * rows. Future inserts capture all three fields at insert time.
+ */
+async function backfillTransactionCurrency() {
+  const [flag] = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, "txn_currency_backfilled"));
+  if (flag) return;
+
+  await db.run(sql`
+    UPDATE transactions
+    SET currency = (SELECT currency FROM accounts WHERE accounts.id = transactions.account_id)
+    WHERE currency IS NULL
+  `);
+  await db.run(sql`
+    UPDATE recurring_transactions
+    SET currency = (SELECT currency FROM accounts WHERE accounts.id = recurring_transactions.account_id)
+    WHERE currency IS NULL
+  `);
+
+  await db
+    .insert(settings)
+    .values({ key: "txn_currency_backfilled", value: "true" })
     .onConflictDoNothing();
 }
 
@@ -120,6 +152,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     seed(db)
       .then(() => migrateCreditCardBalances())
       .then(() => seedDefaultThemes())
+      .then(() => backfillTransactionCurrency())
       .then(() => setIsSeeded(true));
   }, [success]);
 

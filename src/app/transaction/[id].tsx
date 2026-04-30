@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
+import { TransactionAmount } from "@/components/molecules/TransactionAmount";
 import { CategoryPill } from "@/components/molecules/CategoryPill";
 import { AppText } from "@/components/atoms/AppText";
 import { AppButton } from "@/components/atoms/AppButton";
@@ -102,11 +103,26 @@ export default function TransactionDetailScreen() {
           <AppText variant="caption" color={colors.textSecondary}>
             {t(`transactionForm.${txn.type}`)}
           </AppText>
-          <AmountDisplay
+          <TransactionAmount
             amount={txn.amount}
+            currency={txn.currency ?? txn.accountCurrency}
+            rateToDisplay={txn.rateToDisplay}
+            displayCurrencySnapshot={txn.displayCurrencySnapshot}
             type={txn.type as "income" | "expense" | "transfer"}
             variant="amountLarge"
           />
+          {txn.type === "transfer" && txn.toAmount != null && txn.toAccountCurrency && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                {t("transactionForm.receivedAt")}:
+              </AppText>
+              <AmountDisplay
+                amount={txn.toAmount}
+                currency={txn.toAccountCurrency}
+                variant="bodySmall"
+              />
+            </View>
+          )}
         </View>
 
         <Divider />
@@ -159,7 +175,12 @@ export default function TransactionDetailScreen() {
               <AppText variant="label" style={styles.flex}>
                 {t("settings.cashback")}
               </AppText>
-              <AmountDisplay amount={txn.cashbackAmount!} type="income" variant="label" />
+              <TransactionAmount
+                amount={txn.cashbackAmount!}
+                currency={txn.cashbackAccountCurrency ?? txn.currency ?? txn.accountCurrency}
+                type="income"
+                variant="label"
+              />
             </View>
             {cashbackFulfilled ? (
               <View style={styles.cashbackRow}>

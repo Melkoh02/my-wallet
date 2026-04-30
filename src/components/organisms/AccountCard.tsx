@@ -4,6 +4,7 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useConverter } from "@/hooks/useConverter";
 import { spacing } from "@/theme/spacing";
 import type { Account } from "@/db/schema";
 
@@ -23,6 +24,17 @@ const TYPE_LABELS: Record<string, string> = {
 export function AccountCard({ account, onPress }: AccountCardProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const converter = useConverter();
+
+  const amountType: "income" | "expense" | "neutral" =
+    account.type === "credit" && account.balance < 0 ? "expense" : "neutral";
+
+  // Account balance is a current value, so today's rate is the correct rate
+  // (not approximate) — no ≈ on the secondary line.
+  const showDualLine =
+    converter != null &&
+    account.currency !== converter.displayCurrency &&
+    converter.hasRateFor(account.currency);
 
   return (
     <Pressable
@@ -54,12 +66,29 @@ export function AccountCard({ account, onPress }: AccountCardProps) {
           {account.institution || TYPE_LABELS[account.type] || account.type}
         </AppText>
       </View>
-      <AmountDisplay
-        amount={account.balance}
-        currency={account.currency}
-        type={account.type === "credit" && account.balance < 0 ? "expense" : "neutral"}
-        variant="label"
-      />
+      {showDualLine ? (
+        <View style={styles.amountStack}>
+          <AmountDisplay
+            amount={converter!.convert(account.balance, account.currency)}
+            currency={converter!.displayCurrency}
+            type={amountType}
+            variant="label"
+          />
+          <AmountDisplay
+            amount={account.balance}
+            currency={account.currency}
+            type="neutral"
+            variant="caption"
+          />
+        </View>
+      ) : (
+        <AmountDisplay
+          amount={account.balance}
+          currency={account.currency}
+          type={amountType}
+          variant="label"
+        />
+      )}
     </Pressable>
   );
 }
@@ -91,5 +120,8 @@ const styles = StyleSheet.create({
   },
   name: {
     flexShrink: 1,
+  },
+  amountStack: {
+    alignItems: "flex-end",
   },
 });

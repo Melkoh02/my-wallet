@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, FlatList, Pressable, StyleSheet, Switch } from "react-native";
+import { View, FlatList, Pressable, StyleSheet, Switch, Platform, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
@@ -20,6 +20,11 @@ import {
   restoreFromBackup,
   getBackupList,
   deleteBackup,
+  pickBackupFolder,
+  clearBackupFolder,
+  migrateLegacyBackupsToFolder,
+  verifyBackupFolderAccess,
+  BACKUP_FOLDER_KEY,
 } from "@/services/backup.service";
 import { spacing } from "@/theme/spacing";
 import type { Backup } from "@/db/schema";
@@ -32,22 +37,33 @@ export default function BackupScreen() {
   const [backupList, setBackupList] = useState<Backup[]>([]);
   const [autoEnabled, setAutoEnabled] = useState(true);
   const [keepCount, setKeepCount] = useState(2);
+  const [folderUri, setFolderUri] = useState<string | null>(null);
+  const [folderAccessible, setFolderAccessible] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showClearFolder, setShowClearFolder] = useState(false);
   const [deleteBackupId, setDeleteBackupId] = useState<number | null>(null);
   const [restoreFilePath, setRestoreFilePath] = useState<string | null>(null);
   const [resultModal, setResultModal] = useState<{ title: string; message: string } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
   const loadData = async () => {
-    const [list, enabled, count] = await Promise.all([
+    const [list, enabled, count, folder] = await Promise.all([
       getBackupList(),
       getSetting("backup_enabled"),
       getSetting("backup_keep_count"),
+      getSetting(BACKUP_FOLDER_KEY),
     ]);
     setBackupList(list);
     setAutoEnabled(enabled !== "false");
     setKeepCount(parseInt(count ?? "2", 10));
+    const uri = folder && folder.length > 0 ? folder : null;
+    setFolderUri(uri);
+    if (uri && Platform.OS === "android") {
+      setFolderAccessible(await verifyBackupFolderAccess(uri));
+    } else {
+      setFolderAccessible(true);
+    }
   };
 
   useEffect(() => {
@@ -65,6 +81,45 @@ export default function BackupScreen() {
     setKeepCount(newCount);
     await setSetting("backup_keep_count", newCount.toString());
     invalidate("settings");
+  };
+
+  const handleChangeFolder = async () => {
+    setLoading(true);
+    try {
+      const pick = await pickBackupFolder();
+      if (pick.cancelled || !pick.folderUri) return;
+      if (pick.error) {
+        setResultModal({ title: t("common.error"), message: pick.error });
+        return;
+      }
+      const migration = await migrateLegacyBackupsToFolder(pick.folderUri);
+      await loadData();
+      const message =
+        migration.migrated === 0
+          ? t("backup.migrationNothing")
+          : migration.failed > 0
+            ? t("backup.migrationPartial", {
+                migrated: migration.migrated,
+                total: migration.migrated + migration.failed,
+                failed: migration.failed,
+              })
+            : t("backup.migrationDone", { count: migration.migrated });
+      setResultModal({ title: t("backup.setupReady"), message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmClearFolder = async () => {
+    setShowClearFolder(false);
+    await clearBackupFolder();
+    await loadData();
+  };
+
+  const handleOpenFilesApp = () => {
+    Linking.openURL("shareddocuments://").catch(() => {
+      // Files app not installed (rare on iOS) — silently ignore.
+    });
   };
 
   const handleManualBackup = async () => {
@@ -161,6 +216,64 @@ export default function BackupScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View style={styles.header}>
+            {/* Folder warning banner — Android only, when no folder is set or grant was revoked */}
+            {Platform.OS === "android" && (!folderUri || !folderAccessible) && (
+              <View style={[styles.warning, { backgroundColor: colors.danger + "15" }]}>
+                <AppIcon name="alert-circle" size={20} color={colors.danger} />
+                <AppText variant="caption" color={colors.danger} style={styles.flex}>
+                  {!folderUri ? t("backup.folderUnsafeWarning") : t("backup.folderRevoked")}
+                </AppText>
+              </View>
+            )}
+
+            {/* Backup folder row */}
+            <View style={[styles.settingRow, { borderColor: colors.border }]}>
+              <View style={styles.settingInfo}>
+                <AppText variant="label">{t("backup.folder")}</AppText>
+                <AppText variant="caption" color={colors.textSecondary} numberOfLines={2}>
+                  {Platform.OS === "ios"
+                    ? t("backup.iosFolderLabel")
+                    : folderUri
+                      ? folderAccessible
+                        ? t("backup.folderExternal")
+                        : t("backup.folderRevoked")
+                      : t("backup.folderNotSet")}
+                </AppText>
+              </View>
+              {Platform.OS === "android" ? (
+                folderUri ? (
+                  <View style={styles.folderActions}>
+                    <Pressable onPress={handleChangeFolder} hitSlop={8} disabled={loading}>
+                      <AppText variant="bodySmall" color={colors.primary}>
+                        {t("backup.changeFolder")}
+                      </AppText>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setShowClearFolder(true)}
+                      hitSlop={8}
+                      disabled={loading}
+                    >
+                      <AppText variant="bodySmall" color={colors.danger}>
+                        {t("backup.clearFolder")}
+                      </AppText>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable onPress={handleChangeFolder} hitSlop={8} disabled={loading}>
+                    <AppText variant="bodySmall" color={colors.primary}>
+                      {t("backup.chooseFolder")}
+                    </AppText>
+                  </Pressable>
+                )
+              ) : (
+                <Pressable onPress={handleOpenFilesApp} hitSlop={8}>
+                  <AppText variant="bodySmall" color={colors.primary}>
+                    {t("backup.openFilesApp")}
+                  </AppText>
+                </Pressable>
+              )}
+            </View>
+
             {/* Auto backup toggle */}
             <View style={[styles.settingRow, { borderColor: colors.border }]}>
               <View style={styles.settingInfo}>
@@ -257,6 +370,16 @@ export default function BackupScreen() {
         }
       />
       <ConfirmModal
+        visible={showClearFolder}
+        title={t("backup.clearFolderTitle")}
+        message={t("backup.clearFolderMessage")}
+        confirmLabel={t("backup.clearFolder")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onConfirm={confirmClearFolder}
+        onCancel={() => setShowClearFolder(false)}
+      />
+      <ConfirmModal
         visible={showImport}
         title={t("backup.importTitle")}
         message={t("backup.importMessage")}
@@ -304,6 +427,19 @@ export default function BackupScreen() {
 const styles = StyleSheet.create({
   content: { padding: spacing.lg },
   header: { gap: spacing.md, marginBottom: spacing.md },
+  warning: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 10,
+  },
+  flex: { flex: 1 },
+  folderActions: {
+    flexDirection: "row",
+    gap: spacing.md,
+    alignItems: "center",
+  },
   settingRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -49,11 +49,14 @@ export async function getDisplayCurrency(): Promise<string> {
 }
 
 /**
- * Get unique currencies from all active accounts.
+ * Get unique currencies from accounts. Defaults to active-only (used for
+ * deciding which rates to fetch); pass `activeOnly=false` to also include
+ * archived accounts (used by aggregate-display flags, since archived accounts
+ * still contribute historical transactions).
  */
-export async function getAccountCurrencies(): Promise<string[]> {
-  const accounts = await getAccounts();
-  return [...new Set(accounts.map((a) => a.currency))];
+export async function getAccountCurrencies(activeOnly = true): Promise<string[]> {
+  const accs = await getAccounts(activeOnly);
+  return [...new Set(accs.map((a) => a.currency))];
 }
 
 /**
@@ -116,6 +119,61 @@ export async function convertToDisplayCurrency(
   // 1 displayCurrency = rate fromCurrency
   // amount fromCurrency = amount / rate displayCurrency
   return amount / rate;
+}
+
+/**
+ * A pre-loaded currency converter for use inside aggregate queries.
+ * Loads display currency + rates once; lets callers convert synchronously
+ * over many rows and track which currencies had no rate available.
+ */
+export type CurrencyConverter = {
+  displayCurrency: string;
+  convert: (amount: number, fromCurrency: string) => number;
+  hasRateFor: (fromCurrency: string) => boolean;
+};
+
+export async function loadCurrencyConverter(): Promise<CurrencyConverter> {
+  const displayCurrency = await getDisplayCurrency();
+  const rates = await getExchangeRates();
+  return {
+    displayCurrency,
+    convert(amount, fromCurrency) {
+      if (fromCurrency === displayCurrency) return amount;
+      const rate = rates[fromCurrency];
+      if (!rate || rate === 0) return amount;
+      return amount / rate;
+    },
+    hasRateFor(fromCurrency) {
+      if (fromCurrency === displayCurrency) return true;
+      const rate = rates[fromCurrency];
+      return !!rate && rate !== 0;
+    },
+  };
+}
+
+/**
+ * Capture currency + rate-to-display + display-currency snapshot at the
+ * moment of creating a transaction. This is what makes Phase 2 historical
+ * aggregations stable. Returns rateToDisplay = null when no rate is
+ * available; aggregate queries fall back to today's rate (marked ≈) for
+ * those rows.
+ */
+export async function captureRateForCurrency(fromCurrency: string): Promise<{
+  rateToDisplay: number | null;
+  displayCurrency: string;
+}> {
+  const displayCurrency = await getDisplayCurrency();
+  if (fromCurrency === displayCurrency) {
+    return { rateToDisplay: 1, displayCurrency };
+  }
+  const rates = await getExchangeRates();
+  const rate = rates[fromCurrency];
+  if (!rate || rate === 0) {
+    return { rateToDisplay: null, displayCurrency };
+  }
+  // API rates are "1 displayCurrency = rate fromCurrency", so converting
+  // fromCurrency back to display = amount / rate, i.e. multiplier = 1/rate.
+  return { rateToDisplay: 1 / rate, displayCurrency };
 }
 
 /**

@@ -21,6 +21,7 @@ import {
   unformatAmount,
 } from "@/utils/format";
 import { getCurrentLocation } from "@/services/location.service";
+import { useConverter } from "@/hooks/useConverter";
 import { getLastAccountByType, getFrequentCategoriesByType } from "@/db/queries/transactions";
 import type { Account, NewTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
@@ -81,6 +82,16 @@ export function TransactionForm({
   const [amount, setAmount] = useState(
     initialData?.amount ? formatAmountInput(initialData.amount.toString()) : "",
   );
+  // Cross-currency transfers: amount the destination account received,
+  // expressed in the destination's currency. Empty when same-currency.
+  const [toAmount, setToAmount] = useState(
+    initialData?.toAmount != null ? formatAmountInput(initialData.toAmount.toString()) : "",
+  );
+  // Tracks whether the user typed in toAmount so auto-fill stops after
+  // the first manual edit (matches the "balance touched" pattern in
+  // AccountForm — let the user's number stand even if they later change
+  // source amount or accounts).
+  const toAmountTouchedRef = useRef(false);
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [accountId, setAccountId] = useState<number | null>(
     initialData?.accountId ?? initialAccountId ?? null,
@@ -139,6 +150,53 @@ export function TransactionForm({
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const selectedToAccount = accounts.find((a) => a.id === toAccountId);
   const selectedCashbackAccount = accounts.find((a) => a.id === cashbackAccountId);
+
+  const converter = useConverter();
+  const isCrossCurrencyTransfer =
+    type === "transfer" &&
+    !!selectedAccount &&
+    !!selectedToAccount &&
+    selectedAccount.currency !== selectedToAccount.currency;
+
+  // Auto-fill toAmount from today's rate when source amount or accounts change,
+  // unless the user has typed in toAmount themselves.
+  useEffect(() => {
+    if (!isCrossCurrencyTransfer || toAmountTouchedRef.current || !converter) return;
+    const sourceAmount = parseFloat(unformatAmount(amount));
+    if (!sourceAmount) {
+      setToAmount("");
+      return;
+    }
+    if (
+      !converter.hasRateFor(selectedAccount!.currency) ||
+      !converter.hasRateFor(selectedToAccount!.currency)
+    ) {
+      return;
+    }
+    // Convert source → display → destination using today's rates.
+    const inDisplay = converter.convert(sourceAmount, selectedAccount!.currency);
+    // Inverse of convert: 1 displayCurrency = rate destCurrency.
+    // We need the display→dest direction: get `rate` from getExchangeRates,
+    // but converter doesn't expose that directly. Use display value × dest rate.
+    // Easiest: convert from display back via the same rate.
+    // converter.convert(displayAmount, destCurrency) would convert dest→display
+    // (wrong direction). Compute inverse manually:
+    //   destAmount = displayAmount × rateForDest
+    // where rateForDest = "1 displayCurrency = X destCurrency" — i.e. the
+    // raw API rate. Since converter doesn't expose raw rates, derive from
+    // the round-trip identity: convert(1, destCurrency) = 1/rateForDest.
+    const oneInDisplay = converter.convert(1, selectedToAccount!.currency);
+    if (!oneInDisplay) return;
+    const rateForDest = 1 / oneInDisplay;
+    const estimated = inDisplay * rateForDest;
+    setToAmount(formatAmountInput(estimated.toFixed(2)));
+  }, [amount, isCrossCurrencyTransfer, selectedAccount, selectedToAccount, converter]);
+
+  // Reset the touched flag when the user changes accounts — they're
+  // setting up a fresh transfer pair.
+  useEffect(() => {
+    toAmountTouchedRef.current = false;
+  }, [accountId, toAccountId, type]);
 
   // Item 2: Default account from last transaction of same type (new transactions only)
   useEffect(() => {
@@ -237,10 +295,19 @@ export function TransactionForm({
     const parsed = parseFloat(unformatAmount(amount));
     if (!parsed || !accountId) return;
 
+    const parsedToAmount = parseFloat(unformatAmount(toAmount));
+    // Belt-and-suspenders: refuse cross-currency submit without a positive
+    // toAmount even if `isValid` was somehow bypassed. Without this, a null
+    // toAmount falls back to `amount` (in source currency) for the
+    // destination balance update — silently mis-priced.
+    if (isCrossCurrencyTransfer && !(parsedToAmount > 0)) return;
+    const finalToAmount = isCrossCurrencyTransfer && parsedToAmount > 0 ? parsedToAmount : null;
+
     onSubmit(
       {
         type,
         amount: parsed,
+        toAmount: finalToAmount,
         description: description.trim(),
         accountId,
         toAccountId: type === "transfer" ? toAccountId : null,
@@ -276,10 +343,12 @@ export function TransactionForm({
   };
 
   const parsedAmount = parseFloat(unformatAmount(amount));
+  const parsedToAmountValid = parseFloat(unformatAmount(toAmount)) > 0;
   const isValid =
     parsedAmount > 0 &&
     accountId !== null &&
-    (type !== "transfer" || (toAccountId !== null && toAccountId !== accountId));
+    (type !== "transfer" || (toAccountId !== null && toAccountId !== accountId)) &&
+    (!isCrossCurrencyTransfer || parsedToAmountValid);
 
   return (
     <ScrollView
@@ -350,12 +419,30 @@ export function TransactionForm({
 
       <AppInput
         ref={amountRef}
-        label={t("transactionForm.amount")}
+        label={
+          isCrossCurrencyTransfer
+            ? t("transactionForm.amountSent", { currency: selectedAccount!.currency })
+            : t("transactionForm.amount")
+        }
         value={amount}
         onChangeText={handleAmountChange}
         keyboardType="decimal-pad"
         placeholder="0.00"
       />
+      {isCrossCurrencyTransfer && (
+        <AppInput
+          label={t("transactionForm.amountReceived", {
+            currency: selectedToAccount!.currency,
+          })}
+          value={toAmount}
+          onChangeText={(text) => {
+            toAmountTouchedRef.current = true;
+            setToAmount(formatAmountInput(text));
+          }}
+          keyboardType="decimal-pad"
+          placeholder="0.00"
+        />
+      )}
       <AppInput
         label={t("transactionForm.description")}
         value={description}

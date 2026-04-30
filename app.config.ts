@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? "[Dev] My Wallet" : "My Wallet",
   slug: "my-wallet",
-  version: "1.7.0",
+  version: "1.8.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: IS_DEV ? "mywallet-dev" : "mywallet",
@@ -14,6 +14,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     icon: "./assets/expo.icon",
     bundleIdentifier: IS_DEV ? "dev.melkoh.mywallet.dev" : "dev.melkoh.mywallet",
+    infoPlist: {
+      UIFileSharingEnabled: true,
+      LSSupportsOpeningDocumentsInPlace: true,
+    },
   },
   android: {
     adaptiveIcon: {

@@ -20,36 +20,49 @@ import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { getMonthSummary, getRecentTransactions } from "@/db/queries/transactions";
 import { getSmartUpcoming } from "@/db/queries/recurring";
 import { getAccounts } from "@/db/queries/accounts";
-import { formatCurrency, formatDate } from "@/utils/format";
+import { loadCurrencyConverter } from "@/services/exchangeRate.service";
+import { formatDate } from "@/utils/format";
 import { TRANSACTION_FAB_ACTIONS } from "@/constants/fab";
 import { spacing } from "@/theme/spacing";
 import type { TransactionWithRelations } from "@/db/queries/transactions";
-import type { RecurringTransaction } from "@/db/schema";
+import type { RecurringWithAccount } from "@/db/queries/recurring";
 
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { hideAmounts, toggleHideAmounts, maskAmount } = usePrivacy();
+  const { hideAmounts, toggleHideAmounts } = usePrivacy();
   const { revisions } = useDataRefresh();
   const { totals } = useAccounts();
-  const [monthSummary, setMonthSummary] = useState({ income: 0, expense: 0, net: 0 });
+  const [monthSummary, setMonthSummary] = useState({
+    income: 0,
+    expense: 0,
+    net: 0,
+    usedTodaysRate: false,
+  });
   const [recent, setRecent] = useState<TransactionWithRelations[]>([]);
-  const [upcoming, setUpcoming] = useState<RecurringTransaction[]>([]);
+  const [upcoming, setUpcoming] = useState<RecurringWithAccount[]>([]);
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const now = new Date();
-    Promise.all([
-      getMonthSummary(now.getFullYear(), now.getMonth() + 1),
-      getRecentTransactions(5),
-      getSmartUpcoming(3),
-    ]).then(([summary, txns, upcoming]) => {
-      setMonthSummary(summary);
+    (async () => {
+      const conv = await loadCurrencyConverter();
+      const [summary, txns, upcomingItems] = await Promise.all([
+        getMonthSummary(now.getFullYear(), now.getMonth() + 1, conv),
+        getRecentTransactions(5),
+        getSmartUpcoming(3),
+      ]);
+      setMonthSummary({
+        income: summary.income,
+        expense: summary.expense,
+        net: summary.net,
+        usedTodaysRate: summary.usedTodaysRate,
+      });
       setRecent(txns);
-      setUpcoming(upcoming);
-    });
+      setUpcoming(upcomingItems);
+    })();
   }, [revisions.transactions, revisions.accounts, revisions.recurring]);
 
   const handleFabAction = async (key: string) => {
@@ -92,21 +105,25 @@ export default function HomeScreen() {
           <AppText variant="caption" color={colors.textSecondary}>
             {t("home.income")}
           </AppText>
-          <AppText variant="label" color={colors.income}>
-            {hideAmounts
-              ? "••••"
-              : formatCurrency(maskAmount(monthSummary.income), totals.displayCurrency)}
-          </AppText>
+          <AmountDisplay
+            amount={monthSummary.income}
+            currency={totals.displayCurrency}
+            approximate={monthSummary.usedTodaysRate}
+            type="income"
+            variant="label"
+          />
         </View>
         <View style={[styles.summaryItem, { backgroundColor: colors.card }]}>
           <AppText variant="caption" color={colors.textSecondary}>
             {t("home.expenses")}
           </AppText>
-          <AppText variant="label" color={colors.expense}>
-            {hideAmounts
-              ? "••••"
-              : formatCurrency(maskAmount(monthSummary.expense), totals.displayCurrency)}
-          </AppText>
+          <AmountDisplay
+            amount={monthSummary.expense}
+            currency={totals.displayCurrency}
+            approximate={monthSummary.usedTodaysRate}
+            type="expense"
+            variant="label"
+          />
         </View>
       </View>
 
@@ -149,6 +166,7 @@ export default function HomeScreen() {
                   </View>
                   <AmountDisplay
                     amount={item.amount}
+                    currency={item.accountCurrency}
                     type={item.type as "income" | "expense"}
                     variant="label"
                   />

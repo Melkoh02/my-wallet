@@ -1,36 +1,60 @@
-import { eq, and, lte, desc } from "drizzle-orm";
+import { eq, and, lte, desc, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   recurringTransactions,
   recurringSubcategories,
   transactions,
   transactionSubcategories,
+  accounts,
   type RecurringTransaction,
   type NewRecurringTransaction,
 } from "@/db/schema";
 import { updateAccountBalance } from "./accounts";
+import { captureRateForCurrency } from "@/services/exchangeRate.service";
 import { getNextDate, daysBetween, frequencyToDays } from "@/utils/date";
 import { todayDateString, nowTimeString } from "@/utils/format";
 
 const MAX_CATCHUP_DAYS = 90;
 
-export async function getRecurringTransactions(activeOnly = true): Promise<RecurringTransaction[]> {
-  if (activeOnly) {
-    return db
-      .select()
-      .from(recurringTransactions)
-      .where(eq(recurringTransactions.isActive, true))
-      .orderBy(recurringTransactions.nextDate);
-  }
-  return db.select().from(recurringTransactions).orderBy(recurringTransactions.nextDate);
+export type RecurringWithAccount = RecurringTransaction & {
+  accountCurrency: string;
+};
+
+async function attachAccountCurrency(
+  items: RecurringTransaction[],
+): Promise<RecurringWithAccount[]> {
+  if (items.length === 0) return [];
+  const accountIds = [...new Set(items.map((i) => i.accountId))];
+  const accountRows = await db
+    .select({ id: accounts.id, currency: accounts.currency })
+    .from(accounts)
+    .where(inArray(accounts.id, accountIds));
+  const currencyByAccount = new Map(accountRows.map((a) => [a.id, a.currency]));
+  return items.map((item) => ({
+    ...item,
+    accountCurrency: currencyByAccount.get(item.accountId) ?? "USD",
+  }));
 }
 
-export async function getRecurringById(id: number): Promise<RecurringTransaction | undefined> {
+export async function getRecurringTransactions(activeOnly = true): Promise<RecurringWithAccount[]> {
+  const rows = activeOnly
+    ? await db
+        .select()
+        .from(recurringTransactions)
+        .where(eq(recurringTransactions.isActive, true))
+        .orderBy(recurringTransactions.nextDate)
+    : await db.select().from(recurringTransactions).orderBy(recurringTransactions.nextDate);
+  return attachAccountCurrency(rows);
+}
+
+export async function getRecurringById(id: number): Promise<RecurringWithAccount | undefined> {
   const [item] = await db
     .select()
     .from(recurringTransactions)
     .where(eq(recurringTransactions.id, id));
-  return item;
+  if (!item) return undefined;
+  const [enriched] = await attachAccountCurrency([item]);
+  return enriched;
 }
 
 export async function getRecurringSubcategoryIds(recurringId: number): Promise<number[]> {
@@ -45,7 +69,23 @@ export async function createRecurring(
   data: NewRecurringTransaction,
   subcategoryIds: number[],
 ): Promise<RecurringTransaction> {
-  const [item] = await db.insert(recurringTransactions).values(data).returning();
+  let toInsert = data;
+  if (data.currency == null) {
+    const [account] = await db
+      .select({ currency: accounts.currency })
+      .from(accounts)
+      .where(eq(accounts.id, data.accountId));
+    if (account?.currency) {
+      const captured = await captureRateForCurrency(account.currency);
+      toInsert = {
+        ...data,
+        currency: account.currency,
+        rateToDisplay: captured.rateToDisplay,
+        displayCurrencySnapshot: captured.displayCurrency,
+      };
+    }
+  }
+  const [item] = await db.insert(recurringTransactions).values(toInsert).returning();
   if (subcategoryIds.length > 0) {
     await db.insert(recurringSubcategories).values(
       subcategoryIds.map((subId) => ({
@@ -114,8 +154,16 @@ export async function processDueRecurring(): Promise<number> {
       currentDate = today;
     }
 
+    // Capture today's rate once per recurring item. Only used as the stored
+    // rate for transactions dated today — backdated catchup rows leave the
+    // rate fields NULL so aggregations correctly mark them approximate
+    // (today's rate ≠ rate at the date the transaction is dated).
+    const itemCurrency = item.currency;
+    const captured = itemCurrency ? await captureRateForCurrency(itemCurrency) : null;
+
     // Process all due occurrences
     while (currentDate <= today) {
+      const isToday = currentDate === today;
       // Create the transaction
       const [txn] = await db
         .insert(transactions)
@@ -131,6 +179,9 @@ export async function processDueRecurring(): Promise<number> {
           cashbackAmount: item.cashbackAmount,
           cashbackAccountId: item.cashbackAccountId,
           recurringId: item.id,
+          currency: itemCurrency,
+          rateToDisplay: isToday ? (captured?.rateToDisplay ?? null) : null,
+          displayCurrencySnapshot: isToday ? (captured?.displayCurrency ?? null) : null,
         })
         .returning();
 
@@ -200,6 +251,9 @@ export async function triggerRecurringNow(id: number): Promise<void> {
   const today = todayDateString();
   const time = item.timeOfDay ?? nowTimeString();
 
+  const itemCurrency = item.currency;
+  const captured = itemCurrency ? await captureRateForCurrency(itemCurrency) : null;
+
   const [txn] = await db
     .insert(transactions)
     .values({
@@ -214,6 +268,9 @@ export async function triggerRecurringNow(id: number): Promise<void> {
       cashbackAmount: item.cashbackAmount,
       cashbackAccountId: item.cashbackAccountId,
       recurringId: item.id,
+      currency: itemCurrency,
+      rateToDisplay: captured?.rateToDisplay ?? null,
+      displayCurrencySnapshot: captured?.displayCurrency ?? null,
     })
     .returning();
 
@@ -253,7 +310,7 @@ export async function triggerRecurringNow(id: number): Promise<void> {
  * - nextDate is within 30 days
  * - Last generated transaction was more than half-period ago (or never)
  */
-export async function getSmartUpcoming(limit = 3): Promise<RecurringTransaction[]> {
+export async function getSmartUpcoming(limit = 3): Promise<RecurringWithAccount[]> {
   const today = todayDateString();
   const d = new Date();
   d.setDate(d.getDate() + 30);
@@ -290,5 +347,5 @@ export async function getSmartUpcoming(limit = 3): Promise<RecurringTransaction[
     results.push(item);
   }
 
-  return results;
+  return attachAccountCurrency(results);
 }

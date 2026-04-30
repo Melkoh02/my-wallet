@@ -13,6 +13,7 @@ import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { FAB } from "@/components/atoms/FAB";
 import { HelpModal } from "@/components/molecules/HelpModal";
 import { useTemplates } from "@/hooks/useTemplates";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { deleteTemplate } from "@/db/queries/templates";
@@ -30,6 +31,7 @@ export default function TemplatesScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const { templates, loading } = useTemplates();
+  const { totals } = useAccounts();
   const { invalidate } = useDataRefresh();
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -69,6 +71,7 @@ export default function TemplatesScreen() {
         {item.amount > 0 && (
           <AmountDisplay
             amount={item.amount}
+            currency={item.accountCurrency ?? totals.displayCurrency}
             type={item.type as "income" | "expense" | "transfer"}
             variant="label"
           />

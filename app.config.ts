@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 
 const IS_DEV = process.env.APP_VARIANT === "development";
 
-const VERSION = "1.8.1";
+const VERSION = "1.8.2";
 
 // Android requires a monotonically-increasing integer per release. Derive it
 // deterministically from the version string: major*10000 + minor*100 + patch.

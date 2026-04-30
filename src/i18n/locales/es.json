@@ -339,7 +339,9 @@
     "lastSixMonths": "Últimos 6 Meses",
     "topContacts": "Contactos Principales",
     "oneTransaction": "1 transacción",
-    "nTransactions": "{{count}} transacciones"
+    "nTransactions": "{{count}} transacciones",
+    "convertedAtTodaysRate": "Totales convertidos a {{currency}} con la tasa de cambio de hoy",
+    "missingRates": "No se pudo obtener la tasa para {{currencies}} — esos montos quedan fuera de los totales"
   },
   "format": {
     "today": "Hoy",

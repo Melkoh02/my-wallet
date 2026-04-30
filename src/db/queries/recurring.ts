@@ -1,10 +1,11 @@
-import { eq, and, lte, desc } from "drizzle-orm";
+import { eq, and, lte, desc, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   recurringTransactions,
   recurringSubcategories,
   transactions,
   transactionSubcategories,
+  accounts,
   type RecurringTransaction,
   type NewRecurringTransaction,
 } from "@/db/schema";
@@ -14,23 +15,45 @@ import { todayDateString, nowTimeString } from "@/utils/format";
 
 const MAX_CATCHUP_DAYS = 90;
 
-export async function getRecurringTransactions(activeOnly = true): Promise<RecurringTransaction[]> {
-  if (activeOnly) {
-    return db
-      .select()
-      .from(recurringTransactions)
-      .where(eq(recurringTransactions.isActive, true))
-      .orderBy(recurringTransactions.nextDate);
-  }
-  return db.select().from(recurringTransactions).orderBy(recurringTransactions.nextDate);
+export type RecurringWithAccount = RecurringTransaction & {
+  accountCurrency: string;
+};
+
+async function attachAccountCurrency(
+  items: RecurringTransaction[],
+): Promise<RecurringWithAccount[]> {
+  if (items.length === 0) return [];
+  const accountIds = [...new Set(items.map((i) => i.accountId))];
+  const accountRows = await db
+    .select({ id: accounts.id, currency: accounts.currency })
+    .from(accounts)
+    .where(inArray(accounts.id, accountIds));
+  const currencyByAccount = new Map(accountRows.map((a) => [a.id, a.currency]));
+  return items.map((item) => ({
+    ...item,
+    accountCurrency: currencyByAccount.get(item.accountId) ?? "USD",
+  }));
 }
 
-export async function getRecurringById(id: number): Promise<RecurringTransaction | undefined> {
+export async function getRecurringTransactions(activeOnly = true): Promise<RecurringWithAccount[]> {
+  const rows = activeOnly
+    ? await db
+        .select()
+        .from(recurringTransactions)
+        .where(eq(recurringTransactions.isActive, true))
+        .orderBy(recurringTransactions.nextDate)
+    : await db.select().from(recurringTransactions).orderBy(recurringTransactions.nextDate);
+  return attachAccountCurrency(rows);
+}
+
+export async function getRecurringById(id: number): Promise<RecurringWithAccount | undefined> {
   const [item] = await db
     .select()
     .from(recurringTransactions)
     .where(eq(recurringTransactions.id, id));
-  return item;
+  if (!item) return undefined;
+  const [enriched] = await attachAccountCurrency([item]);
+  return enriched;
 }
 
 export async function getRecurringSubcategoryIds(recurringId: number): Promise<number[]> {
@@ -253,7 +276,7 @@ export async function triggerRecurringNow(id: number): Promise<void> {
  * - nextDate is within 30 days
  * - Last generated transaction was more than half-period ago (or never)
  */
-export async function getSmartUpcoming(limit = 3): Promise<RecurringTransaction[]> {
+export async function getSmartUpcoming(limit = 3): Promise<RecurringWithAccount[]> {
   const today = todayDateString();
   const d = new Date();
   d.setDate(d.getDate() + 30);
@@ -290,5 +313,5 @@ export async function getSmartUpcoming(limit = 3): Promise<RecurringTransaction[
     results.push(item);
   }
 
-  return results;
+  return attachAccountCurrency(results);
 }

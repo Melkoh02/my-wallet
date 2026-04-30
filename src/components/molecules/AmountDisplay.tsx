@@ -2,13 +2,19 @@ import { type TextStyle } from "react-native";
 import { AppText } from "@/components/atoms/AppText";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
-import { useAccounts } from "@/hooks/useAccounts";
 import { formatCurrency } from "@/utils/format";
 import type { TypographyVariant } from "@/theme/typography";
 
 type AmountDisplayProps = {
   amount: number;
-  currency?: string;
+  // Required: the actual currency of `amount`. Pass account.currency for
+  // per-row displays, or the active display currency for already-converted
+  // aggregates. There is intentionally no silent fallback — callers must be
+  // explicit so currency mismatches surface at the type level.
+  currency: string;
+  // Approximate marker for converted aggregates whose ground-truth currency
+  // differs from `currency`. Renders a "≈" prefix.
+  approximate?: boolean;
   type?: "income" | "expense" | "transfer" | "neutral";
   variant?: TypographyVariant;
   style?: TextStyle;
@@ -17,15 +23,13 @@ type AmountDisplayProps = {
 export function AmountDisplay({
   amount,
   currency,
+  approximate = false,
   type = "neutral",
   variant = "body",
   style,
 }: AmountDisplayProps) {
   const { colors } = useTheme();
   const { hideAmounts, maskAmount } = usePrivacy();
-  const { totals } = useAccounts();
-
-  const displayCurrency = currency ?? totals.displayCurrency;
 
   const colorMap = {
     income: colors.income,
@@ -34,12 +38,15 @@ export function AmountDisplay({
     neutral: colors.text,
   };
 
-  const prefix = type === "income" ? "+" : type === "expense" ? "-" : amount < 0 ? "-" : "";
+  const signPrefix = type === "income" ? "+" : type === "expense" ? "-" : amount < 0 ? "-" : "";
+  const approxPrefix = approximate ? "≈" : "";
   const displayAmount = maskAmount(Math.abs(amount));
 
   return (
     <AppText variant={variant} color={colorMap[type]} style={style}>
-      {hideAmounts ? "••••" : `${prefix}${formatCurrency(displayAmount, displayCurrency)}`}
+      {hideAmounts
+        ? "••••"
+        : `${approxPrefix}${signPrefix}${formatCurrency(displayAmount, currency)}`}
     </AppText>
   );
 }

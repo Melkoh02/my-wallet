@@ -339,7 +339,9 @@
     "lastSixMonths": "过去6个月",
     "topContacts": "主要联系人",
     "oneTransaction": "1笔交易",
-    "nTransactions": "{{count}}笔交易"
+    "nTransactions": "{{count}}笔交易",
+    "convertedAtTodaysRate": "总计按今日汇率换算为 {{currency}}",
+    "missingRates": "无法获取 {{currencies}} 的汇率 — 这些金额已从总计中排除"
   },
   "format": {
     "today": "今天",

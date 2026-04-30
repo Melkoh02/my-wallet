@@ -5,10 +5,10 @@ import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
+import { AmountDisplay } from "@/components/molecules/AmountDisplay";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { HelpModal } from "@/components/molecules/HelpModal";
 import { useTheme } from "@/providers/ThemeProvider";
-import { usePrivacy } from "@/providers/PrivacyProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { useAccounts } from "@/hooks/useAccounts";
 import {
@@ -19,14 +19,13 @@ import {
   getTopContactsByMonth,
   type TrendPoint,
 } from "@/db/queries/transactions";
-import { formatCurrency } from "@/utils/format";
+import { loadCurrencyConverter } from "@/services/exchangeRate.service";
 import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
 
 export default function AnalyticsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { hideAmounts, maskAmount } = usePrivacy();
   const { revisions } = useDataRefresh();
   const { totals } = useAccounts();
   const dc = totals.displayCurrency;
@@ -44,25 +43,36 @@ export default function AnalyticsScreen() {
   const [topContacts, setTopContacts] = useState<
     { contactId: string; contactName: string; total: number; count: number }[]
   >([]);
+  const [missingRates, setMissingRates] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState(false);
 
   const loadData = useCallback(async () => {
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear = month === 1 ? year - 1 : year;
+    const conv = await loadCurrencyConverter();
     const [s, c, d, trend, contacts, pv] = await Promise.all([
-      getMonthSummary(year, month),
-      getCategorySummary(year, month),
-      getDailySpending(year, month),
-      getTrendData(6),
-      getTopContactsByMonth(year, month, 3),
-      getMonthSummary(prevYear, prevMonth),
+      getMonthSummary(year, month, conv),
+      getCategorySummary(year, month, conv),
+      getDailySpending(year, month, conv),
+      getTrendData(6, conv),
+      getTopContactsByMonth(year, month, conv, 3),
+      getMonthSummary(prevYear, prevMonth, conv),
     ]);
-    setSummary(s);
-    setCategoryData(c);
-    setDailyData(d);
-    setTrendData(trend);
-    setTopContacts(contacts);
-    setPrevSummary(pv);
+    setSummary({ income: s.income, expense: s.expense, net: s.net });
+    setCategoryData(c.rows);
+    setDailyData(d.rows);
+    setTrendData(trend.rows);
+    setTopContacts(contacts.rows);
+    setPrevSummary({ income: pv.income, expense: pv.expense, net: pv.net });
+    const allMissing = new Set<string>([
+      ...s.missingRates,
+      ...c.missingRates,
+      ...d.missingRates,
+      ...trend.missingRates,
+      ...contacts.missingRates,
+      ...pv.missingRates,
+    ]);
+    setMissingRates([...allMissing]);
   }, [year, month]);
 
   useEffect(() => {
@@ -134,6 +144,34 @@ export default function AnalyticsScreen() {
         </Pressable>
       </View>
 
+      {/* Currency banner — surfaces the conversion situation */}
+      {totals.hasMultipleCurrencies && (
+        <View
+          style={[
+            styles.currencyBanner,
+            {
+              backgroundColor:
+                missingRates.length > 0 ? colors.danger + "15" : colors.primary + "12",
+            },
+          ]}
+        >
+          <AppIcon
+            name={missingRates.length > 0 ? "alert-circle-outline" : "information-outline"}
+            size={18}
+            color={missingRates.length > 0 ? colors.danger : colors.primary}
+          />
+          <AppText
+            variant="caption"
+            color={missingRates.length > 0 ? colors.danger : colors.textSecondary}
+            style={styles.currencyBannerText}
+          >
+            {missingRates.length > 0
+              ? t("analytics.missingRates", { currencies: missingRates.join(", ") })
+              : t("analytics.convertedAtTodaysRate", { currency: dc })}
+          </AppText>
+        </View>
+      )}
+
       {!hasData ? (
         <EmptyState icon="chart-bar" title={t("analytics.noData")} />
       ) : (
@@ -148,25 +186,37 @@ export default function AnalyticsScreen() {
                 <AppText variant="bodySmall" color={colors.textSecondary}>
                   {t("home.income")}
                 </AppText>
-                <AppText variant="label" color={colors.income}>
-                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.income), dc)}
-                </AppText>
+                <AmountDisplay
+                  amount={summary.income}
+                  currency={dc}
+                  approximate={totals.hasMultipleCurrencies}
+                  type="income"
+                  variant="label"
+                />
               </View>
               <View style={styles.overviewRow}>
                 <AppText variant="bodySmall" color={colors.textSecondary}>
                   {t("home.expenses")}
                 </AppText>
-                <AppText variant="label" color={colors.expense}>
-                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.expense), dc)}
-                </AppText>
+                <AmountDisplay
+                  amount={summary.expense}
+                  currency={dc}
+                  approximate={totals.hasMultipleCurrencies}
+                  type="expense"
+                  variant="label"
+                />
               </View>
               <View style={[styles.overviewRow, styles.netRow, { borderTopColor: colors.border }]}>
                 <AppText variant="bodySmall" color={colors.textSecondary}>
                   {t("analytics.net")}
                 </AppText>
-                <AppText variant="label" color={summary.net >= 0 ? colors.income : colors.expense}>
-                  {hideAmounts ? "••••" : formatCurrency(maskAmount(summary.net), dc)}
-                </AppText>
+                <AmountDisplay
+                  amount={summary.net}
+                  currency={dc}
+                  approximate={totals.hasMultipleCurrencies}
+                  type={summary.net >= 0 ? "income" : "expense"}
+                  variant="label"
+                />
               </View>
             </View>
           </View>
@@ -223,9 +273,12 @@ export default function AnalyticsScreen() {
                         {t("analytics.projected")}
                       </AppText>
                     </View>
-                    <AppText variant="label" color={colors.text}>
-                      {hideAmounts ? "••••" : formatCurrency(maskAmount(projection), dc)}
-                    </AppText>
+                    <AmountDisplay
+                      amount={projection}
+                      currency={dc}
+                      approximate={totals.hasMultipleCurrencies}
+                      variant="label"
+                    />
                   </View>
                 )}
               </View>
@@ -256,14 +309,13 @@ export default function AnalyticsScreen() {
                     >
                       <View style={styles.trendHeader}>
                         <AppText variant="label">{monthLabel}</AppText>
-                        <AppText
+                        <AmountDisplay
+                          amount={net}
+                          currency={dc}
+                          approximate={totals.hasMultipleCurrencies}
+                          type={net >= 0 ? "income" : "expense"}
                           variant="caption"
-                          color={net >= 0 ? colors.income : colors.expense}
-                        >
-                          {hideAmounts
-                            ? "••••"
-                            : `${net >= 0 ? "+" : ""}${formatCurrency(maskAmount(net), dc)}`}
-                        </AppText>
+                        />
                       </View>
                       <View style={styles.trendBars}>
                         <View style={[styles.trendBarBg, { backgroundColor: colors.borderLight }]}>
@@ -319,9 +371,12 @@ export default function AnalyticsScreen() {
                               : translateCategoryName(cat.categoryName, t)}
                           </AppText>
                         </View>
-                        <AppText variant="label" color={colors.text}>
-                          {hideAmounts ? "••••" : formatCurrency(maskAmount(cat.total), dc)}
-                        </AppText>
+                        <AmountDisplay
+                          amount={cat.total}
+                          currency={dc}
+                          approximate={totals.hasMultipleCurrencies}
+                          variant="label"
+                        />
                       </View>
                       <View style={[styles.barBackground, { backgroundColor: colors.borderLight }]}>
                         <View
@@ -381,9 +436,14 @@ export default function AnalyticsScreen() {
                           />
                         </View>
                       </View>
-                      <AppText variant="caption" color={colors.text} style={styles.dailyAmount}>
-                        {hideAmounts ? "••••" : formatCurrency(maskAmount(day.total), dc)}
-                      </AppText>
+                      <View style={styles.dailyAmount}>
+                        <AmountDisplay
+                          amount={day.total}
+                          currency={dc}
+                          approximate={totals.hasMultipleCurrencies}
+                          variant="caption"
+                        />
+                      </View>
                     </View>
                   );
                 })}
@@ -414,9 +474,12 @@ export default function AnalyticsScreen() {
                   </AppText>
                 </View>
                 <View style={styles.contactMeta}>
-                  <AppText variant="label" color={colors.text}>
-                    {hideAmounts ? "••••" : formatCurrency(maskAmount(tc.total), dc)}
-                  </AppText>
+                  <AmountDisplay
+                    amount={tc.total}
+                    currency={dc}
+                    approximate={totals.hasMultipleCurrencies}
+                    variant="label"
+                  />
                   <AppText variant="caption" color={colors.textSecondary}>
                     {tc.count === 1
                       ? t("analytics.oneTransaction")
@@ -451,6 +514,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: 12,
+  },
+  currencyBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 10,
+  },
+  currencyBannerText: {
+    flex: 1,
   },
   section: {
     paddingTop: spacing.xl,

@@ -104,6 +104,7 @@ export default function TransactionDetailScreen() {
           </AppText>
           <AmountDisplay
             amount={txn.amount}
+            currency={txn.accountCurrency}
             type={txn.type as "income" | "expense" | "transfer"}
             variant="amountLarge"
           />
@@ -159,7 +160,12 @@ export default function TransactionDetailScreen() {
               <AppText variant="label" style={styles.flex}>
                 {t("settings.cashback")}
               </AppText>
-              <AmountDisplay amount={txn.cashbackAmount!} type="income" variant="label" />
+              <AmountDisplay
+                amount={txn.cashbackAmount!}
+                currency={txn.cashbackAccountCurrency ?? txn.accountCurrency}
+                type="income"
+                variant="label"
+              />
             </View>
             {cashbackFulfilled ? (
               <View style={styles.cashbackRow}>

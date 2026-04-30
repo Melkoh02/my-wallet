@@ -18,7 +18,7 @@ import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { deleteRecurring, toggleRecurring } from "@/db/queries/recurring";
 import { formatDate } from "@/utils/format";
 import { spacing } from "@/theme/spacing";
-import type { RecurringTransaction } from "@/db/schema";
+import type { RecurringWithAccount } from "@/db/queries/recurring";
 
 const FREQ_KEYS: Record<string, string> = {
   daily: "recurring.daily",
@@ -34,7 +34,7 @@ function RecurringRow({
   onToggle,
   onDelete,
 }: {
-  item: RecurringTransaction;
+  item: RecurringWithAccount;
   onPress: () => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -62,6 +62,7 @@ function RecurringRow({
       </View>
       <AmountDisplay
         amount={item.amount}
+        currency={item.accountCurrency}
         type={item.type as "income" | "expense"}
         variant="label"
       />

@@ -339,7 +339,9 @@
     "lastSixMonths": "Last 6 Months",
     "topContacts": "Top Contacts",
     "oneTransaction": "1 transaction",
-    "nTransactions": "{{count}} transactions"
+    "nTransactions": "{{count}} transactions",
+    "convertedAtTodaysRate": "Totals converted to {{currency}} at today's exchange rate",
+    "missingRates": "Couldn't get exchange rate for {{currencies}} — those amounts are excluded from totals"
   },
   "format": {
     "today": "Today",

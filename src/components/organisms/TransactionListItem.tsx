@@ -75,6 +75,7 @@ export function TransactionListItem({ transaction: txn, onPress }: Props) {
       </View>
       <AmountDisplay
         amount={txn.amount}
+        currency={txn.accountCurrency}
         type={txn.type as "income" | "expense" | "transfer"}
         variant="label"
       />

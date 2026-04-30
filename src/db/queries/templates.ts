@@ -5,11 +5,13 @@ import {
   templateSubcategories,
   subcategories,
   categories,
+  accounts,
   type Template,
   type NewTemplate,
 } from "@/db/schema";
 
 export type TemplateWithSubs = Template & {
+  accountCurrency?: string;
   subcategoryIds: number[];
   subcategoryList: {
     id: number;
@@ -23,6 +25,18 @@ export type TemplateWithSubs = Template & {
 async function enrichTemplates(rows: Template[]): Promise<TemplateWithSubs[]> {
   if (rows.length === 0) return [];
   const tplIds = rows.map((r) => r.id);
+
+  const accountIdSet = new Set<number>();
+  for (const tpl of rows) {
+    if (tpl.accountId != null) accountIdSet.add(tpl.accountId);
+  }
+  const accountIds = [...accountIdSet];
+  const accountRows =
+    accountIds.length > 0
+      ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
+      : [];
+  const currencyByAccount = new Map(accountRows.map((a) => [a.id, a.currency]));
+
   const subLinks = await db
     .select({
       templateId: templateSubcategories.templateId,
@@ -55,6 +69,7 @@ async function enrichTemplates(rows: Template[]): Promise<TemplateWithSubs[]> {
 
   return rows.map((tpl) => ({
     ...tpl,
+    accountCurrency: tpl.accountId != null ? currencyByAccount.get(tpl.accountId) : undefined,
     subcategoryIds: (subsByTplId.get(tpl.id) ?? []).map((s) => s.id),
     subcategoryList: subsByTplId.get(tpl.id) ?? [],
   }));

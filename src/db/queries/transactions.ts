@@ -10,6 +10,7 @@ import {
   type NewTransaction,
 } from "@/db/schema";
 import { updateAccountBalance } from "./accounts";
+import type { CurrencyConverter } from "@/services/exchangeRate.service";
 
 /** SQLite max variables is 999. Chunk large arrays to stay safe. */
 const CHUNK_SIZE = 900;
@@ -29,7 +30,10 @@ async function queryInChunks<T>(
 
 export type TransactionWithRelations = Transaction & {
   accountName: string;
+  accountCurrency: string;
   toAccountName?: string;
+  toAccountCurrency?: string;
+  cashbackAccountCurrency?: string;
   subcategoryList: {
     id: number;
     name: string;
@@ -146,20 +150,23 @@ export async function getTransactions(
  * Replaces the old N+1 pattern (up to 3N+1 queries).
  */
 async function enrichTransactionsBatch(rows: Transaction[]): Promise<TransactionWithRelations[]> {
-  // 1. Collect all unique account IDs we need
+  // 1. Collect all unique account IDs we need (including cashback destinations)
   const accountIdSet = new Set<number>();
   for (const txn of rows) {
     accountIdSet.add(txn.accountId);
     if (txn.toAccountId != null) accountIdSet.add(txn.toAccountId);
+    if (txn.cashbackAccountId != null) accountIdSet.add(txn.cashbackAccountId);
   }
   const accountIds = [...accountIdSet];
 
-  // 2. Batch-fetch all accounts in 1 query
+  // 2. Batch-fetch all accounts in 1 query — keep name + currency
   const accountRows =
     accountIds.length > 0
       ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
       : [];
-  const accountMap = new Map(accountRows.map((a) => [a.id, a.name]));
+  const accountInfo = new Map(
+    accountRows.map((a) => [a.id, { name: a.name, currency: a.currency }]),
+  );
 
   // 3. Collect all transaction IDs
   const txnIds = rows.map((r) => r.id);
@@ -209,13 +216,21 @@ async function enrichTransactionsBatch(rows: Transaction[]): Promise<Transaction
   }
 
   // 6. Assemble results — 0 additional queries
-  return rows.map((txn) => ({
-    ...txn,
-    accountName: accountMap.get(txn.accountId) ?? "Unknown",
-    toAccountName:
-      txn.toAccountId != null ? (accountMap.get(txn.toAccountId) ?? "Unknown") : undefined,
-    subcategoryList: subsByTxnId.get(txn.id) ?? [],
-  }));
+  return rows.map((txn) => {
+    const acc = accountInfo.get(txn.accountId);
+    const toAcc = txn.toAccountId != null ? accountInfo.get(txn.toAccountId) : undefined;
+    const cashAcc =
+      txn.cashbackAccountId != null ? accountInfo.get(txn.cashbackAccountId) : undefined;
+    return {
+      ...txn,
+      accountName: acc?.name ?? "Unknown",
+      accountCurrency: acc?.currency ?? "USD",
+      toAccountName: txn.toAccountId != null ? (toAcc?.name ?? "Unknown") : undefined,
+      toAccountCurrency: toAcc?.currency,
+      cashbackAccountCurrency: cashAcc?.currency,
+      subcategoryList: subsByTxnId.get(txn.id) ?? [],
+    };
+  });
 }
 
 /**
@@ -279,23 +294,34 @@ export async function deleteTransaction(id: number): Promise<void> {
 export async function getMonthSummary(
   year: number,
   month: number,
-): Promise<{ income: number; expense: number; net: number }> {
+  converter: CurrencyConverter,
+): Promise<{ income: number; expense: number; net: number; missingRates: string[] }> {
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 
   const rows = await db
-    .select({ type: transactions.type, total: sql<number>`SUM(${transactions.amount})` })
+    .select({
+      type: transactions.type,
+      amount: transactions.amount,
+      currency: accounts.currency,
+    })
     .from(transactions)
-    .where(like(transactions.date, `${monthStr}%`))
-    .groupBy(transactions.type);
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+    .where(like(transactions.date, `${monthStr}%`));
 
   let income = 0;
   let expense = 0;
+  const missing = new Set<string>();
   for (const row of rows) {
-    if (row.type === "income") income = row.total;
-    if (row.type === "expense") expense = row.total;
+    if (!converter.hasRateFor(row.currency)) {
+      missing.add(row.currency);
+      continue; // Skip — face-value mixing would corrupt the total.
+    }
+    const converted = converter.convert(row.amount, row.currency);
+    if (row.type === "income") income += converted;
+    else if (row.type === "expense") expense += converted;
   }
 
-  return { income, expense, net: income - expense };
+  return { income, expense, net: income - expense, missingRates: [...missing] };
 }
 
 export async function getRecentTransactions(limit = 5): Promise<TransactionWithRelations[]> {
@@ -368,35 +394,73 @@ export async function getFrequentCategoriesByType(type: string, limit = 3): Prom
 export async function getDailySpending(
   year: number,
   month: number,
-): Promise<{ date: string; total: number }[]> {
+  converter: CurrencyConverter,
+): Promise<{ rows: { date: string; total: number }[]; missingRates: string[] }> {
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 
-  return db
+  const rows = await db
     .select({
       date: transactions.date,
-      total: sql<number>`SUM(${transactions.amount})`,
+      amount: transactions.amount,
+      currency: accounts.currency,
     })
     .from(transactions)
-    .where(and(like(transactions.date, `${monthStr}%`), eq(transactions.type, "expense")))
-    .groupBy(transactions.date)
-    .orderBy(transactions.date);
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+    .where(and(like(transactions.date, `${monthStr}%`), eq(transactions.type, "expense")));
+
+  const totalsByDate = new Map<string, number>();
+  const missing = new Set<string>();
+  for (const row of rows) {
+    if (!converter.hasRateFor(row.currency)) {
+      missing.add(row.currency);
+      continue;
+    }
+    const converted = converter.convert(row.amount, row.currency);
+    totalsByDate.set(row.date, (totalsByDate.get(row.date) ?? 0) + converted);
+  }
+
+  const result = [...totalsByDate.entries()]
+    .map(([date, total]) => ({ date, total }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return { rows: result, missingRates: [...missing] };
 }
 
 export async function getCategorySummary(
   year: number,
   month: number,
-): Promise<{ categoryName: string; categoryColor: string; categoryIcon: string; total: number }[]> {
+  converter: CurrencyConverter,
+): Promise<{
+  rows: { categoryName: string; categoryColor: string; categoryIcon: string; total: number }[];
+  missingRates: string[];
+}> {
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 
   const expenseTxns = await db
-    .select({ id: transactions.id, amount: transactions.amount })
+    .select({
+      id: transactions.id,
+      amount: transactions.amount,
+      currency: accounts.currency,
+    })
     .from(transactions)
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(and(like(transactions.date, `${monthStr}%`), eq(transactions.type, "expense")));
 
-  if (expenseTxns.length === 0) return [];
+  if (expenseTxns.length === 0) return { rows: [], missingRates: [] };
+
+  const missing = new Set<string>();
+  // Pre-convert each txn so the rest of the function operates in display currency.
+  // Rows whose currency has no rate are dropped — face-value mixing would corrupt
+  // category totals.
+  const convertedAmount = new Map<number, number>();
+  for (const t of expenseTxns) {
+    if (!converter.hasRateFor(t.currency)) {
+      missing.add(t.currency);
+      continue;
+    }
+    convertedAmount.set(t.id, converter.convert(t.amount, t.currency));
+  }
 
   const txnIds = expenseTxns.map((t) => t.id);
-  const amountMap = new Map(expenseTxns.map((t) => [t.id, t.amount]));
 
   const links = await queryInChunks(txnIds, (chunk) =>
     db
@@ -424,7 +488,7 @@ export async function getCategorySummary(
   >();
 
   for (const link of links) {
-    const amount = amountMap.get(link.transactionId) ?? 0;
+    const amount = convertedAmount.get(link.transactionId) ?? 0;
     const linkCount = linkCountMap.get(link.transactionId) ?? 1;
     const existing = categoryMap.get(link.categoryName);
     if (existing) {
@@ -444,7 +508,7 @@ export async function getCategorySummary(
   let uncategorizedTotal = 0;
   for (const txn of expenseTxns) {
     if (!categorizedTxnIds.has(txn.id)) {
-      uncategorizedTotal += txn.amount;
+      uncategorizedTotal += convertedAmount.get(txn.id) ?? 0;
     }
   }
   if (uncategorizedTotal > 0) {
@@ -456,12 +520,18 @@ export async function getCategorySummary(
     });
   }
 
-  return Array.from(categoryMap.values()).sort((a, b) => b.total - a.total);
+  return {
+    rows: Array.from(categoryMap.values()).sort((a, b) => b.total - a.total),
+    missingRates: [...missing],
+  };
 }
 
 export type TrendPoint = { year: number; month: number; income: number; expense: number };
 
-export async function getTrendData(monthsBack: number): Promise<TrendPoint[]> {
+export async function getTrendData(
+  monthsBack: number,
+  converter: CurrencyConverter,
+): Promise<{ rows: TrendPoint[]; missingRates: string[] }> {
   const now = new Date();
   const targets: { year: number; month: number; monthStr: string }[] = [];
   for (let i = monthsBack - 1; i >= 0; i--) {
@@ -476,63 +546,100 @@ export async function getTrendData(monthsBack: number): Promise<TrendPoint[]> {
     .select({
       month: sql<string>`substr(${transactions.date}, 1, 7)`.as("m"),
       type: transactions.type,
-      total: sql<number>`SUM(${transactions.amount})`,
+      amount: transactions.amount,
+      currency: accounts.currency,
     })
     .from(transactions)
-    .where(sql`substr(${transactions.date}, 1, 7) >= ${earliest}`)
-    .groupBy(sql`substr(${transactions.date}, 1, 7)`, transactions.type);
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+    .where(sql`substr(${transactions.date}, 1, 7) >= ${earliest}`);
 
   // Pre-seed every target month with zeros so gaps in activity still render in the trend.
   const map = new Map<string, { income: number; expense: number }>();
   for (const t of targets) {
     map.set(t.monthStr, { income: 0, expense: 0 });
   }
+  const missing = new Set<string>();
   for (const row of rows) {
-    const existing = map.get(row.month);
-    if (!existing) continue;
-    if (row.type === "income") existing.income = row.total;
-    else if (row.type === "expense") existing.expense = row.total;
+    const bucket = map.get(row.month);
+    if (!bucket) continue;
+    if (!converter.hasRateFor(row.currency)) {
+      missing.add(row.currency);
+      continue;
+    }
+    const converted = converter.convert(row.amount, row.currency);
+    if (row.type === "income") bucket.income += converted;
+    else if (row.type === "expense") bucket.expense += converted;
   }
 
-  return targets.map((t) => ({
-    year: t.year,
-    month: t.month,
-    income: map.get(t.monthStr)!.income,
-    expense: map.get(t.monthStr)!.expense,
-  }));
+  return {
+    rows: targets.map((t) => ({
+      year: t.year,
+      month: t.month,
+      income: map.get(t.monthStr)!.income,
+      expense: map.get(t.monthStr)!.expense,
+    })),
+    missingRates: [...missing],
+  };
 }
 
 export async function getTopContactsByMonth(
   year: number,
   month: number,
+  converter: CurrencyConverter,
   limit = 3,
-): Promise<{ contactId: string; contactName: string; total: number; count: number }[]> {
+): Promise<{
+  rows: { contactId: string; contactName: string; total: number; count: number }[];
+  missingRates: string[];
+}> {
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
-  const rows = await db
+  const rawRows = await db
     .select({
       contactId: transactions.contactId,
       contactName: transactions.contactName,
-      total: sql<number>`SUM(${transactions.amount})`.as("tot"),
-      count: sql<number>`COUNT(*)`,
+      amount: transactions.amount,
+      currency: accounts.currency,
     })
     .from(transactions)
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(
       and(
         like(transactions.date, `${monthStr}%`),
         eq(transactions.type, "expense"),
         sql`${transactions.contactId} IS NOT NULL`,
       ),
-    )
-    .groupBy(transactions.contactId, transactions.contactName)
-    .orderBy(sql`tot DESC`)
-    .limit(limit);
+    );
 
-  return rows
-    .filter((r) => r.contactId && r.contactName)
-    .map((r) => ({
-      contactId: r.contactId!,
-      contactName: r.contactName!,
-      total: r.total,
-      count: r.count,
-    }));
+  const grouped = new Map<string, { contactName: string; total: number; count: number }>();
+  const missing = new Set<string>();
+  for (const row of rawRows) {
+    if (!row.contactId || !row.contactName) continue;
+    if (!converter.hasRateFor(row.currency)) {
+      missing.add(row.currency);
+      continue;
+    }
+    const converted = converter.convert(row.amount, row.currency);
+    const existing = grouped.get(row.contactId);
+    if (existing) {
+      existing.total += converted;
+      existing.count += 1;
+    } else {
+      grouped.set(row.contactId, {
+        contactName: row.contactName,
+        total: converted,
+        count: 1,
+      });
+    }
+  }
+
+  const sorted = [...grouped.entries()]
+    .map(([contactId, v]) => ({
+      contactId,
+      contactName: v.contactName,
+      total: v.total,
+      count: v.count,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+
+  return { rows: sorted, missingRates: [...missing] };
 }

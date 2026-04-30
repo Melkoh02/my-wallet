@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-04-30
+
+### Fixed
+- Android `versionCode` was hardcoded to `1` and never bumped between releases. Sideload installs of v1.7.0/v1.8.0/v1.8.1 all advertised the same version code, so Android treated new APKs as same-version reinstalls and kept cached state from the prior install — meaning a device that had v1.8.0 installed could keep running the v1.8.0 code even after installing v1.8.1, with only the in-app version string updating from the freshly-loaded bundle. (This is why v1.8.1's launch-crash fix wasn't visibly applied for some users.) `versionCode` is now derived from the version string (`major*10000 + minor*100 + patch`), so future updates increment monotonically and Android invalidates caches on each upgrade.
+
 ## [1.8.1] - 2026-04-30
 
 ### Fixed
@@ -446,6 +451,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.8.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.2
 [1.8.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.1
 [1.8.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.0
 [1.7.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.7.0

@@ -88,6 +88,8 @@
     "archiveMessage": "Archived accounts are hidden from the main list but can be restored. Transactions are kept.",
     "deleteAccount": "Delete Account",
     "deleteMessage": "This will permanently delete the account and cannot be undone. Transactions referencing this account will remain but may show as 'Unknown'.",
+    "deleteBlockedTitle": "Can't delete account",
+    "deleteBlockedMessage": "This account is referenced by {{count}} transaction(s). Archive it instead — archived accounts are hidden but their history is preserved.",
     "unarchive": "Restore",
     "archivedHint": "These accounts are archived. Tap restore to bring them back.",
     "noArchived": "No archived accounts",

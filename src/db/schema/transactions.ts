@@ -26,6 +26,17 @@ export const transactions = sqliteTable(
     linkedTransactionId: integer("linked_transaction_id"),
     notes: text("notes"),
     recurringId: integer("recurring_id"),
+    // Currency snapshot at insert time. Backfilled from account.currency for
+    // pre-Phase-2 rows. New rows always set this.
+    currency: text("currency"),
+    // Multiplier from `currency` to display currency at insert time.
+    // amountInDisplay = amount * rateToDisplay. NULL on pre-Phase-2 rows
+    // (caller falls back to today's rate with an ≈ marker).
+    rateToDisplay: real("rate_to_display"),
+    // Display currency at the moment `rateToDisplay` was captured. Lets
+    // queries detect that the user has changed display currency since insert
+    // and the stored rate is no longer applicable.
+    displayCurrencySnapshot: text("display_currency_snapshot"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(datetime('now'))`),

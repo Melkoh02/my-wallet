@@ -1,7 +1,7 @@
 import { View, Pressable, StyleSheet } from "react-native";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
-import { AmountDisplay } from "@/components/molecules/AmountDisplay";
+import { TransactionAmount } from "@/components/molecules/TransactionAmount";
 import { CategoryPill } from "@/components/molecules/CategoryPill";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useTranslation } from "react-i18next";
@@ -73,9 +73,11 @@ export function TransactionListItem({ transaction: txn, onPress }: Props) {
           </View>
         )}
       </View>
-      <AmountDisplay
+      <TransactionAmount
         amount={txn.amount}
-        currency={txn.accountCurrency}
+        currency={txn.currency ?? txn.accountCurrency}
+        rateToDisplay={txn.rateToDisplay}
+        displayCurrencySnapshot={txn.displayCurrencySnapshot}
         type={txn.type as "income" | "expense" | "transfer"}
         variant="label"
       />

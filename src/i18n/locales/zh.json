@@ -88,6 +88,8 @@
     "archiveMessage": "归档的账户将从主列表中隐藏但可以恢复。交易记录会保留。",
     "deleteAccount": "删除账户",
     "deleteMessage": "这将永久删除该账户且无法撤销。引用此账户的交易将保留但可能显示为\u201c未知\u201d。",
+    "deleteBlockedTitle": "无法删除账户",
+    "deleteBlockedMessage": "此账户被 {{count}} 笔交易引用。请改为归档 — 归档的账户会隐藏但历史记录会保留。",
     "unarchive": "恢复",
     "archivedHint": "这些账户已归档。点击恢复将其找回。",
     "noArchived": "没有归档的账户",

@@ -34,7 +34,12 @@ export default function HomeScreen() {
   const { hideAmounts, toggleHideAmounts } = usePrivacy();
   const { revisions } = useDataRefresh();
   const { totals } = useAccounts();
-  const [monthSummary, setMonthSummary] = useState({ income: 0, expense: 0, net: 0 });
+  const [monthSummary, setMonthSummary] = useState({
+    income: 0,
+    expense: 0,
+    net: 0,
+    usedTodaysRate: false,
+  });
   const [recent, setRecent] = useState<TransactionWithRelations[]>([]);
   const [upcoming, setUpcoming] = useState<RecurringWithAccount[]>([]);
   const [showNoAccountModal, setShowNoAccountModal] = useState(false);
@@ -49,7 +54,12 @@ export default function HomeScreen() {
         getRecentTransactions(5),
         getSmartUpcoming(3),
       ]);
-      setMonthSummary({ income: summary.income, expense: summary.expense, net: summary.net });
+      setMonthSummary({
+        income: summary.income,
+        expense: summary.expense,
+        net: summary.net,
+        usedTodaysRate: summary.usedTodaysRate,
+      });
       setRecent(txns);
       setUpcoming(upcomingItems);
     })();
@@ -98,7 +108,7 @@ export default function HomeScreen() {
           <AmountDisplay
             amount={monthSummary.income}
             currency={totals.displayCurrency}
-            approximate={totals.hasMultipleCurrencies}
+            approximate={monthSummary.usedTodaysRate}
             type="income"
             variant="label"
           />
@@ -110,7 +120,7 @@ export default function HomeScreen() {
           <AmountDisplay
             amount={monthSummary.expense}
             currency={totals.displayCurrency}
-            approximate={totals.hasMultipleCurrencies}
+            approximate={monthSummary.usedTodaysRate}
             type="expense"
             variant="label"
           />

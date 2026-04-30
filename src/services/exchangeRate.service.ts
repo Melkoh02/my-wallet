@@ -152,6 +152,31 @@ export async function loadCurrencyConverter(): Promise<CurrencyConverter> {
 }
 
 /**
+ * Capture currency + rate-to-display + display-currency snapshot at the
+ * moment of creating a transaction. This is what makes Phase 2 historical
+ * aggregations stable. Returns rateToDisplay = null when no rate is
+ * available; aggregate queries fall back to today's rate (marked ≈) for
+ * those rows.
+ */
+export async function captureRateForCurrency(fromCurrency: string): Promise<{
+  rateToDisplay: number | null;
+  displayCurrency: string;
+}> {
+  const displayCurrency = await getDisplayCurrency();
+  if (fromCurrency === displayCurrency) {
+    return { rateToDisplay: 1, displayCurrency };
+  }
+  const rates = await getExchangeRates();
+  const rate = rates[fromCurrency];
+  if (!rate || rate === 0) {
+    return { rateToDisplay: null, displayCurrency };
+  }
+  // API rates are "1 displayCurrency = rate fromCurrency", so converting
+  // fromCurrency back to display = amount / rate, i.e. multiplier = 1/rate.
+  return { rateToDisplay: 1 / rate, displayCurrency };
+}
+
+/**
  * Force refresh exchange rates regardless of cache age.
  */
 export async function refreshExchangeRates(): Promise<boolean> {

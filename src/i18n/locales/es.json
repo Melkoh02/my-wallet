@@ -88,6 +88,8 @@
     "archiveMessage": "Las cuentas archivadas se ocultan de la lista principal pero se pueden restaurar. Las transacciones se conservan.",
     "deleteAccount": "Eliminar Cuenta",
     "deleteMessage": "Esto eliminará permanentemente la cuenta y no se puede deshacer. Las transacciones que referencien esta cuenta permanecerán pero pueden mostrar 'Desconocido'.",
+    "deleteBlockedTitle": "No se puede eliminar la cuenta",
+    "deleteBlockedMessage": "Esta cuenta está referenciada por {{count}} transacción(es). Archívala en su lugar — las cuentas archivadas se ocultan pero su historial se conserva.",
     "unarchive": "Restaurar",
     "archivedHint": "Estas cuentas están archivadas. Toca restaurar para recuperarlas.",
     "noArchived": "No hay cuentas archivadas",

@@ -11,6 +11,7 @@ import {
   getAccountById,
   archiveAccount,
   deleteAccountPermanently,
+  AccountInUseError,
 } from "@/db/queries/accounts";
 import type { Account, NewAccount } from "@/db/schema";
 
@@ -22,6 +23,7 @@ export default function AccountFormScreen() {
   const [initial, setInitial] = useState<Account | undefined>();
   const [loaded, setLoaded] = useState(!params.id);
   const [confirmMode, setConfirmMode] = useState<"archive" | "delete" | null>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState<{ count: number } | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -51,7 +53,16 @@ export default function AccountFormScreen() {
     if (confirmMode === "archive") {
       await archiveAccount(initial.id);
     } else {
-      await deleteAccountPermanently(initial.id);
+      try {
+        await deleteAccountPermanently(initial.id);
+      } catch (e) {
+        if (e instanceof AccountInUseError) {
+          setConfirmMode(null);
+          setDeleteBlocked({ count: e.txnCount });
+          return;
+        }
+        throw e;
+      }
     }
     invalidate("accounts", "transactions");
     setConfirmMode(null);
@@ -85,6 +96,15 @@ export default function AccountFormScreen() {
         variant="danger"
         onConfirm={handleConfirm}
         onCancel={() => setConfirmMode(null)}
+      />
+
+      <ConfirmModal
+        visible={deleteBlocked !== null}
+        title={t("accounts.deleteBlockedTitle")}
+        message={t("accounts.deleteBlockedMessage", { count: deleteBlocked?.count ?? 0 })}
+        confirmLabel={t("common.done")}
+        variant="primary"
+        onConfirm={() => setDeleteBlocked(null)}
       />
     </ModalLayout>
   );

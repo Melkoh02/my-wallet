@@ -46,6 +46,13 @@ export default {
         tag: "0005_account_include_in_net_worth",
         breakpoints: true,
       },
+      {
+        idx: 6,
+        version: "6",
+        when: 1777600800000,
+        tag: "0006_txn_currency_rate",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -236,5 +243,16 @@ ALTER TABLE \`recurring_transactions\` ADD COLUMN \`day_of_week\` integer;
 ALTER TABLE \`recurring_transactions\` ADD COLUMN \`time_of_day\` text;`,
     m0004: `ALTER TABLE \`accounts\` ADD COLUMN \`origin_transaction_id\` integer;`,
     m0005: `ALTER TABLE \`accounts\` ADD COLUMN \`include_in_net_worth\` integer DEFAULT true NOT NULL;`,
+    m0006: `ALTER TABLE \`transactions\` ADD COLUMN \`currency\` text;
+--> statement-breakpoint
+ALTER TABLE \`transactions\` ADD COLUMN \`rate_to_display\` real;
+--> statement-breakpoint
+ALTER TABLE \`transactions\` ADD COLUMN \`display_currency_snapshot\` text;
+--> statement-breakpoint
+ALTER TABLE \`recurring_transactions\` ADD COLUMN \`currency\` text;
+--> statement-breakpoint
+ALTER TABLE \`recurring_transactions\` ADD COLUMN \`rate_to_display\` real;
+--> statement-breakpoint
+ALTER TABLE \`recurring_transactions\` ADD COLUMN \`display_currency_snapshot\` text;`,
   },
 };

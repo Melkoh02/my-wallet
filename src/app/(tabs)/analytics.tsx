@@ -44,6 +44,7 @@ export default function AnalyticsScreen() {
     { contactId: string; contactName: string; total: number; count: number }[]
   >([]);
   const [missingRates, setMissingRates] = useState<string[]>([]);
+  const [usedTodaysRate, setUsedTodaysRate] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -73,6 +74,14 @@ export default function AnalyticsScreen() {
       ...pv.missingRates,
     ]);
     setMissingRates([...allMissing]);
+    setUsedTodaysRate(
+      s.usedTodaysRate ||
+        c.usedTodaysRate ||
+        d.usedTodaysRate ||
+        trend.usedTodaysRate ||
+        contacts.usedTodaysRate ||
+        pv.usedTodaysRate,
+    );
   }, [year, month]);
 
   useEffect(() => {
@@ -145,7 +154,7 @@ export default function AnalyticsScreen() {
       </View>
 
       {/* Currency banner — surfaces the conversion situation */}
-      {totals.hasMultipleCurrencies && (
+      {(missingRates.length > 0 || usedTodaysRate) && (
         <View
           style={[
             styles.currencyBanner,
@@ -189,7 +198,7 @@ export default function AnalyticsScreen() {
                 <AmountDisplay
                   amount={summary.income}
                   currency={dc}
-                  approximate={totals.hasMultipleCurrencies}
+                  approximate={usedTodaysRate}
                   type="income"
                   variant="label"
                 />
@@ -201,7 +210,7 @@ export default function AnalyticsScreen() {
                 <AmountDisplay
                   amount={summary.expense}
                   currency={dc}
-                  approximate={totals.hasMultipleCurrencies}
+                  approximate={usedTodaysRate}
                   type="expense"
                   variant="label"
                 />
@@ -213,7 +222,7 @@ export default function AnalyticsScreen() {
                 <AmountDisplay
                   amount={summary.net}
                   currency={dc}
-                  approximate={totals.hasMultipleCurrencies}
+                  approximate={usedTodaysRate}
                   type={summary.net >= 0 ? "income" : "expense"}
                   variant="label"
                 />
@@ -276,7 +285,7 @@ export default function AnalyticsScreen() {
                     <AmountDisplay
                       amount={projection}
                       currency={dc}
-                      approximate={totals.hasMultipleCurrencies}
+                      approximate={usedTodaysRate}
                       variant="label"
                     />
                   </View>
@@ -312,7 +321,7 @@ export default function AnalyticsScreen() {
                         <AmountDisplay
                           amount={net}
                           currency={dc}
-                          approximate={totals.hasMultipleCurrencies}
+                          approximate={usedTodaysRate}
                           type={net >= 0 ? "income" : "expense"}
                           variant="caption"
                         />
@@ -374,7 +383,7 @@ export default function AnalyticsScreen() {
                         <AmountDisplay
                           amount={cat.total}
                           currency={dc}
-                          approximate={totals.hasMultipleCurrencies}
+                          approximate={usedTodaysRate}
                           variant="label"
                         />
                       </View>
@@ -440,7 +449,7 @@ export default function AnalyticsScreen() {
                         <AmountDisplay
                           amount={day.total}
                           currency={dc}
-                          approximate={totals.hasMultipleCurrencies}
+                          approximate={usedTodaysRate}
                           variant="caption"
                         />
                       </View>
@@ -477,7 +486,7 @@ export default function AnalyticsScreen() {
                   <AmountDisplay
                     amount={tc.total}
                     currency={dc}
-                    approximate={totals.hasMultipleCurrencies}
+                    approximate={usedTodaysRate}
                     variant="label"
                   />
                   <AppText variant="caption" color={colors.textSecondary}>

@@ -1,6 +1,13 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { accounts, type Account, type NewAccount } from "@/db/schema";
+import { accounts, transactions, type Account, type NewAccount } from "@/db/schema";
+
+export class AccountInUseError extends Error {
+  constructor(public readonly txnCount: number) {
+    super(`Account is referenced by ${txnCount} transaction(s)`);
+    this.name = "AccountInUseError";
+  }
+}
 
 export async function getAccounts(activeOnly = true): Promise<Account[]> {
   if (activeOnly) {
@@ -40,6 +47,23 @@ export async function unarchiveAccount(id: number): Promise<void> {
 }
 
 export async function deleteAccountPermanently(id: number): Promise<void> {
+  // expo-sqlite leaves PRAGMA foreign_keys = OFF by default, so the schema's
+  // FK clause doesn't actually prevent orphan transactions. Guard at the
+  // query layer: if any transaction (including transfers + cashback dest)
+  // points at this account, refuse the delete. The user can archive instead.
+  const [hit] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(transactions)
+    .where(
+      or(
+        eq(transactions.accountId, id),
+        eq(transactions.toAccountId, id),
+        eq(transactions.cashbackAccountId, id),
+      ),
+    );
+  if (hit && hit.count > 0) {
+    throw new AccountInUseError(hit.count);
+  }
   await db.delete(accounts).where(eq(accounts.id, id));
 }
 

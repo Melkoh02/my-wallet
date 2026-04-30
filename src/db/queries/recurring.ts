@@ -10,6 +10,7 @@ import {
   type NewRecurringTransaction,
 } from "@/db/schema";
 import { updateAccountBalance } from "./accounts";
+import { captureRateForCurrency } from "@/services/exchangeRate.service";
 import { getNextDate, daysBetween, frequencyToDays } from "@/utils/date";
 import { todayDateString, nowTimeString } from "@/utils/format";
 
@@ -68,7 +69,23 @@ export async function createRecurring(
   data: NewRecurringTransaction,
   subcategoryIds: number[],
 ): Promise<RecurringTransaction> {
-  const [item] = await db.insert(recurringTransactions).values(data).returning();
+  let toInsert = data;
+  if (data.currency == null) {
+    const [account] = await db
+      .select({ currency: accounts.currency })
+      .from(accounts)
+      .where(eq(accounts.id, data.accountId));
+    if (account?.currency) {
+      const captured = await captureRateForCurrency(account.currency);
+      toInsert = {
+        ...data,
+        currency: account.currency,
+        rateToDisplay: captured.rateToDisplay,
+        displayCurrencySnapshot: captured.displayCurrency,
+      };
+    }
+  }
+  const [item] = await db.insert(recurringTransactions).values(toInsert).returning();
   if (subcategoryIds.length > 0) {
     await db.insert(recurringSubcategories).values(
       subcategoryIds.map((subId) => ({
@@ -137,8 +154,16 @@ export async function processDueRecurring(): Promise<number> {
       currentDate = today;
     }
 
+    // Capture today's rate once per recurring item. Only used as the stored
+    // rate for transactions dated today — backdated catchup rows leave the
+    // rate fields NULL so aggregations correctly mark them approximate
+    // (today's rate ≠ rate at the date the transaction is dated).
+    const itemCurrency = item.currency;
+    const captured = itemCurrency ? await captureRateForCurrency(itemCurrency) : null;
+
     // Process all due occurrences
     while (currentDate <= today) {
+      const isToday = currentDate === today;
       // Create the transaction
       const [txn] = await db
         .insert(transactions)
@@ -154,6 +179,9 @@ export async function processDueRecurring(): Promise<number> {
           cashbackAmount: item.cashbackAmount,
           cashbackAccountId: item.cashbackAccountId,
           recurringId: item.id,
+          currency: itemCurrency,
+          rateToDisplay: isToday ? (captured?.rateToDisplay ?? null) : null,
+          displayCurrencySnapshot: isToday ? (captured?.displayCurrency ?? null) : null,
         })
         .returning();
 
@@ -223,6 +251,9 @@ export async function triggerRecurringNow(id: number): Promise<void> {
   const today = todayDateString();
   const time = item.timeOfDay ?? nowTimeString();
 
+  const itemCurrency = item.currency;
+  const captured = itemCurrency ? await captureRateForCurrency(itemCurrency) : null;
+
   const [txn] = await db
     .insert(transactions)
     .values({
@@ -237,6 +268,9 @@ export async function triggerRecurringNow(id: number): Promise<void> {
       cashbackAmount: item.cashbackAmount,
       cashbackAccountId: item.cashbackAccountId,
       recurringId: item.id,
+      currency: itemCurrency,
+      rateToDisplay: captured?.rateToDisplay ?? null,
+      displayCurrencySnapshot: captured?.displayCurrency ?? null,
     })
     .returning();
 

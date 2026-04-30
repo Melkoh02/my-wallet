@@ -2,11 +2,23 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 
 const IS_DEV = process.env.APP_VARIANT === "development";
 
+const VERSION = "1.8.1";
+
+// Android requires a monotonically-increasing integer per release. Derive it
+// deterministically from the version string: major*10000 + minor*100 + patch.
+// 1.8.1 → 10801; 1.7.0 → 10700; 2.0.0 → 20000. Bumping `version` automatically
+// bumps versionCode so sideload installs are recognised as upgrades and don't
+// reuse cached dex/JS bundles from prior installs.
+function deriveVersionCode(v: string): number {
+  const [major, minor, patch] = v.split(".").map((n) => parseInt(n, 10));
+  return major * 10000 + minor * 100 + patch;
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? "[Dev] My Wallet" : "My Wallet",
   slug: "my-wallet",
-  version: "1.8.1",
+  version: VERSION,
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: IS_DEV ? "mywallet-dev" : "mywallet",
@@ -27,6 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
     package: IS_DEV ? "dev.melkoh.mywallet.dev" : "dev.melkoh.mywallet",
+    versionCode: deriveVersionCode(VERSION),
   },
   web: {
     output: "static" as const,

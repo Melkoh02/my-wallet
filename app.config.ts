@@ -14,6 +14,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     icon: "./assets/expo.icon",
     bundleIdentifier: IS_DEV ? "dev.melkoh.mywallet.dev" : "dev.melkoh.mywallet",
+    infoPlist: {
+      UIFileSharingEnabled: true,
+      LSSupportsOpeningDocumentsInPlace: true,
+    },
   },
   android: {
     adaptiveIcon: {

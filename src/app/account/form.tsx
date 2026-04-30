@@ -13,6 +13,7 @@ import {
   deleteAccountPermanently,
   accountHasTransactions,
   AccountInUseError,
+  AccountCurrencyLockedError,
 } from "@/db/queries/accounts";
 import type { Account, NewAccount } from "@/db/schema";
 
@@ -20,12 +21,13 @@ export default function AccountFormScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ id?: string }>();
-  const { invalidate } = useDataRefresh();
+  const { invalidate, revisions } = useDataRefresh();
   const [initial, setInitial] = useState<Account | undefined>();
   const [loaded, setLoaded] = useState(!params.id);
   const [currencyLocked, setCurrencyLocked] = useState(false);
   const [confirmMode, setConfirmMode] = useState<"archive" | "delete" | null>(null);
   const [deleteBlocked, setDeleteBlocked] = useState<{ count: number } | null>(null);
+  const [currencyLockedError, setCurrencyLockedError] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -38,13 +40,21 @@ export default function AccountFormScreen() {
         },
       );
     }
-  }, [params.id]);
+  }, [params.id, revisions.transactions]);
 
   const handleSubmit = async (data: NewAccount) => {
-    if (initial) {
-      await updateAccount(initial.id, data);
-    } else {
-      await createAccount(data);
+    try {
+      if (initial) {
+        await updateAccount(initial.id, data);
+      } else {
+        await createAccount(data);
+      }
+    } catch (e) {
+      if (e instanceof AccountCurrencyLockedError) {
+        setCurrencyLockedError(true);
+        return;
+      }
+      throw e;
     }
     invalidate("accounts", "transactions");
     router.back();
@@ -112,6 +122,15 @@ export default function AccountFormScreen() {
         confirmLabel={t("common.done")}
         variant="primary"
         onConfirm={() => setDeleteBlocked(null)}
+      />
+
+      <ConfirmModal
+        visible={currencyLockedError}
+        title={t("accounts.currencyLockedTitle")}
+        message={t("accounts.currencyLocked")}
+        confirmLabel={t("common.done")}
+        variant="primary"
+        onConfirm={() => setCurrencyLockedError(false)}
       />
     </ModalLayout>
   );

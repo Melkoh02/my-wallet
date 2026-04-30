@@ -296,6 +296,11 @@ export function TransactionForm({
     if (!parsed || !accountId) return;
 
     const parsedToAmount = parseFloat(unformatAmount(toAmount));
+    // Belt-and-suspenders: refuse cross-currency submit without a positive
+    // toAmount even if `isValid` was somehow bypassed. Without this, a null
+    // toAmount falls back to `amount` (in source currency) for the
+    // destination balance update — silently mis-priced.
+    if (isCrossCurrencyTransfer && !(parsedToAmount > 0)) return;
     const finalToAmount = isCrossCurrencyTransfer && parsedToAmount > 0 ? parsedToAmount : null;
 
     onSubmit(

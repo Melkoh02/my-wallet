@@ -82,6 +82,7 @@
     "creditLimit": "Limite de Crédito",
     "currency": "Moeda",
     "currencyLocked": "A moeda não pode ser alterada depois que a conta tem transações",
+    "currencyLockedTitle": "Não é possível alterar a moeda",
     "color": "Cor",
     "saveChanges": "Salvar Alterações",
     "createAccount": "Criar Conta",

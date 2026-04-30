@@ -82,6 +82,7 @@
     "creditLimit": "Credit Limit",
     "currency": "Currency",
     "currencyLocked": "Currency can't be changed once the account has transactions",
+    "currencyLockedTitle": "Can't change currency",
     "color": "Color",
     "saveChanges": "Save Changes",
     "createAccount": "Create Account",

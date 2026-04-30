@@ -252,7 +252,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { invalidate } = useDataRefresh();
+  const { invalidate, revisions } = useDataRefresh();
   const { language, changeLanguage } = useLanguage();
   const { randomNumbers, toggleRandomNumbers } = usePrivacy();
   const [locationEnabled, setLocationEnabled] = useState(false);
@@ -281,10 +281,10 @@ export default function SettingsScreen() {
         } catch {}
       }
     });
-    getAccountCurrencies().then((currencies) => {
+    getAccountCurrencies(false).then((currencies) => {
       setMultiCurrency(currencies.length > 1);
     });
-  }, []);
+  }, [revisions.accounts]);
 
   const handleLocationToggle = async (value: boolean) => {
     setLocationEnabled(value);

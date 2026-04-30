@@ -82,6 +82,7 @@
     "creditLimit": "利用限度額",
     "currency": "通貨",
     "currencyLocked": "口座に取引が記録された後は通貨を変更できません",
+    "currencyLockedTitle": "通貨を変更できません",
     "color": "色",
     "saveChanges": "変更を保存",
     "createAccount": "口座を作成",

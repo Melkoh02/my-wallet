@@ -1,10 +1,11 @@
 import "@/i18n";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
-import { DatabaseProvider } from "@/providers/DatabaseProvider";
+import { DatabaseProvider, useDatabase } from "@/providers/DatabaseProvider";
 import { ThemeProvider, useTheme } from "@/providers/ThemeProvider";
 import { DataRefreshProvider } from "@/providers/DataRefreshProvider";
 import { PrivacyProvider } from "@/providers/PrivacyProvider";
+import { BackupSetupModal } from "@/components/organisms/BackupSetupModal";
 
 function AppStatusBar() {
   const { statusBarStyle, isDark } = useTheme();
@@ -15,6 +16,7 @@ function AppStatusBar() {
 
 function AppStack() {
   const { colors } = useTheme();
+  const { needsBackupSetup, dismissBackupSetup } = useDatabase();
 
   return (
     <>
@@ -38,6 +40,7 @@ function AppStack() {
         <Stack.Screen name="settings/backup" />
       </Stack>
       <AppStatusBar />
+      <BackupSetupModal visible={needsBackupSetup} onComplete={dismissBackupSetup} />
     </>
   );
 }

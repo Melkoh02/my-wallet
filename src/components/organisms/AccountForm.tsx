@@ -42,11 +42,19 @@ const isLoanType = (t: string) => t === "loan_borrowed" || t === "loan_lent";
 
 type AccountFormProps = {
   initial?: Account;
+  // True when the account already has transactions and its currency
+  // shouldn't be editable (would invalidate stored rate_to_display values).
+  currencyLocked?: boolean;
   onSubmit: (data: NewAccount) => void;
   onDelete?: (mode: "archive" | "delete") => void;
 };
 
-export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
+export function AccountForm({
+  initial,
+  currencyLocked = false,
+  onSubmit,
+  onDelete,
+}: AccountFormProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [name, setName] = useState(initial?.name ?? "");
@@ -343,15 +351,31 @@ export function AccountForm({ initial, onSubmit, onDelete }: AccountFormProps) {
           {t("accounts.currency")}
         </AppText>
         <Pressable
-          onPress={() => setShowCurrencyModal(true)}
+          onPress={() => {
+            if (!currencyLocked) setShowCurrencyModal(true);
+          }}
+          disabled={currencyLocked}
           style={[
             styles.selectTrigger,
-            { borderColor: colors.border, backgroundColor: colors.surface },
+            {
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              opacity: currencyLocked ? 0.6 : 1,
+            },
           ]}
         >
           <AppText variant="body">{currency}</AppText>
-          <AppIcon name="chevron-down" size={20} color={colors.iconSecondary} />
+          {currencyLocked ? (
+            <AppIcon name="lock-outline" size={18} color={colors.iconSecondary} />
+          ) : (
+            <AppIcon name="chevron-down" size={20} color={colors.iconSecondary} />
+          )}
         </Pressable>
+        {currencyLocked && (
+          <AppText variant="caption" color={colors.textTertiary}>
+            {t("accounts.currencyLocked")}
+          </AppText>
+        )}
       </View>
 
       {/* Currency picker modal */}

@@ -111,6 +111,18 @@ export default function TransactionDetailScreen() {
             type={txn.type as "income" | "expense" | "transfer"}
             variant="amountLarge"
           />
+          {txn.type === "transfer" && txn.toAmount != null && txn.toAccountCurrency && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                {t("transactionForm.receivedAt")}:
+              </AppText>
+              <AmountDisplay
+                amount={txn.toAmount}
+                currency={txn.toAccountCurrency}
+                variant="bodySmall"
+              />
+            </View>
+          )}
         </View>
 
         <Divider />

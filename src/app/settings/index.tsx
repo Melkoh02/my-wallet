@@ -8,6 +8,7 @@ import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { Divider } from "@/components/atoms/Divider";
+import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
@@ -264,6 +265,7 @@ export default function SettingsScreen() {
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [multiCurrency, setMultiCurrency] = useState(false);
+  const [pendingCurrency, setPendingCurrency] = useState<string | null>(null);
 
   useEffect(() => {
     getSetting("location_enabled").then((v) => setLocationEnabled(v === "true"));
@@ -303,8 +305,25 @@ export default function SettingsScreen() {
   };
 
   const handleCurrencyChange = async (currency: string) => {
+    if (currency === displayCurrency) return;
+    // Changing the display currency invalidates every stored
+    // rate_to_display snapshot — historical aggregations will fall back to
+    // today's rate (with ≈) until newer transactions are captured at the
+    // new currency. Confirm with the user before applying.
+    if (multiCurrency) {
+      setPendingCurrency(currency);
+      return;
+    }
     setDisplayCurrency(currency);
     await setSetting("display_currency", currency);
+    invalidate("settings", "accounts");
+  };
+
+  const confirmCurrencyChange = async () => {
+    if (!pendingCurrency) return;
+    setDisplayCurrency(pendingCurrency);
+    await setSetting("display_currency", pendingCurrency);
+    setPendingCurrency(null);
     invalidate("settings", "accounts");
   };
 
@@ -489,6 +508,19 @@ export default function SettingsScreen() {
         selected={language}
         onSelect={changeLanguage}
         onClose={() => setShowLanguagePicker(false)}
+      />
+      <ConfirmModal
+        visible={pendingCurrency !== null}
+        title={t("settings.changeCurrencyTitle")}
+        message={t("settings.changeCurrencyMessage", {
+          from: displayCurrency,
+          to: pendingCurrency ?? "",
+        })}
+        confirmLabel={t("common.confirm")}
+        cancelLabel={t("common.cancel")}
+        variant="primary"
+        onConfirm={confirmCurrencyChange}
+        onCancel={() => setPendingCurrency(null)}
       />
     </ScreenLayout>
   );

@@ -334,7 +334,11 @@ export async function createTransaction(
     true,
   );
   if (txn.toAccountId && txn.type === "transfer") {
-    await updateAccountBalance(txn.toAccountId, txn.amount, "transfer", false);
+    // Cross-currency transfer: destination receives `toAmount` in its own
+    // currency (different from `amount` which is the source-currency value).
+    // For same-currency transfers, `toAmount` is null and we use `amount`.
+    const destAmount = txn.toAmount ?? txn.amount;
+    await updateAccountBalance(txn.toAccountId, destAmount, "transfer", false);
   }
 
   return txn;
@@ -351,7 +355,8 @@ export async function deleteTransaction(id: number): Promise<void> {
     true,
   );
   if (txn.toAccountId && txn.type === "transfer") {
-    await updateAccountBalance(txn.toAccountId, -txn.amount, "transfer", false);
+    const destAmount = txn.toAmount ?? txn.amount;
+    await updateAccountBalance(txn.toAccountId, -destAmount, "transfer", false);
   }
 
   await db.delete(transactions).where(eq(transactions.id, id));

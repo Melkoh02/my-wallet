@@ -9,6 +9,10 @@ export const transactions = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     type: text("type").notNull(), // income | expense | transfer
     amount: real("amount").notNull(),
+    // For cross-currency transfers, the amount that arrived at the destination
+    // account in the destination's currency. NULL for same-currency transfers
+    // and non-transfer rows.
+    toAmount: real("to_amount"),
     description: text("description").notNull().default(""),
     accountId: integer("account_id")
       .notNull()

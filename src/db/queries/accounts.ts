@@ -9,6 +9,13 @@ export class AccountInUseError extends Error {
   }
 }
 
+export class AccountCurrencyLockedError extends Error {
+  constructor(public readonly txnCount: number) {
+    super(`Cannot change currency: account has ${txnCount} transaction(s)`);
+    this.name = "AccountCurrencyLockedError";
+  }
+}
+
 export async function getAccounts(activeOnly = true): Promise<Account[]> {
   if (activeOnly) {
     return db
@@ -25,6 +32,25 @@ export async function getAccountById(id: number): Promise<Account | undefined> {
   return account;
 }
 
+/**
+ * Returns true if any transaction (regular, transfer destination, or cashback
+ * destination) references this account. Used to decide whether the account's
+ * currency can still be edited.
+ */
+export async function accountHasTransactions(id: number): Promise<boolean> {
+  const [hit] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(transactions)
+    .where(
+      or(
+        eq(transactions.accountId, id),
+        eq(transactions.toAccountId, id),
+        eq(transactions.cashbackAccountId, id),
+      ),
+    );
+  return !!(hit && hit.count > 0);
+}
+
 export async function createAccount(data: NewAccount): Promise<Account> {
   const [account] = await db.insert(accounts).values(data).returning();
   return account;
@@ -34,6 +60,32 @@ export async function updateAccount(
   id: number,
   data: Partial<Omit<NewAccount, "id">>,
 ): Promise<Account> {
+  // Currency is the foundation of every linked transaction's stored
+  // rate_to_display. Changing it after transactions exist would silently
+  // invalidate balance math and the historical conversion rates we captured
+  // at insert time. Block here; the user can archive + recreate if they
+  // genuinely need to switch.
+  if (data.currency !== undefined) {
+    const [existing] = await db
+      .select({ currency: accounts.currency })
+      .from(accounts)
+      .where(eq(accounts.id, id));
+    if (existing && existing.currency !== data.currency) {
+      const [hit] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(transactions)
+        .where(
+          or(
+            eq(transactions.accountId, id),
+            eq(transactions.toAccountId, id),
+            eq(transactions.cashbackAccountId, id),
+          ),
+        );
+      if (hit && hit.count > 0) {
+        throw new AccountCurrencyLockedError(hit.count);
+      }
+    }
+  }
   const [account] = await db.update(accounts).set(data).where(eq(accounts.id, id)).returning();
   return account;
 }

@@ -11,6 +11,7 @@ import {
   getAccountById,
   archiveAccount,
   deleteAccountPermanently,
+  accountHasTransactions,
   AccountInUseError,
 } from "@/db/queries/accounts";
 import type { Account, NewAccount } from "@/db/schema";
@@ -22,15 +23,20 @@ export default function AccountFormScreen() {
   const { invalidate } = useDataRefresh();
   const [initial, setInitial] = useState<Account | undefined>();
   const [loaded, setLoaded] = useState(!params.id);
+  const [currencyLocked, setCurrencyLocked] = useState(false);
   const [confirmMode, setConfirmMode] = useState<"archive" | "delete" | null>(null);
   const [deleteBlocked, setDeleteBlocked] = useState<{ count: number } | null>(null);
 
   useEffect(() => {
     if (params.id) {
-      getAccountById(parseInt(params.id, 10)).then((acc) => {
-        setInitial(acc);
-        setLoaded(true);
-      });
+      const accountId = parseInt(params.id, 10);
+      Promise.all([getAccountById(accountId), accountHasTransactions(accountId)]).then(
+        ([acc, hasTxns]) => {
+          setInitial(acc);
+          setCurrencyLocked(hasTxns);
+          setLoaded(true);
+        },
+      );
     }
   }, [params.id]);
 
@@ -79,6 +85,7 @@ export default function AccountFormScreen() {
     >
       <AccountForm
         initial={initial}
+        currencyLocked={currencyLocked}
         onSubmit={handleSubmit}
         onDelete={initial ? handleDelete : undefined}
       />

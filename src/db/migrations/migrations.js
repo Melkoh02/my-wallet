@@ -53,6 +53,13 @@ export default {
         tag: "0006_txn_currency_rate",
         breakpoints: true,
       },
+      {
+        idx: 7,
+        version: "6",
+        when: 1777687200000,
+        tag: "0007_txn_to_amount",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -254,5 +261,6 @@ ALTER TABLE \`recurring_transactions\` ADD COLUMN \`currency\` text;
 ALTER TABLE \`recurring_transactions\` ADD COLUMN \`rate_to_display\` real;
 --> statement-breakpoint
 ALTER TABLE \`recurring_transactions\` ADD COLUMN \`display_currency_snapshot\` text;`,
+    m0007: `ALTER TABLE \`transactions\` ADD COLUMN \`to_amount\` real;`,
   },
 };

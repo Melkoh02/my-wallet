@@ -8,14 +8,19 @@ import { processDueRecurring } from "@/db/queries/recurring";
 import { checkAndRunAutoBackup, BACKUP_SETUP_DONE_KEY } from "@/services/backup.service";
 import { checkAndFetchRates } from "@/services/exchangeRate.service";
 import { getSetting } from "@/db/queries/settings";
-import { BackupSetupModal } from "@/components/organisms/BackupSetupModal";
 import migrationData from "@/db/migrations/migrations";
 
 type DatabaseContextValue = {
   isReady: boolean;
+  needsBackupSetup: boolean;
+  dismissBackupSetup: () => void;
 };
 
-const DatabaseContext = createContext<DatabaseContextValue>({ isReady: false });
+const DatabaseContext = createContext<DatabaseContextValue>({
+  isReady: false,
+  needsBackupSetup: false,
+  dismissBackupSetup: () => {},
+});
 
 /**
  * One-time migration: convert credit card balances from "debt" semantics
@@ -185,10 +190,19 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  // The modal itself is rendered inside AppStack — outside this provider but
+  // inside ThemeProvider — because BackupSetupModal calls useTheme(). Keeping
+  // the gate state here lets DatabaseProvider sit at the top of the tree
+  // (must wrap ThemeProvider since ThemeProvider queries the DB on mount).
   return (
-    <DatabaseContext.Provider value={{ isReady: true }}>
+    <DatabaseContext.Provider
+      value={{
+        isReady: true,
+        needsBackupSetup,
+        dismissBackupSetup: () => setNeedsBackupSetup(false),
+      }}
+    >
       {children}
-      <BackupSetupModal visible={needsBackupSetup} onComplete={() => setNeedsBackupSetup(false)} />
     </DatabaseContext.Provider>
   );
 }

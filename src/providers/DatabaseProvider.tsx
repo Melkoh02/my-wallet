@@ -5,8 +5,10 @@ import { db } from "@/db/client";
 import { accounts, settings, themes } from "@/db/schema";
 import { seed } from "@/db/seed";
 import { processDueRecurring } from "@/db/queries/recurring";
-import { checkAndRunAutoBackup } from "@/services/backup.service";
+import { checkAndRunAutoBackup, BACKUP_SETUP_DONE_KEY } from "@/services/backup.service";
 import { checkAndFetchRates } from "@/services/exchangeRate.service";
+import { getSetting } from "@/db/queries/settings";
+import { BackupSetupModal } from "@/components/organisms/BackupSetupModal";
 import migrationData from "@/db/migrations/migrations";
 
 type DatabaseContextValue = {
@@ -111,6 +113,7 @@ async function applyInvestmentInterest() {
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { success, error } = useMigrations(db, migrationData);
   const [isSeeded, setIsSeeded] = useState(false);
+  const [needsBackupSetup, setNeedsBackupSetup] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!success) return;
@@ -122,6 +125,11 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isSeeded) return;
+    getSetting(BACKUP_SETUP_DONE_KEY).then((v) => setNeedsBackupSetup(v !== "true"));
+  }, [isSeeded]);
+
+  useEffect(() => {
+    if (!isSeeded || needsBackupSetup !== false) return;
     processDueRecurring().then((count) => {
       if (count > 0) {
         console.log(`Processed ${count} recurring transaction(s)`);
@@ -134,17 +142,22 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
       }
     });
     checkAndFetchRates();
-  }, [isSeeded]);
+  }, [isSeeded, needsBackupSetup]);
 
   if (error) {
     throw new Error(`Database migration failed: ${error.message}`);
   }
 
-  if (!success || !isSeeded) {
+  if (!success || !isSeeded || needsBackupSetup === null) {
     return null;
   }
 
-  return <DatabaseContext.Provider value={{ isReady: true }}>{children}</DatabaseContext.Provider>;
+  return (
+    <DatabaseContext.Provider value={{ isReady: true }}>
+      {children}
+      <BackupSetupModal visible={needsBackupSetup} onComplete={() => setNeedsBackupSetup(false)} />
+    </DatabaseContext.Provider>
+  );
 }
 
 export function useDatabase() {

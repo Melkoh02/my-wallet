@@ -201,6 +201,9 @@ export default function TransactionFormScreen() {
               )
             : null;
 
+          // invariant: loan always opens at +person.amount (friend owes user). if paid, the
+          // settling transfer below drains it back to zero. without this, paid loans land at
+          // -amount and surface as liabilities ("user overpaid friend").
           let loanAccountId: number;
           if (existing) {
             await updateAccountBalance(existing.id, person.amount, "income", false);
@@ -209,7 +212,7 @@ export default function TransactionFormScreen() {
             const loanAcc = await createAccount({
               name: t("splitBill.loanName", { name: person.name }),
               type: "loan_lent",
-              balance: person.paid ? 0 : person.amount,
+              balance: person.amount,
               currency: existingAccounts.find((a) => a.id === data.accountId)?.currency ?? "USD",
               counterparty: person.name,
               counterpartyContactId: person.contactId,
@@ -222,8 +225,9 @@ export default function TransactionFormScreen() {
             loanAccountId = loanAcc.id;
           }
 
-          // If person already paid, create a settling transfer immediately
-          if (person.paid && !existing) {
+          // If person already paid, create a settling transfer immediately. Drains the loan
+          // (existing or new) by person.amount and refunds the source account.
+          if (person.paid) {
             await createTransaction(
               {
                 type: "transfer",

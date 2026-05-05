@@ -121,7 +121,13 @@
     "loanPaymentDesc": "ローン返済: {{name}}",
     "loanReceivedDesc": "ローン回収: {{name}}",
     "exceedsRemaining": "金額が残高を超えています",
-    "payCard": "カード支払い"
+    "payCard": "カード支払い",
+    "linkedAccount": "リンクされた口座",
+    "linkedAccountNone": "なし — 初期残高を手動で設定",
+    "linkedAccountBorrowedHint": "借りたお金が入金された口座（その口座への入金を自動記録）",
+    "linkedAccountLentHint": "お金が出た口座（その口座からの出金を自動記録）",
+    "linkedTransferDescBorrowed": "借入: {{name}}",
+    "linkedTransferDescLent": "貸付: {{name}}"
   },
   "categories": {
     "title": "カテゴリー",

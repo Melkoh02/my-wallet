@@ -121,7 +121,13 @@
     "loanPaymentDesc": "贷款还款：{{name}}",
     "loanReceivedDesc": "贷款收回：{{name}}",
     "exceedsRemaining": "金额超过剩余余额",
-    "payCard": "还信用卡"
+    "payCard": "还信用卡",
+    "linkedAccount": "关联账户",
+    "linkedAccountNone": "无 — 手动设置初始余额",
+    "linkedAccountBorrowedHint": "借入资金存入的账户（自动记录该账户的资金流入）",
+    "linkedAccountLentHint": "资金来源账户（自动记录该账户的资金流出）",
+    "linkedTransferDescBorrowed": "借入：{{name}}",
+    "linkedTransferDescLent": "借出：{{name}}"
   },
   "categories": {
     "title": "分类",

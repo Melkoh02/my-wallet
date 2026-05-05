@@ -121,7 +121,13 @@
     "loanPaymentDesc": "Loan payment: {{name}}",
     "loanReceivedDesc": "Loan received: {{name}}",
     "exceedsRemaining": "Amount exceeds remaining balance",
-    "payCard": "Pay Card"
+    "payCard": "Pay Card",
+    "linkedAccount": "Linked account",
+    "linkedAccountNone": "None — set initial balance manually",
+    "linkedAccountBorrowedHint": "Where the borrowed money was deposited (auto-records the inflow into that account)",
+    "linkedAccountLentHint": "Where the money came from (auto-records the outflow from that account)",
+    "linkedTransferDescBorrowed": "Borrowed: {{name}}",
+    "linkedTransferDescLent": "Lent: {{name}}"
   },
   "categories": {
     "title": "Categories",

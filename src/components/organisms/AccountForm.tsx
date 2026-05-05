@@ -16,7 +16,10 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { DatePicker } from "@/components/molecules/DatePicker";
+import { SelectInput } from "@/components/molecules/SelectInput";
+import { PickerModal } from "@/components/molecules/PickerModal";
 import { ContactPicker } from "@/components/organisms/ContactPicker";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useTheme } from "@/providers/ThemeProvider";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
@@ -40,14 +43,21 @@ const ACCOUNT_TYPE_DEFS: { value: AccountType; key: string; icon: string }[] = [
 
 const isLoanType = (t: string) => t === "loan_borrowed" || t === "loan_lent";
 
+type LinkedTransferOptions = {
+  linkedAccountId: number;
+  transferAmount: number;
+};
+
 type AccountFormProps = {
   initial?: Account;
   // True when the account already has transactions and its currency
   // shouldn't be editable (would invalidate stored rate_to_display values).
   currencyLocked?: boolean;
-  onSubmit: (data: NewAccount) => void;
+  onSubmit: (data: NewAccount, linked?: LinkedTransferOptions) => void;
   onDelete?: (mode: "archive" | "delete") => void;
 };
+
+export type { LinkedTransferOptions };
 
 export function AccountForm({
   initial,
@@ -90,6 +100,36 @@ export function AccountForm({
   // the balance (even to the same value) is respected as-is.
   const balanceTouchedRef = useRef(false);
 
+  // Linked account: optional companion field for new loan accounts that creates
+  // an atomic transfer between the loan and a real account on submit. Null = no
+  // link (current behaviour: balance is stored directly). Only available when
+  // creating, not editing.
+  const [linkedAccountId, setLinkedAccountId] = useState<number | null>(null);
+  const [showLinkedAccountPicker, setShowLinkedAccountPicker] = useState(false);
+  const { accounts: allAccounts } = useAccounts();
+  // Filter to plausible linked accounts: not a loan, not the account being
+  // edited (irrelevant since linked is create-only, but defensive), and matches
+  // the loan currency (cross-currency linked transfers add toAmount UX that's
+  // out of scope for v1).
+  const linkedAccountChoices = useMemo(
+    () =>
+      allAccounts.filter(
+        (a) => !isLoanType(a.type) && a.currency === currency && a.id !== initial?.id,
+      ),
+    [allAccounts, currency, initial?.id],
+  );
+  const selectedLinkedAccount = allAccounts.find((a) => a.id === linkedAccountId);
+  // Reset linked when type changes away from loan or currency changes (the
+  // selection may no longer be valid).
+  useEffect(() => {
+    if (!isLoanType(type)) setLinkedAccountId(null);
+  }, [type]);
+  useEffect(() => {
+    if (selectedLinkedAccount && selectedLinkedAccount.currency !== currency) {
+      setLinkedAccountId(null);
+    }
+  }, [currency, selectedLinkedAccount]);
+
   useEffect(() => {
     if (!initial) {
       getSetting("display_currency").then((v) => {
@@ -119,12 +159,19 @@ export function AccountForm({
   };
 
   const handleSubmit = () => {
-    let parsed = parseFloat(unformatAmount(balance)) || 0;
-    // Borrowed loans are stored as negative balance (liability)
-    // Always use absolute value then negate to prevent double-negation
-    if (type === "loan_borrowed") {
-      parsed = -Math.abs(parsed);
+    const parsedAbs = Math.abs(parseFloat(unformatAmount(balance)) || 0);
+    const useLink = !initial && isLoanType(type) && linkedAccountId !== null && parsedAbs > 0;
+
+    // Compute the stored balance. With a linked account, the loan opens at 0
+    // and the atomic transfer below moves the money — balance ends at the
+    // right place either way (loan_borrowed: -amount, loan_lent: +amount).
+    // Without a link, fall back to the historical "set initial balance
+    // directly" behaviour, including the credit-card limit-delta shift.
+    let parsed = parsedAbs;
+    if (!useLink && type === "loan_borrowed") {
+      parsed = -parsedAbs;
     }
+
     const newLimit = type === "credit" ? parseFloat(unformatAmount(creditLimit)) || null : null;
     // When a credit card's limit changes (e.g. bank raises/lowers it) and the user hasn't
     // manually edited the available-credit field, shift balance by the limit delta so that
@@ -140,11 +187,12 @@ export function AccountForm({
     ) {
       parsed += newLimit - initial.creditLimit;
     }
-    onSubmit({
+
+    const data: NewAccount = {
       name: name.trim(),
       institution: institution.trim(),
       type,
-      balance: parsed,
+      balance: useLink ? 0 : parsed,
       creditLimit: newLimit,
       currency,
       color,
@@ -159,7 +207,13 @@ export function AccountForm({
       lastInterestDate:
         !initial && type === "investment" ? new Date().toISOString().slice(0, 10) : undefined,
       includeInNetWorth,
-    });
+    };
+
+    if (useLink) {
+      onSubmit(data, { linkedAccountId: linkedAccountId!, transferAmount: parsedAbs });
+    } else {
+      onSubmit(data);
+    }
   };
 
   const isValid = name.trim().length > 0;
@@ -286,6 +340,33 @@ export function AccountForm({
         keyboardType="decimal-pad"
         placeholder="0"
       />
+
+      {/* Linked account — loans only, create only. Optional. Only rendered when
+          at least one same-currency non-loan account exists. When set, the loan
+          opens at 0 and an atomic transfer moves the money to/from the linked
+          real account, so the user doesn't have to record both manually. */}
+      {!initial && isLoanType(type) && linkedAccountChoices.length > 0 && (
+        <View style={styles.section}>
+          <SelectInput
+            label={t("accounts.linkedAccount")}
+            value={selectedLinkedAccount?.name}
+            placeholder={t("accounts.linkedAccountNone")}
+            onPress={() => setShowLinkedAccountPicker(true)}
+          />
+          <AppText variant="caption" color={colors.textSecondary}>
+            {type === "loan_borrowed"
+              ? t("accounts.linkedAccountBorrowedHint")
+              : t("accounts.linkedAccountLentHint")}
+          </AppText>
+          {selectedLinkedAccount && (
+            <Pressable onPress={() => setLinkedAccountId(null)}>
+              <AppText variant="caption" color={colors.danger}>
+                {t("common.remove")}
+              </AppText>
+            </Pressable>
+          )}
+        </View>
+      )}
 
       {type === "credit" && (
         <AppInput
@@ -479,6 +560,44 @@ export function AccountForm({
           onValueChange={setIncludeInNetWorth}
         />
       </View>
+
+      <PickerModal
+        visible={showLinkedAccountPicker}
+        title={t("accounts.linkedAccount")}
+        items={linkedAccountChoices}
+        keyExtractor={(item) => item.id.toString()}
+        selectedKey={linkedAccountId?.toString()}
+        onSelect={(item) => setLinkedAccountId(item.id)}
+        onClose={() => setShowLinkedAccountPicker(false)}
+        renderItem={(item, isSelected) => (
+          <>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: item.color + "22",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppIcon name={item.icon} size={20} color={item.color} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="body" color={isSelected ? colors.primary : colors.text}>
+                {item.name}
+              </AppText>
+              <AppText variant="caption" color={colors.textTertiary}>
+                {item.currency} ·{" "}
+                {t(
+                  `accounts.${item.type === "loan_borrowed" ? "loanBorrowed" : item.type === "loan_lent" ? "loanLent" : item.type}`,
+                )}
+              </AppText>
+            </View>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
+      />
 
       <View style={styles.actions}>
         <AppButton

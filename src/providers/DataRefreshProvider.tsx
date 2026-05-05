@@ -5,7 +5,6 @@ type EntityKey =
   | "categories"
   | "transactions"
   | "recurring"
-  | "cashback"
   | "themes"
   | "settings"
   | "backups"
@@ -24,7 +23,6 @@ export function DataRefreshProvider({ children }: { children: React.ReactNode })
     categories: 0,
     transactions: 0,
     recurring: 0,
-    cashback: 0,
     themes: 0,
     settings: 0,
     backups: 0,

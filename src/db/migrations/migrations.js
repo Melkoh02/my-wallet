@@ -60,6 +60,13 @@ export default {
         tag: "0007_txn_to_amount",
         breakpoints: true,
       },
+      {
+        idx: 8,
+        version: "6",
+        when: 1777773600000,
+        tag: "0008_drop_cashback_rules",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -262,5 +269,6 @@ ALTER TABLE \`recurring_transactions\` ADD COLUMN \`rate_to_display\` real;
 --> statement-breakpoint
 ALTER TABLE \`recurring_transactions\` ADD COLUMN \`display_currency_snapshot\` text;`,
     m0007: `ALTER TABLE \`transactions\` ADD COLUMN \`to_amount\` real;`,
+    m0008: `DROP TABLE IF EXISTS \`cashback_rules\`;`,
   },
 };

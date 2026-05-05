@@ -163,9 +163,7 @@ UI-only. `maskAmount(real)` returns a stable fake number for that real amount wi
 ## Currency & exchange rates
 
 ### Display currency
-Per-user setting (`display_currency`, default `USD`). Every total — net worth, month income/expense, analytics, account totals — is converted to this currency before being shown.
-
-> **Note**: `DEFAULT_SETTINGS` in `src/constants/settings.ts` seeds `currency` (legacy key); the active code reads `display_currency`. New databases get `USD` from the fallback in `getDisplayCurrency`. The unused `currency` seed is harmless but should be reconciled.
+Per-user setting (`display_currency`, default `USD`). Every total — net worth, month income/expense, analytics, account totals — is converted to this currency before being shown. New databases don't seed this key — `getDisplayCurrency` falls back to `USD` when unset, so the seed would be redundant.
 
 ### `CurrencyConverter` (`exchangeRate.service.ts`)
 Pre-loads display currency + rates **once** so aggregate queries can convert synchronously over many rows. `convert(amount, fromCurrency)` divides by the rate (since the API expresses rates as "1 displayCurrency = N fromCurrency"). `hasRateFor` lets callers detect missing rates.

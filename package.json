@@ -13,7 +13,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
+    "check-docs": "bash scripts/check-docs.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

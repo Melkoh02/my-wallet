@@ -145,7 +145,8 @@ export async function processDueRecurring(): Promise<number> {
   let processed = 0;
 
   for (const item of dueItems) {
-    // If way behind, cap catchup
+    // why: cap catchup at 90 days. without this, returning to the app after a long offline
+    // period creates dozens-to-hundreds of rows and corrupts balances.
     const gap = daysBetween(item.nextDate, today);
     let currentDate = item.nextDate;
 
@@ -154,10 +155,8 @@ export async function processDueRecurring(): Promise<number> {
       currentDate = today;
     }
 
-    // Capture today's rate once per recurring item. Only used as the stored
-    // rate for transactions dated today — backdated catchup rows leave the
-    // rate fields NULL so aggregations correctly mark them approximate
-    // (today's rate ≠ rate at the date the transaction is dated).
+    // invariant: only the row dated today gets the stamped rate; backdated catchup rows leave
+    // rate fields NULL so aggregates correctly mark them approximate.
     const itemCurrency = item.currency;
     const captured = itemCurrency ? await captureRateForCurrency(itemCurrency) : null;
 
@@ -244,6 +243,8 @@ export async function processDueRecurring(): Promise<number> {
  * Trigger a recurring transaction immediately (e.g. salary came early).
  * Creates one transaction for today and advances nextDate.
  */
+// invariant: rate-capture mirrors createTransaction + processDueRecurring. all three sites
+// must stay in sync.
 export async function triggerRecurringNow(id: number): Promise<void> {
   const item = await getRecurringById(id);
   if (!item || !item.isActive) return;

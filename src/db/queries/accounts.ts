@@ -60,11 +60,9 @@ export async function updateAccount(
   id: number,
   data: Partial<Omit<NewAccount, "id">>,
 ): Promise<Account> {
-  // Currency is the foundation of every linked transaction's stored
-  // rate_to_display. Changing it after transactions exist would silently
-  // invalidate balance math and the historical conversion rates we captured
-  // at insert time. Block here; the user can archive + recreate if they
-  // genuinely need to switch.
+  // invariant: currency cannot change once any txn references this account — would invalidate
+  // every linked rateToDisplay snapshot and corrupt historical aggregates. archive + recreate
+  // is the workaround. see docs/glossary.md § currency lock.
   if (data.currency !== undefined) {
     const [existing] = await db
       .select({ currency: accounts.currency })
@@ -99,10 +97,8 @@ export async function unarchiveAccount(id: number): Promise<void> {
 }
 
 export async function deleteAccountPermanently(id: number): Promise<void> {
-  // expo-sqlite leaves PRAGMA foreign_keys = OFF by default, so the schema's
-  // FK clause doesn't actually prevent orphan transactions. Guard at the
-  // query layer: if any transaction (including transfers + cashback dest)
-  // points at this account, refuse the delete. The user can archive instead.
+  // why: expo-sqlite leaves PRAGMA foreign_keys = OFF; FK clauses don't prevent orphans.
+  // guard at the query layer or rows get silently orphaned. archive is the user-facing escape.
   const [hit] = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(transactions)
@@ -136,6 +132,9 @@ export async function updateAccountBalance(
   type: "income" | "expense" | "transfer",
   isSource: boolean,
 ): Promise<void> {
+  // invariant: same delta direction for every account type. credit cards are NOT special-cased
+  // here — balance = available credit, not debt. inverting this on credit was the v1.0.1
+  // breaking change. see docs/glossary.md § balance.
   let delta: number;
 
   if (type === "transfer") {
@@ -172,6 +171,8 @@ export async function getAccountsTotals(
   for (const acc of allAccounts) {
     if (!acc.includeInNetWorth) continue;
     if (acc.type === "credit") {
+      // invariant: credit liability = creditLimit - balance (debt is computed, never stored).
+      // overpaid card (debt < 0) counts as an asset.
       const debt = (acc.creditLimit ?? 0) - acc.balance;
       if (debt > 0) {
         const converted = convertFn ? await convertFn(debt, acc.currency) : debt;

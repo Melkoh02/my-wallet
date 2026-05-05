@@ -127,7 +127,8 @@ async function applyInvestmentInterest() {
     const lastDate = acc.lastInterestDate ?? acc.createdAt.slice(0, 10);
     if (lastDate >= today) continue;
 
-    // Always advance the date to prevent retroactive interest on zero-balance periods
+    // why: zero-or-negative balance just advances lastInterestDate without compounding.
+    // without this, an account drained to zero would accrue retroactive interest when refilled.
     if (acc.balance <= 0) {
       await db.update(accounts).set({ lastInterestDate: today }).where(eq(accounts.id, acc.id));
       continue;
@@ -152,6 +153,10 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const [isSeeded, setIsSeeded] = useState(false);
   const [needsBackupSetup, setNeedsBackupSetup] = useState<boolean | null>(null);
 
+  // invariant: order is load-bearing. schema migrations → seed → one-time data migrations →
+  // backup setup gate → foreground tasks. data migrations rely on schema, foreground tasks
+  // rely on data. each one-time migration is gated by a settings flag for idempotency.
+  // see docs/architecture.md § boot pipeline.
   useEffect(() => {
     if (!success) return;
     seed(db)

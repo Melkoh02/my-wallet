@@ -46,6 +46,8 @@ function AppStack() {
 }
 
 export default function RootLayout() {
+  // invariant: provider order is load-bearing. DatabaseProvider wraps Theme/Privacy (both read
+  // DB on mount); BackupSetupModal must live inside AppStack to access useTheme().
   return (
     <DatabaseProvider>
       <DataRefreshProvider>

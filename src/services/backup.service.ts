@@ -212,8 +212,13 @@ export async function exportBackup(): Promise<void> {
 async function restoreData(
   data: Record<string, unknown[]>,
 ): Promise<{ success: boolean; error?: string }> {
+  // invariant: import is atomic — wrap in BEGIN TRANSACTION; ROLLBACK on any error so the
+  // user's existing data is never partially overwritten. delete order = reverse FK dependency
+  // order; insert order = FK dependency order. see docs/merge-points.md § restoreData.
   await db.run(sql`BEGIN TRANSACTION`);
   try {
+    // invariant: delete in reverse FK order (children before parents) and re-insert in forward
+    // order. reordering for "readability" produces orphan/missing-reference errors mid-import.
     await db.delete(templateSubcategories);
     await db.delete(templates);
     await db.delete(transactionSubcategories);

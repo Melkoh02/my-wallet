@@ -143,6 +143,19 @@ export function TransactionForm({
   const [cashbackAccountId, setCashbackAccountId] = useState<number | null>(
     initialData?.cashbackAccountId ?? null,
   );
+  // Tracks whether the user has manually picked a cashback destination. Once
+  // touched, we stop auto-tracking the from-account. Pre-touched when editing
+  // an existing transaction that already had a cashback account set.
+  const cashbackAccountIdTouchedRef = useRef(initialData?.cashbackAccountId != null);
+  // Auto-default cashback destination to the from-account: fires when cashback
+  // toggles on or when the from-account changes (until the user manually picks
+  // a different destination, at which point the touched ref stops the
+  // auto-tracking).
+  useEffect(() => {
+    if (cashbackEnabled && !cashbackAccountIdTouchedRef.current && accountId !== null) {
+      setCashbackAccountId(accountId);
+    }
+  }, [cashbackEnabled, accountId]);
   const [instantCashback, setInstantCashback] = useState(initialData?.instantCashback ?? false);
 
   // Split bill
@@ -935,7 +948,10 @@ export function TransactionForm({
         items={accounts}
         keyExtractor={(item) => item.id.toString()}
         selectedKey={cashbackAccountId?.toString()}
-        onSelect={(item) => setCashbackAccountId(item.id)}
+        onSelect={(item) => {
+          cashbackAccountIdTouchedRef.current = true;
+          setCashbackAccountId(item.id);
+        }}
         onClose={() => setShowCashbackAccountPicker(false)}
         renderItem={(item, isSelected) => (
           <>

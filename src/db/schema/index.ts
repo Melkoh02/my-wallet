@@ -3,13 +3,11 @@ import { accounts } from "./accounts";
 import { categories, subcategories } from "./categories";
 import { transactions, transactionSubcategories } from "./transactions";
 import { recurringTransactions, recurringSubcategories } from "./recurring";
-import { cashbackRules } from "./cashback";
 
 // --- Relations ---
 
 export const accountsRelations = relations(accounts, ({ many }) => ({
   transactions: many(transactions),
-  cashbackRules: many(cashbackRules),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -63,17 +61,6 @@ export const recurringSubcategoriesRelations = relations(recurringSubcategories,
   }),
 }));
 
-export const cashbackRulesRelations = relations(cashbackRules, ({ one }) => ({
-  account: one(accounts, {
-    fields: [cashbackRules.accountId],
-    references: [accounts.id],
-  }),
-  subcategory: one(subcategories, {
-    fields: [cashbackRules.subcategoryId],
-    references: [subcategories.id],
-  }),
-}));
-
 // --- Re-exports ---
 
 export { accounts, type Account, type NewAccount } from "./accounts";
@@ -98,7 +85,6 @@ export {
   type RecurringTransaction,
   type NewRecurringTransaction,
 } from "./recurring";
-export { cashbackRules, type CashbackRule, type NewCashbackRule } from "./cashback";
 export { themes, type Theme, type NewTheme } from "./themes";
 export { settings, type Setting } from "./settings";
 export { backups, type Backup, type NewBackup } from "./backups";

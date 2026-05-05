@@ -169,10 +169,10 @@ export async function captureRateForCurrency(fromCurrency: string): Promise<{
   const rates = await getExchangeRates();
   const rate = rates[fromCurrency];
   if (!rate || rate === 0) {
+    // invariant: null = no rate available. callers must leave the field NULL, never fabricate.
     return { rateToDisplay: null, displayCurrency };
   }
-  // API rates are "1 displayCurrency = rate fromCurrency", so converting
-  // fromCurrency back to display = amount / rate, i.e. multiplier = 1/rate.
+  // invariant: rateToDisplay = 1/apiRate so reads multiply (amount × rate). don't flip.
   return { rateToDisplay: 1 / rate, displayCurrency };
 }
 

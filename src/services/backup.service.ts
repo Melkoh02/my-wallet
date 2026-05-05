@@ -20,7 +20,6 @@ import {
   transactionSubcategories,
   recurringTransactions,
   recurringSubcategories,
-  cashbackRules,
   themes,
   settings,
   backups,
@@ -81,7 +80,6 @@ async function exportAllData() {
     transactionSubcategories: await db.select().from(transactionSubcategories),
     recurringTransactions: await db.select().from(recurringTransactions),
     recurringSubcategories: await db.select().from(recurringSubcategories),
-    cashbackRules: await db.select().from(cashbackRules),
     themes: await db.select().from(themes),
     settings: await db.select().from(settings),
     templates: await db.select().from(templates),
@@ -214,13 +212,17 @@ export async function exportBackup(): Promise<void> {
 async function restoreData(
   data: Record<string, unknown[]>,
 ): Promise<{ success: boolean; error?: string }> {
+  // invariant: import is atomic — wrap in BEGIN TRANSACTION; ROLLBACK on any error so the
+  // user's existing data is never partially overwritten. delete order = reverse FK dependency
+  // order; insert order = FK dependency order. see docs/merge-points.md § restoreData.
   await db.run(sql`BEGIN TRANSACTION`);
   try {
+    // invariant: delete in reverse FK order (children before parents) and re-insert in forward
+    // order. reordering for "readability" produces orphan/missing-reference errors mid-import.
     await db.delete(templateSubcategories);
     await db.delete(templates);
     await db.delete(transactionSubcategories);
     await db.delete(recurringSubcategories);
-    await db.delete(cashbackRules);
     await db.delete(transactions);
     await db.delete(recurringTransactions);
     await db.delete(subcategories);
@@ -241,8 +243,6 @@ async function restoreData(
       await db.insert(recurringTransactions).values(data.recurringTransactions as never[]);
     if (data.recurringSubcategories?.length)
       await db.insert(recurringSubcategories).values(data.recurringSubcategories as never[]);
-    if (data.cashbackRules?.length)
-      await db.insert(cashbackRules).values(data.cashbackRules as never[]);
     if (data.themes?.length) await db.insert(themes).values(data.themes as never[]);
     if (data.settings?.length) await db.insert(settings).values(data.settings as never[]);
     if (data.templates?.length) await db.insert(templates).values(data.templates as never[]);

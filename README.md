@@ -4,6 +4,17 @@ A fully offline personal finance tracker built with React Native and Expo.
 
 Track your income, expenses, and transfers across multiple accounts and currencies — all stored locally on your device. No accounts, no servers, no internet required.
 
+## Documentation
+
+If you're new here, read in this order:
+
+1. **[`docs/glossary.md`](docs/glossary.md)** — domain vocabulary, invariants, and the non-obvious rules (credit-card balance/debt inversion, currency snapshot fields, refresh entities, settings keys). Start here. Most surprising behavior in the codebase has its "why" recorded.
+2. **[`docs/flows.md`](docs/flows.md)** — every user-facing flow, grouped by domain. Each flow has trigger → happy path → edge cases. Useful for QA and for "what does this app actually do?".
+3. **[`docs/architecture.md`](docs/architecture.md)** — provider stack, data flow on a mutation, migration scheme, boot pipeline. Read before changing anything load-bearing.
+4. **[`docs/merge-points.md`](docs/merge-points.md)** — the places where many flows converge (transaction form, account form, balance math, currency conversion gate, boot pipeline, restore). Read this when planning a change to figure out what *else* you might be touching.
+
+`CHANGELOG.md` documents what shipped in each version. `CLAUDE.md` is for the AI assistant — humans usually don't need to read it, but it documents project rules and the doc-update discipline.
+
 ## Features
 
 ### Transactions
@@ -17,10 +28,12 @@ Track your income, expenses, and transfers across multiple accounts and currenci
 - Full edit and delete support
 
 ### Accounts
-- 5 account types: Debit, Credit, Cash, Wallet, Savings
+- 8 account types: Debit, Credit, Cash, Wallet, Savings, Loan Borrowed, Loan Lent, Investment
 - Credit cards: balance = available credit, debt computed as limit − balance
+- Loans: counterparty (contact or manual), optional interest rate and due date
+- Investments: optional annual interest rate with daily compound accrual on app open
 - Per-account currency (33 currencies supported)
-- Net worth calculation with cross-currency conversion
+- Net worth calculation with cross-currency conversion (per-account opt-out)
 - Account required guard — prompts to create an account before first transaction
 
 ### Analytics

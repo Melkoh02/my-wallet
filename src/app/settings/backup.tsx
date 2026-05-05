@@ -147,10 +147,10 @@ export default function BackupScreen() {
       "categories",
       "transactions",
       "recurring",
-      "cashback",
       "themes",
       "settings",
       "backups",
+      "templates",
     );
   };
 

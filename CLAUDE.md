@@ -110,14 +110,66 @@ Use conventional commits, no co-author line:
 - Import wrapped in SQLite transaction (rollback on failure).
 - Export via expo-sharing.
 
+## Documentation
+
+The canonical project docs live in `docs/`:
+
+- **`docs/glossary.md`** — domain vocabulary, invariants, account-type semantics, currency snapshot fields, refresh entities, settings keys, error types.
+- **`docs/flows.md`** — user-facing flow inventory grouped by domain. Each flow has trigger → happy path → edge cases.
+- **`docs/architecture.md`** — provider stack, data flow on a mutation, migration scheme, boot pipeline, file organization.
+- **`docs/merge-points.md`** — the places where many flows converge (transaction form, account form, `updateAccountBalance`, `convertRow`, `processDueRecurring`, `restoreData`, etc.). Each entry lists what converges, the invariants, and the "touch radius" — what else breaks if you change it carelessly.
+
+After implementing a fix or feature, update the docs **only when the change is user-visible or affects shared vocabulary or wiring** — don't open the docs for pure internal refactors.
+
+Update `docs/glossary.md` when:
+- A new account type, transaction type, or settings key is added or renamed.
+- An invariant or computation rule changes (e.g. how `debt` is derived, what `balance` means for a new account type, currency snapshot semantics).
+- A new entity gets a `DataRefresh` key, or an existing one is removed.
+- A new error class is thrown to the UI, or an existing one is renamed/removed.
+
+Update `docs/flows.md` when:
+- A new screen, modal, or user-facing action ships (or one is removed).
+- A flow's trigger changes (e.g. a button moves, a gesture is added, a default is reordered).
+- A new edge case is discovered that QA should test for (off-happy-path behavior, error states, race conditions).
+- A smart default changes (e.g. account auto-selection, suggested categories).
+
+Update `docs/architecture.md` when:
+- Provider order changes or a new provider is added.
+- The boot pipeline ordering changes or a new one-time data migration is added.
+- The migration scheme (drizzle source → inlined `migrations.js`) changes.
+
+Update `docs/merge-points.md` when:
+- A new convergence point appears (e.g. a new central form, a new universal mutator, a new boot-time task).
+- The "touch radius" of an existing merge point changes (a new flow now feeds into it, or one stops feeding into it).
+- A new cross-table invariant is introduced.
+
+Keep doc edits surgical: edit only the affected sub-section, don't paraphrase nearby content. If a flow no longer exists, delete its section instead of leaving a "deprecated" note.
+
+Don't add doc-style narration in code comments. Code comments only mark non-obvious invariants (`// invariant:`), reasons for surprising choices (`// why:`), or platform/library gotchas (`// gotcha:`). One short line each. Reference the docs only when the explanation genuinely lives there.
+
+### Doc-staleness check
+
+Before merging a feat/fix branch into `develop`, and before cutting a release from `develop` to `main`, run:
+
+```bash
+npm run check-docs
+```
+
+The script (`scripts/check-docs.sh`) is non-blocking — it just lists `src/` files that changed and which docs are likely candidates if any were missed. If the change is a pure refactor / visual / test-only change, ignore the warning and continue. Otherwise update the docs per the rules above before merging.
+
 ## Quality Checklist
 Before any commit:
 1. `npm run format` — Prettier
 2. `npm run lint` — ESLint (must be clean, warnings OK for pre-existing issues only)
+3. If the change is user-visible or shifts shared vocabulary, update `docs/` per the rules in the Documentation section.
+
+Before merging a feat/fix branch into `develop`:
+4. `npm run check-docs` — non-blocking reminder; review and update docs if the suggested files apply.
 
 Before any release:
-3. Run code reviewer agent on changed files.
-4. Fix all BUG and HIGH severity issues.
-5. Test on physical Android device.
-6. Update version everywhere.
-7. Update CHANGELOG.md.
+5. `npm run check-docs` against `develop..main` — confirms cumulative doc coverage for the release.
+6. Run code reviewer agent on changed files.
+7. Fix all BUG and HIGH severity issues.
+8. Test on physical Android device.
+9. Update version everywhere.
+10. Update CHANGELOG.md.

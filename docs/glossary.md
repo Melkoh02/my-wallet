@@ -46,8 +46,12 @@ Per-account opt-out. The account still tracks its own transactions and balance; 
 ### `loan_borrowed`
 Money the user **owes**. Created with a starting `balance` typically negative (e.g. user borrowed 1000 → balance = −1000). Receiving money from the lender (income) makes it more negative; paying the lender (expense / transfer out from a debit account) makes it less negative. When `balance` crosses 0 the loan is settled; positive means the user overpaid (lender owes them money). Optional fields: `interestRate`, `dueDate`, `counterparty`, `counterpartyContactId`.
 
+> **Linked-account create flow**: at create time, AccountForm has an optional "Linked account" picker for `loan_borrowed` and `loan_lent`. If set, the loan account opens at `0` and an atomic transfer is created — `loan_borrowed` ⇒ transfer FROM loan TO linked (loan ends at `-amount`, linked at `+amount`), modelling "the lender deposited the money into my real account." Avoids the prior workflow of creating the loan AND a separate income transaction. Same-currency only in v1; create-only (not exposed on edit). See `flows.md` §3.1.1.
+
 ### `loan_lent`
 Money the user **lent out**. Starts positive (user lent 1000 → balance = 1000). Payments from the counterparty are recorded as transfers *into* the user's debit/cash account, drawing this account's balance down toward zero. A `loan_lent` account is also created automatically by **Split Bill** for each owing person.
+
+> **Linked-account create flow**: same as `loan_borrowed` (above), but the transfer goes the other way — FROM the linked real account TO the loan (linked at `-amount`, loan at `+amount`), modelling "I sent the money to the borrower from my checking account."
 
 ### `credit`
 Card with a `creditLimit` and a `balance` representing **available credit, not debt**. This inversion is the single most non-obvious thing in the codebase — see the migration note below.

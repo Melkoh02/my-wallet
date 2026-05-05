@@ -121,7 +121,13 @@
     "loanPaymentDesc": "Pagamento de empréstimo: {{name}}",
     "loanReceivedDesc": "Empréstimo recebido: {{name}}",
     "exceedsRemaining": "O valor excede o saldo restante",
-    "payCard": "Pagar Cartão"
+    "payCard": "Pagar Cartão",
+    "linkedAccount": "Conta vinculada",
+    "linkedAccountNone": "Nenhuma — definir saldo inicial manualmente",
+    "linkedAccountBorrowedHint": "Onde o dinheiro emprestado foi depositado (registra automaticamente a entrada nessa conta)",
+    "linkedAccountLentHint": "De onde veio o dinheiro (registra automaticamente a saída dessa conta)",
+    "linkedTransferDescBorrowed": "Recebido: {{name}}",
+    "linkedTransferDescLent": "Emprestado: {{name}}"
   },
   "categories": {
     "title": "Categorias",

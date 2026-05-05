@@ -198,13 +198,31 @@ Same as expense, but type = `income`. `delta = +amount`.
 2. Fields shown depend on the type:
    - All: name, institution, color, icon, currency, includeInNetWorth.
    - `credit`: creditLimit, initialBalance (= initial available credit).
-   - `loan_borrowed` / `loan_lent`: counterparty (typed or picked from contacts), interestRate, dueDate, loanAmount.
+   - `loan_borrowed` / `loan_lent`: counterparty (typed or picked from contacts), interestRate, dueDate, loanAmount, **optional Linked account** (see 3.1.1).
    - `investment`: interestRate (annual %).
 3. Save → `accounts` invalidates → account appears in the list.
 
 **Edge cases**
 - Currency picker locked = false on a brand-new account. After the first transaction lands, it becomes locked (see 3.4).
 - Creating a `loan_borrowed` with a positive starting balance is technically allowed but means "lender owes me from day one" — usually a data-entry mistake.
+
+### 3.1.1 Loan with a linked real account (optional)
+**Trigger**: New Account form → type = `loan_borrowed` or `loan_lent` → pick a non-loan account in the same currency from the **Linked account** picker.
+
+When a linked account is set, the loan account opens at `balance: 0` and an atomic transfer is created on save so the user doesn't have to record the inflow/outflow manually:
+
+- **Borrowed**: transfer FROM loan TO linked account. End state: loan = `-loanAmount`, linked = `+loanAmount`. Models "the lender wired me the money into my checking account."
+- **Lent**: transfer FROM linked account TO loan. End state: linked = `-loanAmount`, loan = `+loanAmount`. Models "I sent the money to the borrower from my checking account."
+
+Both writes happen inside `BEGIN/COMMIT/ROLLBACK` — partial failure rolls back so neither side ends up out of sync.
+
+**Touches**: `accounts`, `transactions`. Both invalidate together.
+
+**Edge cases**
+- The linked-account picker only appears when at least one same-currency non-loan account exists. With a brand-new install (no other accounts), the field is hidden — the user falls back to setting initial balance directly.
+- Changing the loan currency or switching type away from a loan resets the linked-account selection.
+- Linked is **create-only**: the field doesn't appear when editing an existing loan. To add money to an existing loan account after the fact, create a transfer manually.
+- Cross-currency linking is not supported in v1 — the picker filters out accounts in different currencies. (Cross-currency loan disbursement adds `toAmount` UX complexity that's out of scope for now.)
 
 ### 3.2 Account detail screen
 Shows balance/debt/available credit (depending on type), transactions for this account, and type-specific action buttons:

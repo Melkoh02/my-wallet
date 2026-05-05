@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.3] - 2026-05-05
+
+### Fixed
+- **Split-bill "Already paid" path**: marking a person as already-paid in the split form used to leave the auto-created `loan_lent` account at `balance: −person.amount` (surfaces as a phantom liability — the user appeared to *owe* the friend right after the friend already paid back). Existing-loan + paid was broken too: a `&& !existing` guard skipped the settling transfer, so a paid split on an existing loan inflated it instead of staying flat. Both are fixed: the loan now always opens at `+person.amount` and the settling transfer fires on `person.paid` regardless of existing/new. Verified across all four (existing? × paid?) combinations. *Note*: existing rows are not migrated — historical split-bill loans created pre-fix retain whatever balance they had. Future splits work correctly.
+
+### Removed
+- **Unused `cashback_rules` table and `src/db/queries/cashback.ts`** — scaffolded in v1.0.0 for an automatic-rules cashback feature that was never wired to any UI. Migration 0008 drops the table from existing databases. Old backups containing a `cashbackRules` array are still importable; the field is silently ignored. The shipping cashback model (per-transaction toggle on the new-expense form) is unchanged.
+
+### Internal
+- **New canonical documentation under `docs/`**:
+  - `glossary.md` — domain vocabulary, invariants, account types, currency snapshot fields, refresh entities, settings keys, error types
+  - `flows.md` — user-facing flow inventory grouped by domain (lifecycle, transactions, accounts, recurring, backup, etc.); each flow has trigger / happy path / edge cases
+  - `architecture.md` — provider stack, data flow, migration scheme, boot pipeline, file organisation, "where to look for X" extension recipes
+  - `merge-points.md` — convergence points (transaction form, account form, balance math, conversion gate, restore) with their touch radius
+- **Inline `// invariant:` / `// why:` / `// gotcha:` comments** at load-bearing sites: universal balance mutator, credit-card debt formula, FK-off check, account currency lock, three-state convertRow, captureRateForCurrency rate inversion, recurring catchup + 90-day cap + rate stamping, investment zero-balance guard, boot pipeline order, provider stack, atomic edit + atomic restore + delete order, CHUNK_SIZE limit, multi-subcategory link division.
+- **Type-safety refactors in cross-currency code**:
+  - `convertRow` now returns a discriminated union `{ state: "converted", value, usedTodaysRate } | { state: "excluded", currency }`. Collapsing the excluded state to a numeric zero won't compile.
+  - `transferDestAmount(txn)` helper centralises the `txn.toAmount ?? txn.amount` pattern across all four call sites (createTransaction, deleteTransaction, edit-reverse, edit-apply).
+- **Doc-staleness check**: `scripts/check-docs.sh` + `npm run check-docs` — non-blocking reminder when `src/` changes without matching `docs/` updates, with heuristic doc-target suggestions per area. Wired into the release flow in `CLAUDE.md`.
+- **README.md**: new Documentation section pointing to the four `docs/` files; fixed stale "5 account types" → 8 (loans + investment).
+
 ## [1.8.2] - 2026-04-30
 
 ### Fixed
@@ -451,6 +472,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.8.3]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.3
 [1.8.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.2
 [1.8.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.1
 [1.8.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.0

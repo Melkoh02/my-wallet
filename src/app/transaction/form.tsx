@@ -11,6 +11,7 @@ import {
   createTransaction,
   getTransactionById,
   deleteTransaction,
+  transferDestAmount,
 } from "@/db/queries/transactions";
 import { updateAccountBalance, createAccount, getAccounts } from "@/db/queries/accounts";
 import { db } from "@/db/client";
@@ -79,7 +80,8 @@ export default function TransactionFormScreen() {
     try {
       let txn: { id: number } | undefined;
       if (params.id) {
-        // Editing existing transaction — wrapped in SQLite transaction for atomicity
+        // invariant: edit must be atomic — reverse old balance, mutate row, apply new balance
+        // inside BEGIN/COMMIT/ROLLBACK. partial failure desyncs row from balance.
         const existingId = parseInt(params.id, 10);
         const existing = await getTransactionById(existingId);
         if (existing) {
@@ -88,9 +90,6 @@ export default function TransactionFormScreen() {
             if (existing.linkedTransactionId) {
               await deleteTransaction(existing.linkedTransactionId);
             }
-            // Reverse old balance. For cross-currency transfers, the
-            // destination side was credited in destination-currency units
-            // (existing.toAmount), not source-currency units.
             await updateAccountBalance(
               existing.accountId,
               -existing.amount,
@@ -98,8 +97,12 @@ export default function TransactionFormScreen() {
               true,
             );
             if (existing.toAccountId && existing.type === "transfer") {
-              const oldDestAmount = existing.toAmount ?? existing.amount;
-              await updateAccountBalance(existing.toAccountId, -oldDestAmount, "transfer", false);
+              await updateAccountBalance(
+                existing.toAccountId,
+                -transferDestAmount(existing),
+                "transfer",
+                false,
+              );
             }
             // Update transaction
             await db
@@ -135,8 +138,6 @@ export default function TransactionFormScreen() {
                 })),
               );
             }
-            // Apply new balance — same toAmount-aware split for the
-            // destination side as the reversal above.
             await updateAccountBalance(
               data.accountId,
               data.amount,
@@ -144,8 +145,12 @@ export default function TransactionFormScreen() {
               true,
             );
             if (data.toAccountId && data.type === "transfer") {
-              const newDestAmount = data.toAmount ?? data.amount;
-              await updateAccountBalance(data.toAccountId, newDestAmount, "transfer", false);
+              await updateAccountBalance(
+                data.toAccountId,
+                transferDestAmount({ amount: data.amount, toAmount: data.toAmount ?? null }),
+                "transfer",
+                false,
+              );
             }
             await db.run(sql`COMMIT`);
           } catch (e) {

@@ -13,16 +13,24 @@ import { updateAccountBalance } from "./accounts";
 import { captureRateForCurrency, type CurrencyConverter } from "@/services/exchangeRate.service";
 
 /**
- * Convert a transaction row's amount to display currency using the stored
- * rate when valid (txn's snapshot matches current display currency), or
- * today's rate as a fallback.
+ * Convert a transaction row's amount to display currency.
  *
- * Returns:
- *   - `value` = converted amount, or `null` when no rate is available at all
- *     (caller should exclude such rows from totals).
- *   - `usedFallback` = true when today's rate was used instead of the stored
- *     one — caller surfaces this in the "approximate" banner.
+ * Returns a tagged union with two states:
+ *   - `converted` — usable in totals. `usedTodaysRate=false` when the stored rate
+ *     matched today's display currency (historically stable); `true` when the
+ *     stored rate was missing/stale and today's rate was used (caller surfaces
+ *     the "approximate" banner).
+ *   - `excluded` — caller drops the row from totals. `currency` is the source
+ *     currency to add to `missingRates` for the UI, or `null` when even the
+ *     source currency is unknown.
  */
+// invariant: tagged union enforces the three semantic states (stable / approximate / excluded)
+// at the type level. never collapse `excluded` to a numeric zero — that silently corrupts
+// cross-currency totals.
+type ConvertedRow =
+  | { state: "converted"; value: number; usedTodaysRate: boolean }
+  | { state: "excluded"; currency: string | null };
+
 function convertRow(
   row: {
     amount: number;
@@ -31,23 +39,39 @@ function convertRow(
     displayCurrencySnapshot: string | null;
   },
   converter: CurrencyConverter,
-): { value: number | null; usedFallback: boolean } {
+): ConvertedRow {
   // A null currency means we genuinely don't know the source currency — e.g.
   // a row whose account was hard-deleted before the Phase 2 backfill could run.
-  // Treat as "no rate available" so the caller surfaces it via missingRates
-  // rather than silently booking the amount at face value.
   if (row.currency == null) {
-    return { value: null, usedFallback: false };
+    return { state: "excluded", currency: null };
   }
   // Path 1: stored rate is still valid → historically stable conversion.
   if (row.rateToDisplay != null && row.displayCurrencySnapshot === converter.displayCurrency) {
-    return { value: row.amount * row.rateToDisplay, usedFallback: false };
+    return { state: "converted", value: row.amount * row.rateToDisplay, usedTodaysRate: false };
   }
   // Path 2: fall back to today's rate.
   if (!converter.hasRateFor(row.currency)) {
-    return { value: null, usedFallback: false };
+    return { state: "excluded", currency: row.currency };
   }
-  return { value: converter.convert(row.amount, row.currency), usedFallback: true };
+  return {
+    state: "converted",
+    value: converter.convert(row.amount, row.currency),
+    usedTodaysRate: true,
+  };
+}
+
+/**
+ * Pick the destination-side amount for a transfer. Cross-currency transfers store
+ * the destination amount in `toAmount` (destination currency); same-currency leave
+ * `toAmount` NULL and use `amount`. Centralised so all callers (apply, reverse,
+ * edit-reverse, edit-apply) stay consistent — collapsing this on a refactor would
+ * silently corrupt one or the other case.
+ */
+// invariant: cross-currency transfer credits destination in toAmount; same-currency uses
+// amount. all four call sites (createTransaction, deleteTransaction, edit-reverse, edit-apply)
+// must go through this helper.
+export function transferDestAmount(txn: Pick<Transaction, "amount" | "toAmount">): number {
+  return txn.toAmount ?? txn.amount;
 }
 
 export type AggregateMeta = {
@@ -55,7 +79,8 @@ export type AggregateMeta = {
   usedTodaysRate: boolean;
 };
 
-/** SQLite max variables is 999. Chunk large arrays to stay safe. */
+// invariant: SQLite parameter limit is 999. don't raise CHUNK_SIZE past ~950 or large-list
+// queries throw at runtime.
 const CHUNK_SIZE = 900;
 
 async function queryInChunks<T>(
@@ -293,12 +318,9 @@ export async function createTransaction(
   data: NewTransaction,
   subcategoryIds: number[],
 ): Promise<Transaction> {
-  // Capture currency + rate-to-display at insert time so historical
-  // aggregations stay stable as exchange rates move. Caller can pre-set
-  // these fields (e.g. recurring generation passing through a captured rate);
-  // we only fill in defaults when missing. If the account row can't be
-  // located (shouldn't happen given the FK), leave fields NULL — convertRow
-  // surfaces such rows via missingRates rather than fabricating a rate.
+  // invariant: capture currency + rate at insert time so historical aggregates stay stable when
+  // display currency or rates later change. processDueRecurring + triggerRecurringNow duplicate
+  // this logic — keep all three in sync. see docs/glossary.md § currency snapshot fields.
   let toInsert = data;
   if (data.currency == null) {
     const [account] = await db
@@ -334,11 +356,7 @@ export async function createTransaction(
     true,
   );
   if (txn.toAccountId && txn.type === "transfer") {
-    // Cross-currency transfer: destination receives `toAmount` in its own
-    // currency (different from `amount` which is the source-currency value).
-    // For same-currency transfers, `toAmount` is null and we use `amount`.
-    const destAmount = txn.toAmount ?? txn.amount;
-    await updateAccountBalance(txn.toAccountId, destAmount, "transfer", false);
+    await updateAccountBalance(txn.toAccountId, transferDestAmount(txn), "transfer", false);
   }
 
   return txn;
@@ -355,8 +373,7 @@ export async function deleteTransaction(id: number): Promise<void> {
     true,
   );
   if (txn.toAccountId && txn.type === "transfer") {
-    const destAmount = txn.toAmount ?? txn.amount;
-    await updateAccountBalance(txn.toAccountId, -destAmount, "transfer", false);
+    await updateAccountBalance(txn.toAccountId, -transferDestAmount(txn), "transfer", false);
   }
 
   await db.delete(transactions).where(eq(transactions.id, id));
@@ -385,14 +402,14 @@ export async function getMonthSummary(
   const missing = new Set<string>();
   let usedTodaysRate = false;
   for (const row of rows) {
-    const { value, usedFallback } = convertRow(row, converter);
-    if (value === null) {
-      if (row.currency) missing.add(row.currency);
+    const result = convertRow(row, converter);
+    if (result.state === "excluded") {
+      if (result.currency) missing.add(result.currency);
       continue;
     }
-    if (usedFallback) usedTodaysRate = true;
-    if (row.type === "income") income += value;
-    else if (row.type === "expense") expense += value;
+    if (result.usedTodaysRate) usedTodaysRate = true;
+    if (row.type === "income") income += result.value;
+    else if (row.type === "expense") expense += result.value;
   }
 
   return {
@@ -493,13 +510,13 @@ export async function getDailySpending(
   const missing = new Set<string>();
   let usedTodaysRate = false;
   for (const row of rows) {
-    const { value, usedFallback } = convertRow(row, converter);
-    if (value === null) {
-      if (row.currency) missing.add(row.currency);
+    const result = convertRow(row, converter);
+    if (result.state === "excluded") {
+      if (result.currency) missing.add(result.currency);
       continue;
     }
-    if (usedFallback) usedTodaysRate = true;
-    totalsByDate.set(row.date, (totalsByDate.get(row.date) ?? 0) + value);
+    if (result.usedTodaysRate) usedTodaysRate = true;
+    totalsByDate.set(row.date, (totalsByDate.get(row.date) ?? 0) + result.value);
   }
 
   const result = [...totalsByDate.entries()]
@@ -539,13 +556,13 @@ export async function getCategorySummary(
   // corrupt category totals.
   const convertedAmount = new Map<number, number>();
   for (const t of expenseTxns) {
-    const { value, usedFallback } = convertRow(t, converter);
-    if (value === null) {
-      if (t.currency) missing.add(t.currency);
+    const result = convertRow(t, converter);
+    if (result.state === "excluded") {
+      if (result.currency) missing.add(result.currency);
       continue;
     }
-    if (usedFallback) usedTodaysRate = true;
-    convertedAmount.set(t.id, value);
+    if (result.usedTodaysRate) usedTodaysRate = true;
+    convertedAmount.set(t.id, result.value);
   }
 
   const txnIds = expenseTxns.map((t) => t.id);
@@ -564,7 +581,8 @@ export async function getCategorySummary(
       .where(inArray(transactionSubcategories.transactionId, chunk)),
   );
 
-  // Count links per transaction to avoid double-counting
+  // invariant: a row tagged with N subcategories splits its amount across N categories
+  // (amount/N) so multi-tagged rows aren't double-counted in category totals.
   const linkCountMap = new Map<number, number>();
   for (const link of links) {
     linkCountMap.set(link.transactionId, (linkCountMap.get(link.transactionId) ?? 0) + 1);
@@ -653,14 +671,14 @@ export async function getTrendData(
   for (const row of rows) {
     const bucket = map.get(row.month);
     if (!bucket) continue;
-    const { value, usedFallback } = convertRow(row, converter);
-    if (value === null) {
-      if (row.currency) missing.add(row.currency);
+    const result = convertRow(row, converter);
+    if (result.state === "excluded") {
+      if (result.currency) missing.add(result.currency);
       continue;
     }
-    if (usedFallback) usedTodaysRate = true;
-    if (row.type === "income") bucket.income += value;
-    else if (row.type === "expense") bucket.expense += value;
+    if (result.usedTodaysRate) usedTodaysRate = true;
+    if (row.type === "income") bucket.income += result.value;
+    else if (row.type === "expense") bucket.expense += result.value;
   }
 
   return {
@@ -709,20 +727,20 @@ export async function getTopContactsByMonth(
   let usedTodaysRate = false;
   for (const row of rawRows) {
     if (!row.contactId || !row.contactName) continue;
-    const { value, usedFallback } = convertRow(row, converter);
-    if (value === null) {
-      if (row.currency) missing.add(row.currency);
+    const result = convertRow(row, converter);
+    if (result.state === "excluded") {
+      if (result.currency) missing.add(result.currency);
       continue;
     }
-    if (usedFallback) usedTodaysRate = true;
+    if (result.usedTodaysRate) usedTodaysRate = true;
     const existing = grouped.get(row.contactId);
     if (existing) {
-      existing.total += value;
+      existing.total += result.value;
       existing.count += 1;
     } else {
       grouped.set(row.contactId, {
         contactName: row.contactName,
-        total: value,
+        total: result.value,
         count: 1,
       });
     }

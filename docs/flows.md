@@ -349,10 +349,11 @@ Standard CRUD via the template list screen.
 **Trigger**: New transaction (expense) → "Instant cashback" toggle on, "Confirm Cashback Received" on.
 
 1. User picks mode (flat or %), enters value, picks the cashback destination account.
-2. On save, the form creates **two** rows:
+2. **Smart default**: when cashback is toggled on (and the user hasn't manually picked a destination), the destination defaults to the **from-account** of the transaction. If the user later changes the from-account before save, the destination follows — until the user picks a specific destination from the modal, at which point the auto-tracking stops.
+3. On save, the form creates **two** rows:
    - The expense itself, with `cashbackAmount` populated.
    - An income row in the destination account (description: "Cashback: …"), linked back via `linkedTransactionId`.
-3. Editing the original cashback expense deletes the old linked row and re-creates it from the edited form values; deleting the original cascades the link.
+4. Editing the original cashback expense deletes the old linked row and re-creates it from the edited form values; deleting the original cascades the link.
 
 ### 7.2 Pending cashback (mark as received later)
 **Trigger**: same form, "Confirm Cashback Received" toggle off.

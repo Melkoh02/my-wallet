@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-05-06
+
+### Added
+- **Contacts list screen** (Settings → Contacts) — see every contact you've recorded a transaction with, sorted by most-recent activity, with transaction counts and dates. Tap a device-linked contact to drill into its full transaction history. Free-typed contacts (entered by name only, no device link) appear with a different visual cue and aren't navigable yet — contact-as-first-class lands in v2.0.
+
+### Fixed
+- **Loan interest accrual now actually runs**. `loan_borrowed` and `loan_lent` accounts with `interestRate` set were displaying the rate but never applying it, so a friend who borrowed $1000 at 5% APR a year ago still showed as owing $1000 instead of ~$1050. Daily compounding (the same shape as investments) now runs on app foreground. Sign-aware: borrowed loans grow more negative as the debt accrues; lent loans grow more positive. Settled (balance = 0) or sign-flipped loans (overpaid) skip the compound and just advance `lastInterestDate` so a later sign flip doesn't retroactively accrue.
+- **Monthly recurring no longer skips short months**. A transaction set to repeat on the 31st previously skipped February entirely (Jan 31 → Mar 31 — JS auto-rolled `setMonth(+1)` from Jan 31 to Mar 3, then clamped to Mar 31). Now correctly clamps to Feb 28 (or 29 in leap years), then resumes on the 31st in long months: Jan 31 → Feb 28 → Mar 31 → Apr 30 → May 31. Same fix for yearly recurrings on Feb 29 (which used to auto-roll to Mar 1 in non-leap years).
+- **Split-bill edit communicates the lock state**. Opening an originally-split expense in the edit form previously silently hid the split section with no explanation — users had no clue why their split data wasn't editable. Now shows a clear locked-state card listing the spawned loan accounts with instructions: "To modify the split, first delete these loan accounts: [list]; open Accounts, delete the loans listed above, then come back and edit this transaction." True split-edit (the unlock-and-recreate path) requires schema-level metadata and ships in v2.0.
+
+### Internal
+- **Test harness landed**. 116 unit + integration tests, was 0. Covers money math (`updateAccountBalance` × every direction × type, `getAccountsTotals` classification across all 8 account types, `convertRow`'s three states, `transferDestAmount`'s `toAmount ?? amount` rule), security (PIN hash + verify round-trip, salt regeneration), recurring catchup + 90-day cap + end-date deactivation + rate-stamping, `restoreData` atomic rollback (multi-row pre-population proves both delete *and* insert phases sit inside the rolled-back transaction), and the new investment + loan interest accrual. `jest-expo` preset + `better-sqlite3` for in-memory SQLite. Fixtures in `src/db/test-fixtures.ts`. Run via `npm test`. Suite ~1.1s.
+- Investment + loan interest accrual extracted to `src/db/queries/interest.ts` with a shared `accrueOne` core. Per-type predicate (`b > 0` for investments, sign-aware for loans) decides whether to compound or just bump the date. The same compound formula handles both loan directions because the multiplier preserves sign.
+- `AccountForm` now stamps `lastInterestDate` on creation for any accruing type (was only investment); legacy loans without a stamp compound from `createdAt` on first run, same shape as legacy investments.
+- New `getSplitSourceInfo(txnId)` query in `src/db/queries/accounts.ts`: detects loan accounts spawned by a particular split-bill expense.
+- New `getAllContactsWithActivity()` query in `src/db/queries/transactions.ts`: aggregates contacts from existing transactions; no schema change.
+- Unused `currency` legacy seed removed from `DEFAULT_SETTINGS` (carry-over cleanup).
+- 5 code-review passes across the branches caught 1 HIGH issue (orphaned mock state that would have bled across loan tests) + several MEDs (`onPinSubmit` memoisation, gate double-tap race, sort tie-break, free-typed contact UX cue) — all fixed before merge.
+
+### Technical Details
+- New dev deps: `jest`, `jest-expo`, `@types/jest`, `better-sqlite3`, `@types/better-sqlite3`. Production deps unchanged from v1.9.0.
+
 ## [1.9.0] - 2026-05-06
 
 ### Added
@@ -500,6 +522,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.10.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.10.0
 [1.9.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.9.0
 [1.8.3]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.3
 [1.8.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.2

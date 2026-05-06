@@ -476,6 +476,27 @@ Standard CRUD via the template list screen.
 ### 9.6 Open Recurring / Templates / Themes / Backup / Changelog
 Each is its own screen reachable from Settings. Recurring and Templates have their own FABs; Themes and Backup are managed inline.
 
+### 9.7-pre Budgets (Settings → Budgets)
+**Trigger**: Settings → Budgets row.
+
+1. List screen at `/budget` shows every active budget with a progress bar (green ≤ 80%, orange 81–100%, red > 100%), the spend / amount totals, and a percent-used label.
+2. Empty state when no budgets exist; FAB at bottom right opens the form for a new budget.
+3. Tap a row → `/budget/form?id=...` to edit that budget.
+
+**Create / edit form** (`/budget/form`):
+- **Name** — defaults to the selected category's name (or "Category · Subcategory") until the user types a custom name.
+- **Category** — required. Picker lists all categories.
+- **Subcategory** — optional. When set, the budget tracks only that specific subcategory's transactions; otherwise it covers every subcategory under the category.
+- **Monthly amount** — required, > 0.
+- **Pin to a specific currency** — switch (default ON). When ON: a currency picker appears, defaulting to the user's current display currency. When OFF: the budget follows whatever the display currency is at view time.
+- **Save** persists; **Delete** (edit mode only) prompts a confirmation.
+
+**Edge cases**
+- A budget targeting a subcategory still respects the multi-subcategory `amount/N` split — a transaction tagged in N subcategories where one matches the budget contributes `amount/N` to it.
+- Cross-currency transactions: when the txn's stored `rateToDisplay` is stable for the current display currency, it's used directly (no approximate flag). Stale stored rates fall back to today's rate (UI shows ≈). Rates the converter doesn't know cause the row to be excluded and surfaced in `missingRates`.
+- Pinning to a currency ≠ display always uses today's rate for the second hop, so cross-pin budgets are always marked approximate.
+- Untagged expenses (no subcategory) don't contribute to any budget.
+
 ### 9.7 Security: biometric + PIN setup
 **Trigger**: Settings → Security.
 

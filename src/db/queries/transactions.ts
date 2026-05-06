@@ -27,11 +27,11 @@ import { captureRateForCurrency, type CurrencyConverter } from "@/services/excha
 // invariant: tagged union enforces the three semantic states (stable / approximate / excluded)
 // at the type level. never collapse `excluded` to a numeric zero — that silently corrupts
 // cross-currency totals.
-type ConvertedRow =
+export type ConvertedRow =
   | { state: "converted"; value: number; usedTodaysRate: boolean }
   | { state: "excluded"; currency: string | null };
 
-function convertRow(
+export function convertRow(
   row: {
     amount: number;
     currency: string | null;

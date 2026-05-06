@@ -258,6 +258,32 @@ Stored in the `settings` table, every value is a string.
 
 ---
 
+## Budgets
+
+Per-category (or per-subcategory) monthly spending caps. Each budget is a row in the `budgets` table with:
+
+- **`name`** — user-facing label, defaults to the category's name on create.
+- **`categoryId`** + optional **`subcategoryId`** — when subcategory is null the budget covers every subcategory of the category. When set, only that specific subcategory's transactions count.
+- **`amount`** — the monthly cap.
+- **`currency`** — `null` means "follow display currency" (interpretation of `amount` shifts when the user switches display); a code like `"USD"` pins it.
+- **`period`** — `"monthly"` only in v2.0. Reserved for future `"weekly"` / `"yearly"`.
+
+### Spend computation (`getBudgetsWithSpend`)
+
+For each active budget:
+1. Pull every `expense` transaction in the current calendar month.
+2. Filter to those tagged with the budget's category (or specific subcategory).
+3. Apply the **`amount/N` split rule** (same as `getCategorySummary`): a transaction tagged in N subcategories contributes `amount × matching/total` to each affected budget — multi-tagged rows aren't double-counted across categories.
+4. Convert each row to the budget's resolved currency in two phases:
+   - **Phase 1** — `convertRow` does source → display. Honours stored `rateToDisplay` when stable; falls back to today's rate when stale (sets `usedTodaysRate=true`); excludes the row entirely when no rate is available (adds source currency to `missingRates`).
+   - **Phase 2** — if the budget pins a currency different from display, multiply the display value by today's `rates[targetCcy]`. Always sets `approximate=true` on this hop because it's today's rate, not historical.
+5. Sum into `spend`. Compute `remaining = amount − spend` and `percentUsed = spend / amount × 100` (capped at 9999 to keep the UI safe).
+
+The `BudgetWithSpend` row carries `approximate`, `missingRates`, `resolvedCurrency`, and pre-resolved `categoryName`/`subcategoryName` so the list screen renders without further joins.
+
+### `BACKUP_VERSION`
+Adding the `budgets` table is **additive** — existing v1.x backups don't include a `budgets` array, and the import path tolerates its absence (`if (data.budgets?.length) ...`). `BACKUP_VERSION` stays at `1`. Same precedent as when `cashback_rules` was added in v1.0.0 then removed in v1.8.x without a version bump.
+
 ## DataRefresh entities
 
 `DataRefreshProvider` exposes `revisions: Record<EntityKey, number>` and `invalidate(...keys)`. The eight keys, and what triggers them:
@@ -268,6 +294,7 @@ Stored in the `settings` table, every value is a string.
 | `transactions` | transaction create/edit/delete; recurring trigger                                |
 | `categories`   | category/subcategory create/edit/delete                                          |
 | `recurring`    | recurring create/edit/delete; pause toggle; trigger now                          |
+| `budgets`      | budget create/edit/delete                                                         |
 | `themes`       | theme create/edit/delete/activate                                                |
 | `settings`     | any settings mutation; backup folder change                                      |
 | `backups`      | backup create/delete                                                             |

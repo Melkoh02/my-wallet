@@ -25,6 +25,7 @@ import {
   backups,
   templates,
   templateSubcategories,
+  budgets,
 } from "@/db/schema";
 import { getSetting, setSetting } from "@/db/queries/settings";
 import { eq, desc, sql } from "drizzle-orm";
@@ -84,6 +85,7 @@ async function exportAllData() {
     settings: await db.select().from(settings),
     templates: await db.select().from(templates),
     templateSubcategories: await db.select().from(templateSubcategories),
+    budgets: await db.select().from(budgets),
   };
   return JSON.stringify(data, null, 2);
 }
@@ -228,6 +230,7 @@ async function restoreData(
   try {
     // invariant: delete in reverse FK order (children before parents) and re-insert in forward
     // order. reordering for "readability" produces orphan/missing-reference errors mid-import.
+    await db.delete(budgets);
     await db.delete(templateSubcategories);
     await db.delete(templates);
     await db.delete(transactionSubcategories);
@@ -257,6 +260,9 @@ async function restoreData(
     if (data.templates?.length) await db.insert(templates).values(data.templates as never[]);
     if (data.templateSubcategories?.length)
       await db.insert(templateSubcategories).values(data.templateSubcategories as never[]);
+    // Budgets reference categories + subcategories, so insert AFTER both —
+    // categories and subcategories are populated above.
+    if (data.budgets?.length) await db.insert(budgets).values(data.budgets as never[]);
 
     await db.run(sql`COMMIT`);
     return { success: true };

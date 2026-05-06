@@ -432,6 +432,13 @@ export default function SettingsScreen() {
       />
       <Divider />
       <SettingsRow
+        icon="shape"
+        title={t("settings.categories")}
+        subtitle={t("settings.categoriesDesc")}
+        onPress={() => router.push("/category" as never)}
+      />
+      <Divider />
+      <SettingsRow
         icon="refresh"
         title={t("settings.recurringTransactions")}
         subtitle={t("settings.recurringDesc")}

@@ -262,6 +262,8 @@
     "cashbackFulfilled": "Cashback received",
     "cashbackPending": "Pending",
     "cashbackAccount": "Cashback account",
+    "categories": "Categories",
+    "categoriesDesc": "Organise transactions with custom categories and subcategories",
     "templates": "Templates",
     "templatesDesc": "Quick-fill transaction shortcuts",
     "contacts": "Contacts",
@@ -500,7 +502,6 @@
   "tabs": {
     "home": "Home",
     "transactions": "Transactions",
-    "categories": "Categories",
     "accounts": "Accounts"
   },
   "fab": {

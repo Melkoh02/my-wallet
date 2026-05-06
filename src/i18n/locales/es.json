@@ -262,6 +262,8 @@
     "cashbackFulfilled": "Cashback recibido",
     "cashbackPending": "Pendiente",
     "cashbackAccount": "Cuenta de cashback",
+    "categories": "Categorías",
+    "categoriesDesc": "Organiza transacciones con categorías y subcategorías personalizadas",
     "templates": "Plantillas",
     "templatesDesc": "Atajos para transacciones frecuentes",
     "contacts": "Contactos",
@@ -500,7 +502,6 @@
   "tabs": {
     "home": "Inicio",
     "transactions": "Transacciones",
-    "categories": "Categorías",
     "accounts": "Cuentas"
   },
   "fab": {

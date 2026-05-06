@@ -311,7 +311,9 @@
     "addPerson": "添加人员",
     "splitEvenly": "平均分摊",
     "loanName": "欠我：{{name}}",
-    "alreadyPaid": "已支付"
+    "alreadyPaid": "已支付",
+    "editLocked": "此支出已与他人分摊。要修改分摊，请先删除自动创建的贷款账户：",
+    "editLockedHint": "打开账户页面，删除上述贷款，然后返回编辑此交易。"
   },
   "themes": {
     "title": "主题",

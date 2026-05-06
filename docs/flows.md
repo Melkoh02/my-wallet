@@ -186,7 +186,7 @@ Same as expense, but type = `income`. `delta = +amount`.
 - Re-splitting with the same contact who already has a `loan_lent` account → existing account is reused; their balance increases by the new amount (no second account created). If "Already paid" is also set, the settling transfer still fires — drains the existing loan back to its prior balance and refunds the source. Net effect on the existing loan = $0.
 - Free-typed person (no contactId) → always creates a new loan account; no de-duplication.
 - Split toggle is only available on expense type; switching the form to income/transfer hides it.
-- Splitting on edit is **not** supported — the split-bill block only runs for new transactions (`!params.id`). Editing an expense that was originally split doesn't recompute the loan accounts.
+- Splitting on edit is **not** supported in v1.10. When the user opens an originally-split expense in the edit form, the split section renders a read-only locked notice listing the spawned loan accounts ("To modify the split, first delete these loan accounts"). The split toggle stays disabled. Recomputing splits on edit is gated on a v2.0 schema change (a `split_bill_entries` metadata table) — until then, locked-with-message is the deliberate trade. Detection: an account exists with `originTransactionId == thisTxn.id` (`getSplitSourceInfo` in `src/db/queries/accounts.ts`).
 
 ---
 

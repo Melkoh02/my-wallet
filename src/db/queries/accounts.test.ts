@@ -15,7 +15,12 @@ jest.mock("@/db/client", () => {
   };
 });
 
-import { createAccount, updateAccountBalance, getAccountsTotals } from "./accounts";
+import {
+  createAccount,
+  updateAccountBalance,
+  getAccountsTotals,
+  getSplitSourceInfo,
+} from "./accounts";
 import type { NewAccount } from "@/db/schema";
 
 const baseAccount: Omit<NewAccount, "id"> = {
@@ -202,6 +207,59 @@ describe("getAccountsTotals — classification by account type", () => {
     expect(totalAssets).toBe(200);
     expect(totalLiabilities).toBe(400);
     expect(netWorth).toBe(-200);
+  });
+});
+
+describe("getSplitSourceInfo", () => {
+  it("returns isSplitSource=false when no accounts point at the transaction", async () => {
+    const info = await getSplitSourceInfo(999);
+    expect(info.isSplitSource).toBe(false);
+    expect(info.loanAccounts).toEqual([]);
+  });
+
+  it("returns isSplitSource=true with all spawned loans listed", async () => {
+    // Spawn three loans pointing at the same hypothetical original txn id 42
+    const a = await createAccount({
+      ...baseAccount,
+      type: "loan_lent",
+      name: "Owes me: Alice",
+      balance: 10,
+      originTransactionId: 42,
+    });
+    const b = await createAccount({
+      ...baseAccount,
+      type: "loan_lent",
+      name: "Owes me: Bob",
+      balance: 20,
+      originTransactionId: 42,
+    });
+    // A loan that belongs to a different split — must NOT appear
+    await createAccount({
+      ...baseAccount,
+      type: "loan_lent",
+      name: "Owes me: Carol",
+      balance: 5,
+      originTransactionId: 99, // different origin
+    });
+
+    const info = await getSplitSourceInfo(42);
+    expect(info.isSplitSource).toBe(true);
+    expect(info.loanAccounts).toHaveLength(2);
+    expect(info.loanAccounts.map((l) => l.id).sort()).toEqual([a.id, b.id].sort());
+    expect(info.loanAccounts.map((l) => l.name).sort()).toEqual(["Owes me: Alice", "Owes me: Bob"]);
+  });
+
+  it("ignores accounts with no originTransactionId", async () => {
+    // An ordinary loan_lent account (not spawned by a split) shouldn't appear
+    await createAccount({
+      ...baseAccount,
+      type: "loan_lent",
+      name: "Manual loan",
+      balance: 100,
+      originTransactionId: null,
+    });
+    const info = await getSplitSourceInfo(42);
+    expect(info.isSplitSource).toBe(false);
   });
 });
 

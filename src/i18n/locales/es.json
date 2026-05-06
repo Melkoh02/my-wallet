@@ -311,7 +311,9 @@
     "addPerson": "Agregar persona",
     "splitEvenly": "Dividir equitativamente",
     "loanName": "Me debe: {{name}}",
-    "alreadyPaid": "Ya pagó"
+    "alreadyPaid": "Ya pagó",
+    "editLocked": "Este gasto fue dividido con otros. Para modificar la división, elimina primero las cuentas de préstamo creadas:",
+    "editLockedHint": "Abre Cuentas, elimina los préstamos listados arriba, y vuelve a editar esta transacción."
   },
   "themes": {
     "title": "Temas",

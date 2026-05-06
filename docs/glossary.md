@@ -239,6 +239,12 @@ Stored in the `settings` table, every value is a string.
 | `privacy_random_default`   | Activate randomNumbers on app open           | unset (off)            |
 | `language`                 | Active locale code                           | device locale          |
 | `exchange_rates_cache`     | Cached `{base, rates, updatedAt}` JSON       | unset                  |
+| **Security**               |                                              |                        |
+| `security_biometric_enabled`     | Use biometric (Face ID / Touch ID / fingerprint) for protected actions | unset (off) |
+| `security_pin_hash`              | SHA-256 hex of `salt:pin`. Empty string when no PIN set | unset                  |
+| `security_pin_salt`              | 16-byte random hex salt paired with `security_pin_hash` | unset                  |
+| `security_protected_random_toggle` | Require auth when turning the in-session "random numbers" toggle off | unset (off) |
+| `security_protected_backup`      | Require auth when opening the Backups screen | unset (off)            |
 | **One-time data flags**    |                                              |                        |
 | `credit_balance_migrated`  | v1.0.1 credit-balance semantic flip          | set once               |
 | `txn_currency_backfilled`  | Phase-2 currency column backfill             | set once               |
@@ -306,6 +312,26 @@ Pulled lazily from device contacts via `expo-contacts`. The app **never copies c
 - Recurring transactions, themes, templates, transactions: hard delete.
 
 ---
+
+## Security: biometric + PIN
+
+The app gates a configurable set of "protected actions" behind biometric authentication (Face ID / Touch ID / fingerprint via `expo-local-authentication`) with a 6-digit PIN as fallback.
+
+### Authentication methods
+- **Biometric** — toggle on `security_biometric_enabled`. Only effective when the device has hardware AND the user has enrolled at the OS level. The Settings screen disables the switch with helper text when either check fails.
+- **PIN** — 6 digits, stored as `sha256(salt + pin)` with a 16-byte random `salt` per user. Set/change/remove from `settings/security`.
+
+> **Threat model**: a casual peeker who has the unlocked phone tries to bypass random-numbers / backups in seconds. SHA-256 + salt is enough to prevent visual peek, *not* to resist a determined attacker who exfiltrates the settings table. Don't lean on this for actual confidentiality of stored data.
+
+### Protected actions
+Each protected action is its own setting key (`security_protected_*`). The Settings screen has switches for the available actions; switches are disabled with a hint when no auth method is configured. Currently:
+- `security_protected_random_toggle` — gates *disabling* the in-session random-numbers toggle. Turning random ON is unprotected (it increases protection).
+- `security_protected_backup` — gates opening the Backups screen.
+
+### `useAuthGate(action)` hook
+Returns `{ guard, pinModal }`. Call `guard(callback)` before running the protected action; the callback runs only after auth passes (or immediately if the action isn't marked protected). Order is biometric (when enabled + hardware + enrolled) → PIN (when set) → fall-through. The `pinModal` props are spread onto a `<PinEntryModal>` rendered by the consumer.
+
+When `setting === "true"` but no auth method is configured, the gate falls through and runs the callback. The Settings screen blocks this state by disabling the protected toggles when no auth exists, but the gate stays defensive.
 
 ## Error types worth knowing
 

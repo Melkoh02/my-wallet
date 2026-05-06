@@ -475,6 +475,35 @@ Standard CRUD via the template list screen.
 ### 9.6 Open Recurring / Templates / Themes / Backup / Changelog
 Each is its own screen reachable from Settings. Recurring and Templates have their own FABs; Themes and Backup are managed inline.
 
+### 9.7 Security: biometric + PIN setup
+**Trigger**: Settings → Security.
+
+1. **Authentication methods**:
+   - **Biometric** Switch — disabled with helper text when the device has no biometric hardware or the user hasn't enrolled biometric at the OS level. Otherwise toggling on writes `security_biometric_enabled = "true"`.
+   - **Set / Change PIN** row → opens `PinEntryModal` in setup mode. The user enters the PIN twice; mismatch resets to phase 1 with a "PINs don't match" error. On a confirmed match, the PIN is hashed (`sha256(salt + pin)` with a fresh 16-byte salt) and stored.
+   - **Remove PIN** row → confirm dialog explains the consequences ("if biometric also fails, protected actions will run without auth"), then clears the hash + salt.
+2. **Protected actions** section — each its own Switch. Switches are disabled with a hint when neither biometric nor PIN is configured. Toggle on writes `security_protected_<action> = "true"`.
+
+**Edge cases**
+- Toggling biometric on when hardware is present but not enrolled: the switch refuses to flip; helper text directs the user to OS settings.
+- Removing the PIN while biometric is also off effectively disables all protections — the gate hook falls through and runs callbacks unconditionally. The confirm dialog spells this out.
+- The "random by default" toggle is *not* protected (only affects future cold starts).
+
+### 9.8 Disabling random-numbers (when protected)
+**Trigger**: Settings → Privacy → "Random numbers" → toggle off, with `security_protected_random_toggle = "true"` and at least one auth method configured.
+
+1. The toggle's onValueChange detects the off direction and calls `useAuthGate("random_toggle").guard(...)`.
+2. If biometric is on + enrolled, the OS biometric prompt appears.
+3. If biometric isn't configured or fails/cancels, and a PIN is set, `PinEntryModal` opens in verify mode.
+4. On success, the random-numbers privacy mode turns off. On cancel, the switch remains in the original (on) position.
+
+Turning random ON is unprotected — it increases protection.
+
+### 9.9 Opening Backups (when protected)
+**Trigger**: Settings → Backup row → tapping it, with `security_protected_backup = "true"`.
+
+Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is aborted. The Backup screen itself is unchanged once opened.
+
 ---
 
 ## 10. Privacy

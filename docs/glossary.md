@@ -46,10 +46,14 @@ Per-account opt-out. The account still tracks its own transactions and balance; 
 ### `loan_borrowed`
 Money the user **owes**. Created with a starting `balance` typically negative (e.g. user borrowed 1000 → balance = −1000). Receiving money from the lender (income) makes it more negative; paying the lender (expense / transfer out from a debit account) makes it less negative. When `balance` crosses 0 the loan is settled; positive means the user overpaid (lender owes them money). Optional fields: `interestRate`, `dueDate`, `counterparty`, `counterpartyContactId`.
 
+> **Interest accrual** (`applyLoanInterest` in `src/db/queries/interest.ts`): when `interestRate` is set, the daily-compound formula `balance × (1 + rate/100/365)^days` runs on each app foreground. The same multiplier preserves sign — `-1000 × 1.05 = -1050` — so a single formula handles both loan directions. Settled (`balance = 0`) or overpaid (`balance > 0` for borrowed) loans skip the compound and just advance `lastInterestDate`, so a future sign flip doesn't retroactively accrue. New loans stamp `lastInterestDate` at creation; legacy loans (interestRate set, lastInterestDate null) compound from `createdAt` on their first run.
+
 > **Linked-account create flow**: at create time, AccountForm has an optional "Linked account" picker for `loan_borrowed` and `loan_lent`. If set, the loan account opens at `0` and an atomic transfer is created — `loan_borrowed` ⇒ transfer FROM loan TO linked (loan ends at `-amount`, linked at `+amount`), modelling "the lender deposited the money into my real account." Avoids the prior workflow of creating the loan AND a separate income transaction. Same-currency only in v1; create-only (not exposed on edit). See `flows.md` §3.1.1.
 
 ### `loan_lent`
 Money the user **lent out**. Starts positive (user lent 1000 → balance = 1000). Payments from the counterparty are recorded as transfers *into* the user's debit/cash account, drawing this account's balance down toward zero. A `loan_lent` account is also created automatically by **Split Bill** for each owing person.
+
+> **Interest accrual**: same `applyLoanInterest` as `loan_borrowed` — the canonical "owed" sign flips (positive for `loan_lent`), but the formula and skip logic mirror exactly. See `loan_borrowed` above.
 
 > **Linked-account create flow**: same as `loan_borrowed` (above), but the transfer goes the other way — FROM the linked real account TO the loan (linked at `-amount`, loan at `+amount`), modelling "I sent the money to the borrower from my checking account."
 
@@ -64,7 +68,7 @@ Card with a `creditLimit` and a `balance` representing **available credit, not d
 > **Historical note**: in v1.0.0, `balance` for credit cards meant *debt* (expense increased it). v1.0.1 inverted the semantics. The one-time migration `migrateCreditCardBalances` in `DatabaseProvider.tsx` (gated by the `credit_balance_migrated` setting) flipped existing rows: `newBalance = creditLimit − oldBalance`. Don't reintroduce the old semantics without rerunning a migration.
 
 ### `investment`
-Has an optional `interestRate` (annual %). On every app foreground, `applyInvestmentInterest` in `DatabaseProvider.tsx` compounds daily: `newBalance = balance × (1 + rate/100/365) ^ days`, where `days` is `today − lastInterestDate`. Zero or negative balance just advances `lastInterestDate` without compounding (so the account doesn't accrue retroactive interest after a withdrawal-to-zero).
+Has an optional `interestRate` (annual %). On every app foreground, `applyInvestmentInterest` (in `src/db/queries/interest.ts`) compounds daily: `newBalance = balance × (1 + rate/100/365) ^ days`, where `days` is `today − lastInterestDate`. Zero or negative balance just advances `lastInterestDate` without compounding (so the account doesn't accrue retroactive interest after a withdrawal-to-zero). Shares the `accrueOne` core with `applyLoanInterest`; the type-specific predicate decides "compound or just bump the date."
 
 ---
 

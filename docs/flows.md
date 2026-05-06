@@ -49,8 +49,9 @@ User-facing scenarios this app supports. Written for QA and for anyone trying to
 After migrations + seed + backup-setup gate are clear, the provider runs (in this order):
 1. `processDueRecurring` — creates any due recurring transactions (capped at 90 days).
 2. `applyInvestmentInterest` — compounds investment accounts.
-3. `checkAndRunAutoBackup` — once-a-day auto-backup (skips if already backed up today).
-4. `checkAndFetchRates` — refreshes exchange rate cache if stale + needed.
+3. `applyLoanInterest` — compounds loan accounts (sign-aware: borrowed/lent grow in opposite directions; settled or overpaid loans skip but advance the date).
+4. `checkAndRunAutoBackup` — once-a-day auto-backup (skips if already backed up today).
+5. `checkAndFetchRates` — refreshes exchange rate cache if stale + needed.
 
 **Touches**: every entity. Stale rates → analytics shows "≈" markers. Network down → catchup still works (rate capture leaves NULLs, surfaced as approximate). Long offline (90+ days) → recurring catchup creates only one row dated today.
 

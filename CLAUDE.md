@@ -173,8 +173,7 @@ What we don't test (yet): React components, hooks, screens, navigation flows. Ad
 
 When changing money-math code, **run `npm test` before committing**. Failing tests usually mean either the code broke an invariant the docs documented, or the docs and code drifted — fix whichever is wrong, not the test.
 
-Known test skips (search `it.skip` for the marker):
-- `getNextDate` monthly-clamp bug for end-of-month start dates (skips short months entirely). Test left in place documenting the intended behaviour. To be fixed in `fix/monthly-recurring-day-skip` as part of v1.10.0.
+There are no documented test skips at the moment — if you add one, also add a line here pointing at the fix branch / issue and the expected behaviour the test asserts.
 
 ## Quality Checklist
 Before any commit:

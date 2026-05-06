@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-05-06
+
+### Added
+- **Linked account on loan create**: when adding a `loan_borrowed` or `loan_lent` account, you can now optionally pick a same-currency real account from the new "Linked account" picker. The form opens the loan at `balance: 0` and atomically creates the offsetting transfer (loan_borrowed → loan→real, loan_lent → real→loan), so you no longer have to record both the loan AND a separate income/expense for the matching cash movement. Replaces the prior two-step workflow. Optional and backwards-compatible — leave the field empty for the original "set initial balance directly" behaviour. Same-currency only in v1; create-only (not exposed on edit). The picker is hidden when no same-currency non-loan accounts exist.
+- **Cashback destination auto-defaults to the from-account** on the new-expense form. Toggling cashback on auto-fills the destination to the transaction's source account; if you change the source account before save, the destination follows. The moment you manually pick a different destination from the modal, the auto-tracking stops and your choice persists. Editing an existing cashback transaction always preserves the saved destination — no auto-overrides on mount.
+- **Security: biometric + PIN protection** for configurable actions:
+  - New `Settings → Security` screen with two sections — *Authentication methods* (biometric Switch, Set/Change/Remove PIN) and *Protected actions* (Switches that gate specific behaviours).
+  - **Biometric** via `expo-local-authentication` (Face ID / Touch ID / fingerprint). Switch is disabled with helper text when the device has no hardware or the user hasn't enrolled biometric at the OS level. Adds `NSFaceIDUsageDescription` to iOS Info.plist for App Store compliance.
+  - **6-digit PIN** stored as `sha256("{salt}:{pin}")` with a 16-byte random salt per user (via `expo-crypto`). Two-phase setup flow with confirmation entry. Threat model: "casual peeker has the unlocked phone" — protects against visual peek, not designed for offline-attacker resistance against the settings table.
+  - **Protected actions in v1**: (a) disabling the in-session "Random numbers" privacy mode (only the disabling direction is gated — turning random ON doesn't reduce protection), (b) opening the Backups screen.
+  - When you remove all auth methods, the protected-toggle flags are cleared automatically so they don't silently reactivate when auth is configured again later.
+
+### Fixed
+- **Split-bill and cashback inputs scroll into view when the keyboard opens**. The form is in a Modal whose ModalLayout intentionally skips KeyboardAvoidingView on Android (adjustResize handles top-level content), but inputs deep in the form — split-bill rows and the cashback amount field — could still sit below the visible area. Added a ScrollView ref + `onFocus` handler that calls RN's `scrollResponderScrollNativeHandleToKeyboard` to scroll the focused input ~120px above the keyboard. No more typing blind.
+
+### Internal
+- **Documentation overhaul** continues from v1.8.3:
+  - `docs/glossary.md` gains a Security section (auth methods, protected actions, threat model, `useAuthGate` hook contract) and 5 new Security settings keys in the table. Linked-flow notes added under `loan_borrowed` and `loan_lent`. Currency-key cleanup paragraph removed (the legacy seed is gone).
+  - `docs/flows.md` adds §3.1.1 (loan with linked account), §9.7 (security setup), §9.8 (disabling random-numbers when protected), §9.9 (Backups when protected). §7.1 cashback flow notes the new smart default.
+  - `docs/merge-points.md` adds entry #13 for `useAuthGate` (converges, invariants, touch radius).
+  - `docs/architecture.md` services list now names `auth.service.ts`.
+- **Internal cleanup**: dropped the unused `currency: "USD"` legacy seed from `DEFAULT_SETTINGS`. The runtime always reads `display_currency` (with a `?? "USD"` fallback in `getDisplayCurrency`); the legacy key was a noop on every install.
+- **Code-review pass** on v1.9.0 caught a HIGH issue (orphaned protected-toggle DB flags after removing all auth) plus several MED issues (gate double-tap race, `onPinSubmit` not memoised, setup-mode error semantics) — all fixed before release. Sub-pixel `onPinCancel` memoisation, `inFlight` ref on the gate, and `useCallback` everywhere PIN-related.
+
+### Technical Details
+- New deps: `expo-local-authentication ~55.0.13`, `expo-crypto ~55.0.14`. Both Expo-blessed.
+- The Expo config plugin `expo-local-authentication` was added to `app.config.ts`. Native config takes effect at the next prebuild (handled by `npm run android:release`).
+
 ## [1.8.3] - 2026-05-05
 
 ### Fixed
@@ -472,6 +500,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[1.9.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.9.0
 [1.8.3]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.3
 [1.8.2]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.2
 [1.8.1]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.1

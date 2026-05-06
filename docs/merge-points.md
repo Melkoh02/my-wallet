@@ -30,6 +30,7 @@ Each entry has:
 - Category multi-select via subcategories, with "Suggested" chips driven by `getFrequentCategoriesByType`.
 - Contact picker (with permission caching at the service level).
 - Location service (manual button or auto-fetch on mount, gated by two settings flags).
+- Place picker / auto-pick (`findNearestPlace` runs whenever GPS coords come in; tap "Pick existing" to choose manually; "Create one for here" instantiates a place with the current GPS stamp). The form persists `placeId` plus the legacy `latitude/longitude/locationName` for backward compat.
 - Cashback toggles (instant vs pending) which create or defer a linked income row.
 - Split-bill module which creates `loan_lent` accounts and optional settling transfers.
 - Template apply chip (pre-fills any subset of fields).
@@ -45,6 +46,7 @@ Each entry has:
 4. Currency snapshot fields (`currency`, `rateToDisplay`, `displayCurrencySnapshot`) captured at insert. Don't rewrite them on edit (would falsify history) — see glossary § "Currency snapshot fields".
 5. Instant-cashback creates a linked income row; deleting/editing the original must clean the link.
 6. Split-bill block only runs for new transactions (`!params.id`). Editing an originally-split expense renders a read-only locked notice (since v1.10) listing the spawned loans; the user must delete those loans before re-creating the transaction. True split-edit is gated on the v2.0 `split_bill_entries` schema change.
+7. Place auto-pick is best-effort. A miss never blocks transaction submission — it only changes which UI hint the user sees. Manual selection from the picker overrides any auto-pick. `placeId` is the canonical link; the legacy lat/lng/name columns are populated only when GPS was actually used and serve as fallback for any reader that hasn't migrated to `placeName`.
 
 **Touch radius**:
 - Any change here affects: balance computation on the source account, balance computation on the destination account (transfers), `linkedTransactionId` integrity, the visible balance on Home / Accounts / Account detail, every analytics aggregate (via row inserts), the auto-suggest chips on subsequent forms (frequents change), recurring rows (no — but they pass through `processDueRecurring` which has its own copy of the rate-capture logic — keep them in sync).
@@ -275,12 +277,12 @@ Each entry has:
 
 ### 11. `DatabaseProvider` — the boot pipeline
 
-**File**: `src/providers/DatabaseProvider.tsx`.
+**File**: `src/providers/DatabaseProvider.tsx`. Migration functions live in `src/db/dataMigrations.ts` and are also called from `restoreData` after a successful import.
 
 **Converges here**:
 - Drizzle migrations.
 - `seed()` (default categories + subcategories + settings).
-- Three one-time data migrations (credit balance flip, default themes, transaction currency backfill).
+- `runDataMigrations()` — currently four one-time data migrations (credit balance flip, default themes, transaction currency backfill, places backfill from legacy lat/lng/locationName).
 - The backup-setup gate.
 - Four foreground tasks (recurring catchup, investment interest, auto backup, exchange rate refresh).
 
@@ -306,11 +308,13 @@ Each entry has:
 - Both "Restore Backup" (in-app history) and "Import" (file picker) call this.
 - Wraps the entire delete-then-insert sequence in a SQLite transaction.
 - Validates backup format (`version`, `accounts`, `transactions`) before the transaction begins.
+- After commit, calls `runDataMigrations()` so flags wiped by the settings-table delete are repopulated and any data the imported snapshot lacks (e.g. a v1.x backup has no `places` array → `backfillPlaces` rebuilds them from legacy lat/lng/locationName) is filled in immediately. Migration errors are logged but don't fail the restore — the boot pipeline retries on next launch.
 
 **Invariants**:
 1. Atomic: any insert error rolls back to the state before the call. The user's existing data is never partially overwritten.
 2. Delete order = reverse FK dependency order. Insert order = FK dependency order. (Even though FKs are off, the dependency order avoids transient broken references mid-import.)
 3. Adding a new entity to the backup means: include in `exportAllData`, include in `restoreData` deletes (right place by dependency order), include in `restoreData` inserts (right place by dependency order). Skipping a table means it's silently lost on import.
+4. Post-restore data migrations are best-effort: they run after commit, so a failure can't roll back the restore. If they fail, the boot pipeline catches up on next cold start.
 
 **Touch radius**:
 - Every user who restores or imports. Bugs here destroy data — review with extra care.
@@ -359,3 +363,4 @@ Each entry has:
 | `AmountDisplay` | Every number anywhere in the UI |
 | Boot pipeline ordering | First launch, every cold start, the backup-setup gate |
 | `useAuthGate` order or fall-through | Every protected-action call site (random-toggle, Backups, future) |
+| `findNearestPlace` / `bucketLegacyLocations` | Place auto-pick UX, the v2.0 backfill, transaction enrichment fallback for legacy rows |

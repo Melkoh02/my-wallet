@@ -6,10 +6,12 @@ import {
   accounts,
   subcategories,
   categories,
+  places,
   type Transaction,
   type NewTransaction,
 } from "@/db/schema";
 import { updateAccountBalance } from "./accounts";
+import { decrementVisitCount, incrementVisitCount } from "./places";
 import { captureRateForCurrency, type CurrencyConverter } from "@/services/exchangeRate.service";
 
 /**
@@ -27,11 +29,11 @@ import { captureRateForCurrency, type CurrencyConverter } from "@/services/excha
 // invariant: tagged union enforces the three semantic states (stable / approximate / excluded)
 // at the type level. never collapse `excluded` to a numeric zero — that silently corrupts
 // cross-currency totals.
-type ConvertedRow =
+export type ConvertedRow =
   | { state: "converted"; value: number; usedTodaysRate: boolean }
   | { state: "excluded"; currency: string | null };
 
-function convertRow(
+export function convertRow(
   row: {
     amount: number;
     currency: string | null;
@@ -102,6 +104,13 @@ export type TransactionWithRelations = Transaction & {
   toAccountName?: string;
   toAccountCurrency?: string;
   cashbackAccountCurrency?: string;
+  /**
+   * Resolved place name when `placeId` is set (preferred). Falls back to the
+   * legacy `locationName` column for rows that pre-date migration 0010 and
+   * still have NULL `placeId`. Display code should prefer this field over
+   * `locationName` directly so a single location is never shown twice.
+   */
+  placeName?: string;
   subcategoryList: {
     id: number;
     name: string;
@@ -236,8 +245,24 @@ async function enrichTransactionsBatch(rows: Transaction[]): Promise<Transaction
     accountRows.map((a) => [a.id, { name: a.name, currency: a.currency }]),
   );
 
-  // 3. Collect all transaction IDs
+  // 3. Collect all transaction IDs + place IDs
   const txnIds = rows.map((r) => r.id);
+
+  // 3b. Batch-fetch place names. One query covers the whole result set; rows
+  // without a place_id are skipped here and fall back to legacy locationName
+  // in the assembly step.
+  const placeIdSet = new Set<number>();
+  for (const r of rows) {
+    if (r.placeId != null) placeIdSet.add(r.placeId);
+  }
+  const placeRows =
+    placeIdSet.size > 0
+      ? await db
+          .select({ id: places.id, name: places.name })
+          .from(places)
+          .where(inArray(places.id, [...placeIdSet]))
+      : [];
+  const placeNameById = new Map(placeRows.map((p) => [p.id, p.name]));
 
   // 4. Batch-fetch all subcategory links with category info in 1 query
   const subLinks =
@@ -289,6 +314,12 @@ async function enrichTransactionsBatch(rows: Transaction[]): Promise<Transaction
     const toAcc = txn.toAccountId != null ? accountInfo.get(txn.toAccountId) : undefined;
     const cashAcc =
       txn.cashbackAccountId != null ? accountInfo.get(txn.cashbackAccountId) : undefined;
+    // Prefer the canonical place name via place_id; fall back to the legacy
+    // locationName column for rows that pre-date migration 0010 (or had no
+    // GPS data, in which case both sides are null and placeName stays
+    // undefined).
+    const placeName =
+      txn.placeId != null ? placeNameById.get(txn.placeId) : (txn.locationName ?? undefined);
     return {
       ...txn,
       accountName: acc?.name ?? "Unknown",
@@ -296,6 +327,7 @@ async function enrichTransactionsBatch(rows: Transaction[]): Promise<Transaction
       toAccountName: txn.toAccountId != null ? (toAcc?.name ?? "Unknown") : undefined,
       toAccountCurrency: toAcc?.currency,
       cashbackAccountCurrency: cashAcc?.currency,
+      placeName: placeName ?? undefined,
       subcategoryList: subsByTxnId.get(txn.id) ?? [],
     };
   });
@@ -359,6 +391,14 @@ export async function createTransaction(
     await updateAccountBalance(txn.toAccountId, transferDestAmount(txn), "transfer", false);
   }
 
+  // Keep places.visit_count in sync. Edits that move a transaction between
+  // places are not handled here — the screen-level update path is responsible
+  // for that. getPlacesWithStats() always returns a live count from a JOIN,
+  // so any drift only ever affects picker sort order, never displayed totals.
+  if (txn.placeId != null) {
+    await incrementVisitCount(txn.placeId);
+  }
+
   return txn;
 }
 
@@ -374,6 +414,10 @@ export async function deleteTransaction(id: number): Promise<void> {
   );
   if (txn.toAccountId && txn.type === "transfer") {
     await updateAccountBalance(txn.toAccountId, -transferDestAmount(txn), "transfer", false);
+  }
+
+  if (txn.placeId != null) {
+    await decrementVisitCount(txn.placeId);
   }
 
   await db.delete(transactions).where(eq(transactions.id, id));

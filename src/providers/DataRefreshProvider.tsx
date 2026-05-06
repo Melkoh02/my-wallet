@@ -8,7 +8,9 @@ type EntityKey =
   | "themes"
   | "settings"
   | "backups"
-  | "templates";
+  | "templates"
+  | "budgets"
+  | "places";
 
 type DataRefreshContextValue = {
   revisions: Record<EntityKey, number>;
@@ -27,6 +29,8 @@ export function DataRefreshProvider({ children }: { children: React.ReactNode })
     settings: 0,
     backups: 0,
     templates: 0,
+    budgets: 0,
+    places: 0,
   });
 
   const invalidate = useCallback((...keys: EntityKey[]) => {

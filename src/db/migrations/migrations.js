@@ -67,6 +67,20 @@ export default {
         tag: "0008_drop_cashback_rules",
         breakpoints: true,
       },
+      {
+        idx: 9,
+        version: "6",
+        when: 1778032800000,
+        tag: "0009_budgets",
+        breakpoints: true,
+      },
+      {
+        idx: 10,
+        version: "6",
+        when: 1778119200000,
+        tag: "0010_places",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -270,5 +284,38 @@ ALTER TABLE \`recurring_transactions\` ADD COLUMN \`rate_to_display\` real;
 ALTER TABLE \`recurring_transactions\` ADD COLUMN \`display_currency_snapshot\` text;`,
     m0007: `ALTER TABLE \`transactions\` ADD COLUMN \`to_amount\` real;`,
     m0008: `DROP TABLE IF EXISTS \`cashback_rules\`;`,
+    m0009: `CREATE TABLE \`budgets\` (
+\t\`id\` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+\t\`name\` text NOT NULL,
+\t\`category_id\` integer NOT NULL,
+\t\`subcategory_id\` integer,
+\t\`amount\` real NOT NULL,
+\t\`currency\` text,
+\t\`period\` text DEFAULT 'monthly' NOT NULL,
+\t\`is_active\` integer DEFAULT true NOT NULL,
+\t\`sort_order\` integer DEFAULT 0 NOT NULL,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL,
+\tFOREIGN KEY (\`category_id\`) REFERENCES \`categories\`(\`id\`) ON UPDATE no action ON DELETE no action,
+\tFOREIGN KEY (\`subcategory_id\`) REFERENCES \`subcategories\`(\`id\`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX \`idx_budgets_category\` ON \`budgets\` (\`category_id\`);`,
+    m0010: `CREATE TABLE \`places\` (
+\t\`id\` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+\t\`name\` text NOT NULL,
+\t\`latitude\` real,
+\t\`longitude\` real,
+\t\`address\` text,
+\t\`source\` text DEFAULT 'manual' NOT NULL,
+\t\`visit_count\` integer DEFAULT 0 NOT NULL,
+\t\`is_active\` integer DEFAULT true NOT NULL,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX \`idx_places_coords\` ON \`places\` (\`latitude\`,\`longitude\`);
+--> statement-breakpoint
+ALTER TABLE \`transactions\` ADD COLUMN \`place_id\` integer REFERENCES \`places\`(\`id\`);
+--> statement-breakpoint
+CREATE INDEX \`idx_transactions_place\` ON \`transactions\` (\`place_id\`);`,
   },
 };

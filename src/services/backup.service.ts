@@ -25,8 +25,11 @@ import {
   backups,
   templates,
   templateSubcategories,
+  budgets,
+  places,
 } from "@/db/schema";
 import { getSetting, setSetting } from "@/db/queries/settings";
+import { runDataMigrations } from "@/db/dataMigrations";
 import { eq, desc, sql } from "drizzle-orm";
 
 const BACKUP_DIR = `${documentDirectory}backups/`;
@@ -84,6 +87,8 @@ async function exportAllData() {
     settings: await db.select().from(settings),
     templates: await db.select().from(templates),
     templateSubcategories: await db.select().from(templateSubcategories),
+    budgets: await db.select().from(budgets),
+    places: await db.select().from(places),
   };
   return JSON.stringify(data, null, 2);
 }
@@ -228,12 +233,17 @@ async function restoreData(
   try {
     // invariant: delete in reverse FK order (children before parents) and re-insert in forward
     // order. reordering for "readability" produces orphan/missing-reference errors mid-import.
+    await db.delete(budgets);
     await db.delete(templateSubcategories);
     await db.delete(templates);
     await db.delete(transactionSubcategories);
+    // Places sit between transactions and the rest in FK terms — transactions
+    // reference places. Delete transactions BEFORE places so the FK column
+    // doesn't dangle.
     await db.delete(recurringSubcategories);
     await db.delete(transactions);
     await db.delete(recurringTransactions);
+    await db.delete(places);
     await db.delete(subcategories);
     await db.delete(categories);
     await db.delete(accounts);
@@ -244,6 +254,9 @@ async function restoreData(
     if (data.categories?.length) await db.insert(categories).values(data.categories as never[]);
     if (data.subcategories?.length)
       await db.insert(subcategories).values(data.subcategories as never[]);
+    // Places must be restored BEFORE transactions because transactions.place_id
+    // references them.
+    if (data.places?.length) await db.insert(places).values(data.places as never[]);
     if (data.transactions?.length)
       await db.insert(transactions).values(data.transactions as never[]);
     if (data.transactionSubcategories?.length)
@@ -257,8 +270,27 @@ async function restoreData(
     if (data.templates?.length) await db.insert(templates).values(data.templates as never[]);
     if (data.templateSubcategories?.length)
       await db.insert(templateSubcategories).values(data.templateSubcategories as never[]);
+    // Budgets reference categories + subcategories, so insert AFTER both —
+    // categories and subcategories are populated above.
+    if (data.budgets?.length) await db.insert(budgets).values(data.budgets as never[]);
 
     await db.run(sql`COMMIT`);
+
+    // why: restoring an older backup wipes the settings table, including the
+    // *_migrated flags. Re-running the data migrations fills any gaps the
+    // imported snapshot left — most importantly, a v1.x backup has no places
+    // array, so backfillPlaces converts the imported transactions' legacy
+    // lat/lng/locationName into Place records. Without this, the user would
+    // see no Places (and no auto-pick) until the next cold start.
+    try {
+      await runDataMigrations();
+    } catch (migrationErr) {
+      // The transactional import already committed cleanly — surfacing the
+      // migration error here would lie about data state. Log instead; the
+      // boot pipeline will retry on next launch.
+      console.warn("Post-restore data migrations failed:", migrationErr);
+    }
+
     return { success: true };
   } catch (e) {
     await db.run(sql`ROLLBACK`);

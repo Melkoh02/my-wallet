@@ -43,15 +43,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="categories"
-        options={{
-          title: t("tabs.categories"),
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="shape" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="analytics"
         options={{
           title: t("analytics.title"),

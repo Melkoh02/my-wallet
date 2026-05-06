@@ -163,7 +163,12 @@ export async function processDueRecurring(): Promise<number> {
     // Process all due occurrences
     while (currentDate <= today) {
       const isToday = currentDate === today;
-      // Create the transaction
+      // gotcha: this inserts directly rather than going through createTransaction,
+      // so any side-effects createTransaction has (e.g. places.visit_count
+      // increment) are NOT applied here. Today recurringTransactions has no
+      // placeId column, so spawned rows always have placeId=null and there's
+      // nothing to maintain. If a future schema adds recurringTransactions.placeId,
+      // copy it onto the row below AND call incrementVisitCount(placeId) here.
       const [txn] = await db
         .insert(transactions)
         .values({

@@ -24,7 +24,8 @@ User-facing scenarios this app supports. Written for QA and for anyone trying to
 - [Themes](#11-themes)
 - [Analytics](#12-analytics)
 - [Contacts](#13-contacts)
-- [Cross-cutting test ideas](#14-cross-cutting-test-ideas)
+- [Places](#14-places)
+- [Cross-cutting test ideas](#15-cross-cutting-test-ideas)
 
 ---
 
@@ -37,7 +38,7 @@ User-facing scenarios this app supports. Written for QA and for anyone trying to
 3. `BackupSetupModal` appears on top of the first screen.
 4. User picks an Android external folder *or* taps "Skip — use app storage anyway" *or* (iOS) reads the explanation and taps "Got it".
 5. Setting `backup_setup_done = "true"`. Modal dismisses.
-6. App lands on the Home tab. Default categories visible from Categories tab. No accounts yet.
+6. App lands on the Home tab. Default categories visible from Settings → Categories. No accounts yet.
 
 **Edge cases**
 - User force-quits during the setup modal → next launch shows it again.
@@ -277,7 +278,7 @@ Shows balance/debt/available credit (depending on type), transactions for this a
 ## 4. Categories
 
 ### 4.1 Create a category
-**Trigger**: Categories tab FAB.
+**Trigger**: Settings → Categories → FAB. (Categories was a top-level tab in v1.x; v2.0 lives under Settings to free up bottom-bar real estate for Home / Transactions / Analytics / Accounts.)
 
 1. Form: name, color, icon (icon picker has a search), isIncome / isExpense flags.
 2. On save, the category is created with `isSystem = false` and a `General` subcategory is auto-inserted.
@@ -476,6 +477,27 @@ Standard CRUD via the template list screen.
 ### 9.6 Open Recurring / Templates / Themes / Backup / Changelog
 Each is its own screen reachable from Settings. Recurring and Templates have their own FABs; Themes and Backup are managed inline.
 
+### 9.7-pre Budgets (Settings → Budgets)
+**Trigger**: Settings → Budgets row.
+
+1. List screen at `/budget` shows every active budget with a progress bar (green ≤ 80%, orange 81–100%, red > 100%), the spend / amount totals, and a percent-used label.
+2. Empty state when no budgets exist; FAB at bottom right opens the form for a new budget.
+3. Tap a row → `/budget/form?id=...` to edit that budget.
+
+**Create / edit form** (`/budget/form`):
+- **Name** — defaults to the selected category's name (or "Category · Subcategory") until the user types a custom name.
+- **Category** — required. Picker lists all categories.
+- **Subcategory** — optional. When set, the budget tracks only that specific subcategory's transactions; otherwise it covers every subcategory under the category.
+- **Monthly amount** — required, > 0.
+- **Pin to a specific currency** — switch (default ON). When ON: a currency picker appears, defaulting to the user's current display currency. When OFF: the budget follows whatever the display currency is at view time.
+- **Save** persists; **Delete** (edit mode only) prompts a confirmation.
+
+**Edge cases**
+- A budget targeting a subcategory still respects the multi-subcategory `amount/N` split — a transaction tagged in N subcategories where one matches the budget contributes `amount/N` to it.
+- Cross-currency transactions: when the txn's stored `rateToDisplay` is stable for the current display currency, it's used directly (no approximate flag). Stale stored rates fall back to today's rate (UI shows ≈). Rates the converter doesn't know cause the row to be excluded and surfaced in `missingRates`.
+- Pinning to a currency ≠ display always uses today's rate for the second hop, so cross-pin budgets are always marked approximate.
+- Untagged expenses (no subcategory) don't contribute to any budget.
+
 ### 9.7 Security: biometric + PIN setup
 **Trigger**: Settings → Security.
 
@@ -610,7 +632,54 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 
 ---
 
-## 14. Cross-cutting test ideas
+## 14. Places
+
+### 14.1 Auto-pick on transaction creation
+**Trigger**: New Transaction with Location Stamps enabled, GPS captured (manually via "Add Location" or automatically when `auto_add_location` is on).
+
+1. `getCurrentLocation()` returns `{ latitude, longitude, name? }` after permission gate.
+2. `findNearestPlace(lat, lng, radiusM)` runs a bounding-box pre-filter (uses `idx_places_coords`) then a Haversine refinement on the candidates.
+3. **Hit**: form sets `placeId`/`placeName` and shows the place card with an "Auto-picked from nearby places" caption.
+4. **Miss**: form keeps the GPS-captured location stamp visible and surfaces two affordances:
+   - **Create one for here** — instantiates a place with the GPS coords + reverse-geocoded name, source = `"geocoded"`. User can rename later.
+   - **Pick existing** — opens the picker (active places, sortable by visit count, searchable by name + address).
+5. Submit writes both `place_id` (the canonical link) and the legacy `latitude/longitude/locationName` columns (the fallback, populated only when GPS was actually used).
+
+**Edge cases**
+- Place with no coords — never auto-picked, but pickable manually for "Online" / "Bank transfer" style entries.
+- GPS denied or low-accuracy — surfaces the existing `locationFailed` warning; user can still pick a place from the list manually.
+- Radius set to 50 m and user is in the wrong room — auto-pick misses and falls through to the "no place nearby" hint, which is the intended UX.
+
+### 14.2 Places CRUD (Settings → Places)
+**Trigger**: Settings → Places row.
+
+1. Active places listed most-frequent first (`getPlacesWithStats` — JOIN-derived live transaction count, not the denormalised `visit_count`).
+2. Each row: location icon (greyed when no coords), name, optional address, transaction count, chevron.
+3. Tap a row → `/place/form` in edit mode.
+4. FAB → `/place/form` in create mode.
+5. Form fields: name (required), address (optional), coordinates (optional, capturable via "Use my current location" button which calls `getCurrentLocation`).
+6. **Archive** (soft-delete): hides the place from pickers and the list but leaves transactions linked. Reversible via "Restore".
+7. **Delete** (hard): removes the row. Linked transactions hold a dangling `place_id` (FK is unenforced); display code falls back to nothing for those rows.
+
+### 14.3 Legacy location backfill
+**Trigger**: First launch of v2.0 (gated by `places_migrated` settings flag).
+
+1. `backfillPlaces` in `DatabaseProvider.tsx` reads every transaction with a non-null `latitude` or non-empty `locationName`.
+2. `bucketLegacyLocations` (pure function in `utils/placesMigration`, unit-tested) groups rows:
+   - Coord-rich rows by `(round(lat,4), round(lng,4), name.toLowerCase())` — same coords + different labels stay split.
+   - Name-only rows by lowercased name.
+3. One Place row per bucket inserted with `source = "migrated"` and an initial `visit_count` matching bucket size.
+4. Transactions in the bucket get their `place_id` updated.
+5. `places_migrated` flag is written, even when no legacy rows existed (avoids re-scanning every boot).
+
+**Edge cases**
+- Rows with neither coords nor name are skipped (caller filters them out, but the bucketing function tolerates them too).
+- Whitespace-only names are skipped (treated as empty).
+- Two visits to the same coords with different labels stay separate — *over-split rather than over-merge*. Users can manually merge later (rename + reassign), but a wrong merge silently corrupts visit counts.
+
+---
+
+## 15. Cross-cutting test ideas
 
 These touch multiple flows. Worth running periodically:
 

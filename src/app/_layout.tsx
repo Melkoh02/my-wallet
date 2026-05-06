@@ -31,8 +31,13 @@ function AppStack() {
         <Stack.Screen name="account/[id]" />
         <Stack.Screen name="contact/index" />
         <Stack.Screen name="contact/[id]" />
+        <Stack.Screen name="budget/index" />
+        <Stack.Screen name="budget/form" options={{ presentation: "modal" }} />
+        <Stack.Screen name="place/index" />
+        <Stack.Screen name="place/form" options={{ presentation: "modal" }} />
         <Stack.Screen name="transaction/form" options={{ presentation: "modal" }} />
         <Stack.Screen name="transaction/[id]" />
+        <Stack.Screen name="category/index" />
         <Stack.Screen name="category/form" options={{ presentation: "modal" }} />
         <Stack.Screen name="category/[id]" />
         <Stack.Screen name="recurring/index" />

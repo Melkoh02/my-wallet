@@ -239,6 +239,7 @@ Stored in the `settings` table, every value is a string.
 | `backup_setup_done`        | First-launch backup setup gate               | unset → `"true"`       |
 | `location_enabled`         | Show "Add Location" on transaction form      | `"false"`              |
 | `auto_add_location`        | Fetch location automatically on each new txn | unset (off)            |
+| `places_auto_radius_m`     | Auto-pick radius for nearby saved places (m) | `"100"`                |
 | `privacy_hide_default`     | Activate hideAmounts on app open             | unset (off)            |
 | `privacy_random_default`   | Activate randomNumbers on app open           | unset (off)            |
 | `language`                 | Active locale code                           | device locale          |
@@ -253,10 +254,72 @@ Stored in the `settings` table, every value is a string.
 | `credit_balance_migrated`  | v1.0.1 credit-balance semantic flip          | set once               |
 | `txn_currency_backfilled`  | Phase-2 currency column backfill             | set once               |
 | `default_themes_seeded`    | Default themes inserted                      | set once               |
+| `places_migrated`          | v2.0 backfill of legacy location data → places | set once             |
 
 > Adding a new setting? Use `getSetting`/`setSetting` from `src/db/queries/settings.ts`. If it has a default for new installs, register it in `DEFAULT_SETTINGS`. If it ships with a one-time data migration, add a flag here and a migration function in `DatabaseProvider.tsx`.
 
 ---
+
+## Budgets
+
+Per-category (or per-subcategory) monthly spending caps. Each budget is a row in the `budgets` table with:
+
+- **`name`** — user-facing label, defaults to the category's name on create.
+- **`categoryId`** + optional **`subcategoryId`** — when subcategory is null the budget covers every subcategory of the category. When set, only that specific subcategory's transactions count.
+- **`amount`** — the monthly cap.
+- **`currency`** — `null` means "follow display currency" (interpretation of `amount` shifts when the user switches display); a code like `"USD"` pins it.
+- **`period`** — `"monthly"` only in v2.0. Reserved for future `"weekly"` / `"yearly"`.
+
+### Spend computation (`getBudgetsWithSpend`)
+
+For each active budget:
+1. Pull every `expense` transaction in the current calendar month.
+2. Filter to those tagged with the budget's category (or specific subcategory).
+3. Apply the **`amount/N` split rule** (same as `getCategorySummary`): a transaction tagged in N subcategories contributes `amount × matching/total` to each affected budget — multi-tagged rows aren't double-counted across categories.
+4. Convert each row to the budget's resolved currency in two phases:
+   - **Phase 1** — `convertRow` does source → display. Honours stored `rateToDisplay` when stable; falls back to today's rate when stale (sets `usedTodaysRate=true`); excludes the row entirely when no rate is available (adds source currency to `missingRates`).
+   - **Phase 2** — if the budget pins a currency different from display, multiply the display value by today's `rates[targetCcy]`. Always sets `approximate=true` on this hop because it's today's rate, not historical.
+5. Sum into `spend`. Compute `remaining = amount − spend` and `percentUsed = spend / amount × 100` (capped at 9999 to keep the UI safe).
+
+The `BudgetWithSpend` row carries `approximate`, `missingRates`, `resolvedCurrency`, and pre-resolved `categoryName`/`subcategoryName` so the list screen renders without further joins.
+
+### `BACKUP_VERSION`
+Adding the `budgets` table is **additive** — existing v1.x backups don't include a `budgets` array, and the import path tolerates its absence (`if (data.budgets?.length) ...`). `BACKUP_VERSION` stays at `1`. Same precedent as when `cashback_rules` was added in v1.0.0 then removed in v1.8.x without a version bump.
+
+## Places
+
+Saved locations for tagging transactions. A place is a row in the `places` table with:
+
+- **`name`** — user-facing label.
+- **`latitude`** / **`longitude`** — optional. A place without coords (e.g., a free-typed name like "Online") never gets auto-picked but still works as a manual tag.
+- **`address`** — optional reverse-geocoded display text.
+- **`source`** — `"manual"` (user typed a name), `"geocoded"` (captured from current GPS or address lookup), or `"migrated"` (imported from legacy `transactions.locationName` during the v2.0 backfill).
+- **`visitCount`** — denormalised count of transactions linked via `transactions.place_id`. Maintained imperatively by `createTransaction` / `deleteTransaction`; the live JOIN-based count returned by `getPlacesWithStats()` is the source of truth for the list screen, so any drift only affects picker sort order, not displayed totals.
+- **`isActive`** — soft-delete flag. Archived places stay in the DB so transactions still resolve their name; they're hidden from pickers and the list. `archivePlace` flips this to false; `unarchivePlace` flips it back.
+
+### Auto-pick (`findNearestPlace`)
+
+Two-stage filter that runs on every transaction-form GPS capture:
+1. **SQL bounding-box pre-filter** using `idx_places_coords` — narrows the candidate set without paying the Haversine cost per row. The box is computed from the centre's latitude (looser than per-edge), but that just lets a few extra candidates through to the JS pass; it never excludes a real match.
+2. **JS Haversine refinement** — computes true great-circle distance (`utils/geo.ts`) and returns the nearest place ≤ `radiusM`.
+
+Radius is configurable in Settings (`places_auto_radius_m`, default 100 m). Discrete options: 50, 100, 250, 500, 1000 m.
+
+### Legacy fallback
+
+Existing `transactions.{latitude,longitude,locationName}` columns stay alive. New writes go through `place_id`; legacy columns are populated only on the GPS-capture path so any future code still finds coords. `enrichTransactionsBatch` resolves a single `placeName` field by preferring `place.name` (when `place_id` is set) and falling back to `locationName` for pre-migration rows.
+
+### One-time backfill (`backfillPlaces` in DatabaseProvider)
+
+Gated by the `places_migrated` settings flag. Heuristic in `utils/placesMigration` (unit-tested separately):
+
+- Coord-rich rows bucket by `(round(lat,4), round(lng,4), name.toLowerCase())` ≈ 11 m precision. Same coords with different labels stay split — *over-split rather than over-merge* because manual merging is cheap and an unwanted merge silently corrupts visit counts.
+- Name-only rows bucket case-insensitively.
+- Each bucket becomes one place with `source = "migrated"` and an initial `visitCount` matching the bucket size.
+- Transactions in the bucket get their `place_id` updated in a single transaction.
+
+### `BACKUP_VERSION`
+Adding the `places` table is **additive** — same precedent as `budgets`. `BACKUP_VERSION` stays at `1`. The import path tolerates a missing `places` array (`if (data.places?.length) ...`). Place inserts run **before** transactions so FKs resolve in the right order during restore.
 
 ## DataRefresh entities
 
@@ -268,6 +331,8 @@ Stored in the `settings` table, every value is a string.
 | `transactions` | transaction create/edit/delete; recurring trigger                                |
 | `categories`   | category/subcategory create/edit/delete                                          |
 | `recurring`    | recurring create/edit/delete; pause toggle; trigger now                          |
+| `budgets`      | budget create/edit/delete                                                         |
+| `places`       | place create/edit/archive/unarchive/delete                                       |
 | `themes`       | theme create/edit/delete/activate                                                |
 | `settings`     | any settings mutation; backup folder change                                      |
 | `backups`      | backup create/delete                                                             |

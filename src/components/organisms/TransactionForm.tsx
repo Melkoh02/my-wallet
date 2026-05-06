@@ -23,8 +23,10 @@ import {
 import { getCurrentLocation } from "@/services/location.service";
 import { useConverter } from "@/hooks/useConverter";
 import { getLastAccountByType, getFrequentCategoriesByType } from "@/db/queries/transactions";
+import { createPlace, findNearestPlace, getActivePlaces, getPlaceById } from "@/db/queries/places";
+import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import type { SplitSourceInfo } from "@/db/queries/accounts";
-import type { Account, NewTransaction } from "@/db/schema";
+import type { Account, NewTransaction, Place } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 import type { TemplateWithSubs } from "@/db/queries/templates";
 import type { TransactionType } from "@/types";
@@ -57,6 +59,12 @@ type TransactionFormProps = {
   locationEnabled?: boolean;
   autoAddLocation?: boolean;
   /**
+   * Radius (in metres) used to auto-pick a saved place from captured GPS
+   * coords. Defaults to 100 m if not provided. Driven by the
+   * `places_auto_radius_m` setting on the parent screen.
+   */
+  placesAutoRadiusM?: number;
+  /**
    * When editing an expense that already spawned split-bill loan accounts,
    * the form renders a read-only locked-state notice instead of letting the
    * user re-edit the split. Recomputing splits on edit is gated on a v2.0
@@ -77,6 +85,7 @@ export function TransactionForm({
   initialData,
   locationEnabled = false,
   autoAddLocation = false,
+  placesAutoRadiusM = 100,
   splitSourceInfo,
 }: TransactionFormProps) {
   const { colors } = useTheme();
@@ -192,6 +201,31 @@ export function TransactionForm({
       : null,
   );
   const [locationError, setLocationError] = useState("");
+
+  // Place: auto-picked or manually selected place_id, plus the resolved name
+  // for display so we don't have to re-query the DB on every render. The
+  // auto-pick path runs whenever GPS coords come in (handleAddLocation).
+  const [placeId, setPlaceId] = useState<number | null>(initialData?.placeId ?? null);
+  const [placeName, setPlaceName] = useState<string | null>(null);
+  const [placeAutoPicked, setPlaceAutoPicked] = useState(false);
+  const [showPlacePicker, setShowPlacePicker] = useState(false);
+  const [allPlaces, setAllPlaces] = useState<Place[]>([]);
+  // gotcha: rapid tapping on "Create one for here" before the createPlace
+  // promise resolves would make two places at the same coords. The flag
+  // disables the button while the create is in-flight.
+  const [creatingPlace, setCreatingPlace] = useState(false);
+  const { invalidate: invalidateData } = useDataRefresh();
+
+  // Resolve the place name on mount when editing an existing transaction with
+  // a placeId. Uses a separate effect rather than initialising synchronously
+  // so the initialData prop type stays clean (it already includes placeId).
+  useEffect(() => {
+    if (initialData?.placeId) {
+      getPlaceById(initialData.placeId).then((p) => {
+        if (p) setPlaceName(p.name);
+      });
+    }
+  }, [initialData?.placeId]);
 
   // Account picker modals
   const [showAccountPicker, setShowAccountPicker] = useState(false);
@@ -323,9 +357,81 @@ export function TransactionForm({
     setLocationLoading(true);
     setLocationError("");
     const loc = await getCurrentLocation();
-    if (loc) setLocation(loc);
-    else setLocationError(t("transactionForm.locationFailed"));
+    if (!loc) {
+      setLocationError(t("transactionForm.locationFailed"));
+      setLocationLoading(false);
+      return;
+    }
+    setLocation(loc);
+    // Try to auto-pick a saved place near these coords. If we hit, the user
+    // sees the place name (with an "auto-picked" caption); if we miss, the
+    // UI offers a "create one for here" link.
+    const hit = await findNearestPlace(loc.latitude, loc.longitude, placesAutoRadiusM);
+    if (hit) {
+      setPlaceId(hit.place.id);
+      setPlaceName(hit.place.name);
+      setPlaceAutoPicked(true);
+    }
     setLocationLoading(false);
+  };
+
+  const handlePickPlace = async () => {
+    // Lazy-load the picker list — avoids hitting the DB until the user opens
+    // the modal. Refreshes each open so newly created places show up.
+    const places = await getActivePlaces();
+    // why: if the currently selected place has been archived since this form
+    // mounted, getActivePlaces won't include it. Without this prepend, the
+    // user sees the placeName in the form's card but the picker shows "no
+    // result" — making it impossible to confirm or change the selection.
+    if (placeId !== null && !places.some((p) => p.id === placeId)) {
+      const selected = await getPlaceById(placeId);
+      if (selected) places.unshift(selected);
+    }
+    setAllPlaces(places);
+    setShowPlacePicker(true);
+  };
+
+  const handleSelectPlace = (place: Place) => {
+    setPlaceId(place.id);
+    setPlaceName(place.name);
+    setPlaceAutoPicked(false);
+    if (place.latitude !== null && place.longitude !== null) {
+      // Mirror the picked place's coords into the form's location stamp so
+      // the legacy fields stay in sync. why: kept-alive fallback for any
+      // future code path that reads latitude/longitude before placeId.
+      setLocation({ latitude: place.latitude, longitude: place.longitude, name: place.name });
+    }
+    setShowPlacePicker(false);
+  };
+
+  const handleClearPlace = () => {
+    setPlaceId(null);
+    setPlaceName(null);
+    setPlaceAutoPicked(false);
+  };
+
+  const handleCreatePlaceHere = async () => {
+    if (!location || creatingPlace) return;
+    setCreatingPlace(true);
+    try {
+      // Create immediately with the GPS-captured stamp; user can rename later
+      // from the Places screen. This trades a perfect first-time name for the
+      // lowest possible friction during transaction entry.
+      const created = await createPlace({
+        name:
+          location.name?.trim() ||
+          `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        source: "geocoded",
+      });
+      setPlaceId(created.id);
+      setPlaceName(created.name);
+      setPlaceAutoPicked(false);
+      invalidateData("places");
+    } finally {
+      setCreatingPlace(false);
+    }
   };
 
   // Auto-fetch location on new transactions when the setting is on. The parent
@@ -370,6 +476,7 @@ export function TransactionForm({
         latitude: location?.latitude ?? null,
         longitude: location?.longitude ?? null,
         locationName: location?.name ?? null,
+        placeId,
         cashbackAmount: cashbackEnabled && computedCashback > 0 ? computedCashback : null,
         cashbackAccountId: cashbackEnabled ? cashbackAccountId : null,
         cashbackEnabled,
@@ -583,28 +690,72 @@ export function TransactionForm({
       {locationEnabled && (
         <View style={styles.section}>
           <AppText variant="label" color={colors.textSecondary}>
-            {t("transactionForm.location")}
+            {t("transactionForm.place")}
           </AppText>
-          {location ? (
-            <View
-              style={[
-                styles.locationCard,
-                { borderColor: colors.border, backgroundColor: colors.surface },
-              ]}
-            >
-              <AppIcon name="map-marker" size={18} color={colors.primary} />
-              <AppText variant="body" style={styles.locationText} numberOfLines={2}>
-                {location.name ||
-                  `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
-              </AppText>
-              <Pressable onPress={() => setLocation(null)} hitSlop={8}>
-                <AppText variant="caption" color={colors.danger}>
-                  {t("common.remove")}
-                </AppText>
-              </Pressable>
-            </View>
-          ) : (
+          {placeId !== null ? (
             <>
+              <View
+                style={[
+                  styles.locationCard,
+                  { borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
+              >
+                <AppIcon name="map-marker" size={18} color={colors.primary} />
+                <AppText variant="body" style={styles.locationText} numberOfLines={2}>
+                  {placeName ?? ""}
+                </AppText>
+                <Pressable onPress={handleClearPlace} hitSlop={8}>
+                  <AppText variant="caption" color={colors.danger}>
+                    {t("transactionForm.clearPlace")}
+                  </AppText>
+                </Pressable>
+              </View>
+              {placeAutoPicked && (
+                <AppText variant="caption" color={colors.textTertiary}>
+                  {t("transactionForm.autoPickedPlace")}
+                </AppText>
+              )}
+            </>
+          ) : location ? (
+            <>
+              <View
+                style={[
+                  styles.locationCard,
+                  { borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
+              >
+                <AppIcon name="map-marker" size={18} color={colors.primary} />
+                <AppText variant="body" style={styles.locationText} numberOfLines={2}>
+                  {location.name ||
+                    `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+                </AppText>
+                <Pressable onPress={() => setLocation(null)} hitSlop={8}>
+                  <AppText variant="caption" color={colors.danger}>
+                    {t("common.remove")}
+                  </AppText>
+                </Pressable>
+              </View>
+              <AppText variant="caption" color={colors.textTertiary}>
+                {t("transactionForm.noPlaceNearby")}
+              </AppText>
+              <View style={styles.placeActions}>
+                <AppButton
+                  title={t("transactionForm.createPlaceHere")}
+                  variant="ghost"
+                  icon="map-marker-plus"
+                  onPress={handleCreatePlaceHere}
+                  disabled={creatingPlace}
+                />
+                <AppButton
+                  title={t("transactionForm.selectPlace")}
+                  variant="ghost"
+                  icon="map-search"
+                  onPress={handlePickPlace}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={styles.placeActions}>
               <AppButton
                 title={
                   locationLoading
@@ -616,15 +767,55 @@ export function TransactionForm({
                 onPress={handleAddLocation}
                 disabled={locationLoading}
               />
-              {locationError ? (
-                <AppText variant="caption" color={colors.warning}>
-                  {locationError}
-                </AppText>
-              ) : null}
-            </>
+              <AppButton
+                title={t("transactionForm.selectPlace")}
+                variant="ghost"
+                icon="map-search"
+                onPress={handlePickPlace}
+              />
+            </View>
           )}
+          {locationError ? (
+            <AppText variant="caption" color={colors.warning}>
+              {locationError}
+            </AppText>
+          ) : null}
         </View>
       )}
+
+      <PickerModal
+        visible={showPlacePicker}
+        title={t("transactionForm.selectPlace")}
+        items={allPlaces}
+        keyExtractor={(p) => p.id.toString()}
+        selectedKey={placeId !== null ? placeId.toString() : undefined}
+        onSelect={handleSelectPlace}
+        onClose={() => setShowPlacePicker(false)}
+        searchable
+        searchPlaceholder={t("places.searchPlaces")}
+        searchFilter={(p, q) =>
+          p.name.toLowerCase().includes(q.toLowerCase()) ||
+          (p.address?.toLowerCase().includes(q.toLowerCase()) ?? false)
+        }
+        renderItem={(p, isSelected) => (
+          <>
+            <AppIcon
+              name={p.latitude !== null ? "map-marker" : "map-marker-off"}
+              size={20}
+              color={p.latitude !== null ? colors.primary : colors.iconSecondary}
+            />
+            <View style={styles.placePickerText}>
+              <AppText variant="body">{p.name}</AppText>
+              {p.address ? (
+                <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
+                  {p.address}
+                </AppText>
+              ) : null}
+            </View>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
+      />
 
       {/* Cashback — expense only */}
       {type === "expense" && accounts.length > 0 && (
@@ -1062,6 +1253,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   locationText: { flex: 1 },
+  placeActions: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
+  placePickerText: { flex: 1, gap: 2 },
   cashbackCard: { borderWidth: 1, borderRadius: 12, padding: spacing.md, gap: spacing.md },
   cashbackHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   cashbackBody: { gap: spacing.md },

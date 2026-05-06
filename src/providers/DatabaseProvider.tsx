@@ -1,9 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import { eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { accounts, settings, themes } from "@/db/schema";
 import { seed } from "@/db/seed";
+import { runDataMigrations } from "@/db/dataMigrations";
 import { processDueRecurring } from "@/db/queries/recurring";
 import { applyInvestmentInterest, applyLoanInterest } from "@/db/queries/interest";
 import { checkAndRunAutoBackup, BACKUP_SETUP_DONE_KEY } from "@/services/backup.service";
@@ -23,90 +22,10 @@ const DatabaseContext = createContext<DatabaseContextValue>({
   dismissBackupSetup: () => {},
 });
 
-/**
- * One-time migration: convert credit card balances from "debt" semantics
- * to "available credit" semantics. In v1.0.0, balance represented debt
- * (expense increased it). In v1.0.1+, balance represents available credit
- * (expense decreases it). For existing credit cards: newBalance = creditLimit - oldBalance.
- */
-async function migrateCreditCardBalances() {
-  const [flag] = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, "credit_balance_migrated"));
-  if (flag) return; // Already migrated
-
-  const creditAccounts = await db.select().from(accounts).where(eq(accounts.type, "credit"));
-
-  for (const acc of creditAccounts) {
-    // creditLimit should always be set for credit cards, but handle the edge case:
-    // if no limit was set, treat the old balance as pure debt → available = 0 - oldBalance
-    const limit = acc.creditLimit ?? 0;
-    const newBalance = limit - acc.balance;
-    await db.update(accounts).set({ balance: newBalance }).where(eq(accounts.id, acc.id));
-  }
-
-  await db
-    .insert(settings)
-    .values({ key: "credit_balance_migrated", value: "true" })
-    .onConflictDoNothing();
-}
-
-/**
- * One-time backfill: copy account.currency into transactions.currency and
- * recurring_transactions.currency for rows created before Phase 2 (where the
- * column was added nullable). rate_to_display and display_currency_snapshot
- * are intentionally left NULL — we don't have historical rate data, so
- * aggregations will fall back to today's rate (with an ≈ marker) for those
- * rows. Future inserts capture all three fields at insert time.
- */
-async function backfillTransactionCurrency() {
-  const [flag] = await db
-    .select()
-    .from(settings)
-    .where(eq(settings.key, "txn_currency_backfilled"));
-  if (flag) return;
-
-  await db.run(sql`
-    UPDATE transactions
-    SET currency = (SELECT currency FROM accounts WHERE accounts.id = transactions.account_id)
-    WHERE currency IS NULL
-  `);
-  await db.run(sql`
-    UPDATE recurring_transactions
-    SET currency = (SELECT currency FROM accounts WHERE accounts.id = recurring_transactions.account_id)
-    WHERE currency IS NULL
-  `);
-
-  await db
-    .insert(settings)
-    .values({ key: "txn_currency_backfilled", value: "true" })
-    .onConflictDoNothing();
-}
-
-const DEFAULT_THEMES = [
-  { name: "Dark Blue", mode: "dark", accentColor: "#3B82F6", statusBarStyle: "light" },
-  { name: "Light Blue", mode: "light", accentColor: "#3B82F6", statusBarStyle: "dark" },
-  { name: "Dark Pink", mode: "dark", accentColor: "#EC4899", statusBarStyle: "light" },
-  { name: "Light Pink", mode: "light", accentColor: "#EC4899", statusBarStyle: "dark" },
-] as const;
-
-async function seedDefaultThemes() {
-  const [flag] = await db.select().from(settings).where(eq(settings.key, "default_themes_seeded"));
-  if (flag) return;
-
-  for (const theme of DEFAULT_THEMES) {
-    await db.insert(themes).values(theme);
-  }
-
-  await db
-    .insert(settings)
-    .values({ key: "default_themes_seeded", value: "true" })
-    .onConflictDoNothing();
-}
-
 // Investment + loan interest accrual lives in src/db/queries/interest.ts so
-// it can be unit-tested. Foreground task wiring stays here.
+// it can be unit-tested. Foreground task wiring stays here. One-time data
+// migrations live in src/db/dataMigrations.ts so backup restore can re-run
+// them.
 
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { success, error } = useMigrations(db, migrationData);
@@ -120,9 +39,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!success) return;
     seed(db)
-      .then(() => migrateCreditCardBalances())
-      .then(() => seedDefaultThemes())
-      .then(() => backfillTransactionCurrency())
+      .then(() => runDataMigrations())
       .then(() => setIsSeeded(true));
   }, [success]);
 

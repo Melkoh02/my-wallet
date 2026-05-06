@@ -447,6 +447,53 @@ export async function getFrequentContacts(
   }));
 }
 
+export type ContactSummary = {
+  /** Device contact id when linked, null for free-typed contacts. */
+  contactId: string | null;
+  contactName: string;
+  /** Total transactions referencing this contact. */
+  count: number;
+  /** Most recent transaction date (YYYY-MM-DD). */
+  lastDate: string;
+};
+
+/**
+ * List every contact that appears on at least one transaction, with summary
+ * stats. Used by the Contacts list screen. Groups by `(contactId, contactName)`
+ * so device-linked contacts AND free-typed names both surface — same person
+ * recorded both ways shows as two separate rows (rare; user can re-pick to
+ * consolidate).
+ *
+ * Ordered by most-recent activity (date+time) desc, then name asc — produces
+ * a stable visual order even when two contacts last appeared in the same
+ * transaction's date+time tuple.
+ */
+export async function getAllContactsWithActivity(): Promise<ContactSummary[]> {
+  const rows = await db
+    .select({
+      contactId: transactions.contactId,
+      contactName: transactions.contactName,
+      count: sql<number>`COUNT(*)`.as("cnt"),
+      lastDate: sql<string>`MAX(${transactions.date})`.as("last_date"),
+      // Compose date+time inside MAX so the row "last seen" is at the per-
+      // transaction-instant resolution, not just per-day. Tie-break stability.
+      lastDateTime: sql<string>`MAX(${transactions.date} || 'T' || ${transactions.time})`.as(
+        "last_dt",
+      ),
+    })
+    .from(transactions)
+    .where(sql`${transactions.contactName} IS NOT NULL AND TRIM(${transactions.contactName}) <> ''`)
+    .groupBy(transactions.contactId, transactions.contactName)
+    .orderBy(sql`last_dt DESC, ${transactions.contactName} ASC`);
+
+  return rows.map((r) => ({
+    contactId: r.contactId,
+    contactName: r.contactName!,
+    count: r.count,
+    lastDate: r.lastDate,
+  }));
+}
+
 export async function getLastUsedContact(): Promise<{ id: string; name: string } | null> {
   const [row] = await db
     .select({

@@ -592,6 +592,22 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 
 - Lists transactions for that contact.
 
+### 13.3 Contacts list (Settings → Contacts)
+**Trigger**: Settings → Contacts row.
+
+1. Lists every contact that appears on at least one transaction, derived from `transactions.contactId` + `transactions.contactName` (no separate Contacts table — MVP).
+2. Each row: avatar, contact name, "{count} transactions · {lastDate}" subtitle, chevron right.
+3. Sorted by most-recent activity desc.
+4. Tap a row with `contactId` → existing `/contact/[id]` detail screen (transactions for that contact).
+5. Free-typed contacts (no `contactId`) appear in the list with a different trailing icon (text marker) and don't navigate — the detail route requires `contactId`. Re-pick from the device contact picker on a transaction to consolidate.
+
+**Touches**: `transactions` table only — list is purely a SQL aggregate via `getAllContactsWithActivity` in `src/db/queries/transactions.ts`. Refreshes on screen focus AND on `revisions.transactions` bumps so edits/deletes anywhere in the app are reflected.
+
+**Edge cases**
+- Same display name typed manually then later linked to a device contact shows as two separate rows (different `contactId` keys). Re-pick to consolidate.
+- Empty state shows when no transactions reference any contact.
+- Device contacts that have *never* been used in a transaction don't appear here — this is the user's transaction history view, not their address book.
+
 ---
 
 ## 14. Cross-cutting test ideas

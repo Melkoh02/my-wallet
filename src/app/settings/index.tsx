@@ -431,6 +431,13 @@ export default function SettingsScreen() {
         onPress={() => router.push("/template" as never)}
       />
       <Divider />
+      <SettingsRow
+        icon="account-multiple"
+        title={t("settings.contacts")}
+        subtitle={t("settings.contactsDesc")}
+        onPress={() => router.push("/contact" as never)}
+      />
+      <Divider />
       <SettingsToggle
         icon="map-marker"
         title={t("settings.locationStamps")}

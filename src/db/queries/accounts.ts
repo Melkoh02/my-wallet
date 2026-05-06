@@ -32,6 +32,36 @@ export async function getAccountById(id: number): Promise<Account | undefined> {
   return account;
 }
 
+export type SplitSourceInfo = {
+  /** True if this transaction id appears as `originTransactionId` on at least one account. */
+  isSplitSource: boolean;
+  /** The loan accounts spawned by this transaction (empty when not a split source). */
+  loanAccounts: { id: number; name: string }[];
+};
+
+/**
+ * Look up loan accounts that were spawned by a particular split-bill expense.
+ * Used by the transaction-edit form to detect "this is a split source" and
+ * lock the split-bill UI accordingly.
+ *
+ * gotcha: this only finds loans where originTransactionId points at this
+ * transaction (i.e. NEW loans created by the split). Splits that reused an
+ * EXISTING loan_lent account for a counterparty are invisible here — the
+ * pre-existing loan won't have originTransactionId pointing at this split.
+ * Until split metadata is stored separately (v2.0), the lock UI errs on the
+ * conservative side: any spawned loan → locked.
+ */
+export async function getSplitSourceInfo(transactionId: number): Promise<SplitSourceInfo> {
+  const rows = await db
+    .select({ id: accounts.id, name: accounts.name })
+    .from(accounts)
+    .where(eq(accounts.originTransactionId, transactionId));
+  return {
+    isSplitSource: rows.length > 0,
+    loanAccounts: rows,
+  };
+}
+
 /**
  * Returns true if any transaction (regular, transfer destination, or cashback
  * destination) references this account. Used to decide whether the account's

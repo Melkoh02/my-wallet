@@ -311,7 +311,9 @@
     "addPerson": "Add person",
     "splitEvenly": "Split evenly",
     "loanName": "Owes me: {{name}}",
-    "alreadyPaid": "Already paid"
+    "alreadyPaid": "Already paid",
+    "editLocked": "This expense was split with others. To modify the split, first delete the spawned loan accounts:",
+    "editLockedHint": "Open Accounts, delete the loans listed above, then come back and edit this transaction."
   },
   "themes": {
     "title": "Themes",

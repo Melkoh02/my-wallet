@@ -11,24 +11,16 @@ jest.mock("@/db/client", () => {
   };
 });
 
-// captureRateForCurrency would normally hit the exchange-rate service; stub it
-// to return predictable values per test. Each test sets up the fake response.
-jest.mock("@/services/exchangeRate.service", () => {
-  const fakeRate: { rate: number | null; displayCurrency: string } = {
-    rate: 1,
+// captureRateForCurrency would normally hit the exchange-rate service. The
+// default mock returns a 1:1 USD rate; tests that want a different return
+// value override per-call via `mockResolvedValueOnce` rather than mutating
+// shared state — `mockResolvedValueOnce` self-clears, so state can't bleed.
+jest.mock("@/services/exchangeRate.service", () => ({
+  captureRateForCurrency: jest.fn(async () => ({
+    rateToDisplay: 1,
     displayCurrency: "USD",
-  };
-  return {
-    __setFakeRate: (rate: number | null, displayCurrency = "USD") => {
-      fakeRate.rate = rate;
-      fakeRate.displayCurrency = displayCurrency;
-    },
-    captureRateForCurrency: jest.fn(async (_currency: string) => ({
-      rateToDisplay: fakeRate.rate,
-      displayCurrency: fakeRate.displayCurrency,
-    })),
-  };
-});
+  })),
+}));
 
 import { createTransaction, deleteTransaction, transferDestAmount } from "./transactions";
 import { createAccount, getAccountById } from "./accounts";
@@ -49,10 +41,7 @@ const baseAccount: Omit<NewAccount, "id"> = {
 beforeAll(() => setupTestDb());
 beforeEach(() => {
   resetTestDb();
-  // Default: 1:1 rate to display currency, USD display.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const m = require("@/services/exchangeRate.service");
-  m.__setFakeRate(1, "USD");
+  jest.clearAllMocks(); // clear call history; default mock impl persists
 });
 
 describe("transferDestAmount — toAmount fallback rule", () => {
@@ -182,8 +171,8 @@ describe("createTransaction — currency snapshot capture", () => {
   it("stamps currency from the account on insert when not pre-set", async () => {
     const acc = await createAccount({ ...baseAccount, currency: "EUR", balance: 1000 });
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const m = require("@/services/exchangeRate.service");
-    m.__setFakeRate(1.1, "USD");
+    const { captureRateForCurrency } = require("@/services/exchangeRate.service");
+    captureRateForCurrency.mockResolvedValueOnce({ rateToDisplay: 1.1, displayCurrency: "USD" });
 
     const txn = await createTransaction(
       {
@@ -204,8 +193,8 @@ describe("createTransaction — currency snapshot capture", () => {
   it("stamps null rateToDisplay when no rate is available (offline scenario)", async () => {
     const acc = await createAccount({ ...baseAccount, currency: "ARS", balance: 1000 });
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const m = require("@/services/exchangeRate.service");
-    m.__setFakeRate(null, "USD");
+    const { captureRateForCurrency } = require("@/services/exchangeRate.service");
+    captureRateForCurrency.mockResolvedValueOnce({ rateToDisplay: null, displayCurrency: "USD" });
 
     const txn = await createTransaction(
       {

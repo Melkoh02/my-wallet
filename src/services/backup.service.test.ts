@@ -202,12 +202,29 @@ describe("restoreData — happy path", () => {
 
 describe("restoreData — atomic rollback on error", () => {
   it("leaves existing data intact when an insert fails mid-restore", async () => {
-    // Set up existing data.
-    await createAccount({ ...baseAccount, name: "Survivor", balance: 777 });
+    // Pre-populate with multiple rows + a related transaction so the test
+    // proves the *delete* phase also rolled back (one survivor wouldn't
+    // distinguish "delete didn't run" from "delete ran inside the txn and
+    // got rolled back"). Three accounts + one txn = enough surface.
+    const acc1 = await createAccount({ ...baseAccount, name: "Survivor 1", balance: 100 });
+    const acc2 = await createAccount({ ...baseAccount, name: "Survivor 2", balance: 200 });
+    const acc3 = await createAccount({ ...baseAccount, name: "Survivor 3", balance: 300 });
     const db = getTestDb();
-    const before = await db.select().from(accounts);
-    expect(before).toHaveLength(1);
-    expect(before[0].name).toBe("Survivor");
+    await db.insert(transactions).values({
+      type: "expense",
+      amount: 25,
+      description: "existing",
+      accountId: acc1.id,
+      date: "2026-01-15",
+      time: "12:00",
+      currency: "USD",
+      rateToDisplay: 1,
+      displayCurrencySnapshot: "USD",
+    });
+    const beforeAccounts = await db.select().from(accounts);
+    const beforeTxns = await db.select().from(transactions);
+    expect(beforeAccounts).toHaveLength(3);
+    expect(beforeTxns).toHaveLength(1);
 
     // Craft a backup with a row that will violate the schema. Drizzle/SQLite
     // will throw because `name` is NOT NULL.
@@ -243,10 +260,22 @@ describe("restoreData — atomic rollback on error", () => {
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
 
-    // The pre-existing "Survivor" row must still exist — rollback worked.
-    const after = await db.select().from(accounts);
-    expect(after).toHaveLength(1);
-    expect(after[0].name).toBe("Survivor");
-    expect(after[0].balance).toBe(777);
+    // ALL three pre-existing accounts AND their related transaction must
+    // still be present — proves both the delete and insert phases were
+    // inside the rolled-back transaction boundary.
+    const afterAccounts = await db.select().from(accounts);
+    const afterTxns = await db.select().from(transactions);
+    expect(afterAccounts).toHaveLength(3);
+    expect(afterAccounts.map((a) => a.name).sort()).toEqual([
+      "Survivor 1",
+      "Survivor 2",
+      "Survivor 3",
+    ]);
+    expect(afterAccounts.map((a) => a.balance).sort()).toEqual([100, 200, 300]);
+    expect(afterTxns).toHaveLength(1);
+    expect(afterTxns[0].amount).toBe(25);
+    // Reference unused fixtures to silence the no-unused-vars lint
+    void acc2;
+    void acc3;
   });
 });

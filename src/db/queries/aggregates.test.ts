@@ -117,6 +117,33 @@ describe("getMonthSummary — convertRow behaviour", () => {
     expect(summary.missingRates).toEqual([]);
   });
 
+  it("excludes rows whose stored snapshot is stale AND today's rate is unknown", async () => {
+    // The path: stored rateToDisplay exists, but displayCurrencySnapshot
+    // doesn't match the converter's display currency, so it falls through to
+    // today's rate — but the converter doesn't know this currency either, so
+    // the row is excluded with `currency: row.currency` listed in missingRates.
+    const acc = await createAccount({ ...baseAccount, balance: 0, currency: "ARS" });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 5000,
+        description: "x",
+        accountId: acc.id,
+        date: "2026-01-15",
+        time: "12:00",
+        currency: "ARS",
+        rateToDisplay: 1.05, // historic rate
+        displayCurrencySnapshot: "GBP", // user changed display ccy since insert
+      },
+      [],
+    );
+
+    const conv = buildConverter("USD"); // knows USD/EUR, not ARS or GBP
+    const summary = await getMonthSummary(2026, 1, conv);
+    expect(summary.expense).toBe(0);
+    expect(summary.missingRates).toContain("ARS");
+  });
+
   it("excludes rows when no rate is available at all", async () => {
     const acc = await createAccount({ ...baseAccount, balance: 0, currency: "ARS" });
     // Row has currency=ARS but converter only knows USD/EUR.

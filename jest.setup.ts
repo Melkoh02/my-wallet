@@ -5,6 +5,12 @@
 // platform APIs. Tests that need richer mock behaviour override these per-file
 // with `jest.mock(...)`.
 
+// Pin time zone + locale so date math and `Intl.NumberFormat` produce
+// deterministic results across local-dev and CI environments. Set before any
+// Date or Intl usage anywhere in the test process.
+process.env.TZ = "UTC";
+process.env.LANG = "en_US.UTF-8";
+
 jest.mock("expo-localization", () => ({
   getLocales: () => [{ languageCode: "en", regionCode: "US" }],
 }));
@@ -39,14 +45,23 @@ jest.mock("@/i18n", () => ({
 }));
 
 // expo-sqlite is pulled in transitively by @/db/client. Tests that exercise
-// the DB layer mock @/db/client to swap in a better-sqlite3-backed driver
-// (see src/db/test-client.ts). For tests that don't touch the DB at all,
-// stub expo-sqlite so the import doesn't crash on Node.
-jest.mock("expo-sqlite", () => ({
-  openDatabaseSync: () => ({
-    execSync: () => undefined,
-    runSync: () => undefined,
-    getAllSync: () => [],
-    getFirstSync: () => null,
-  }),
-}));
+// the DB layer MUST `jest.mock("@/db/client", ...)` to swap in the
+// better-sqlite3-backed test client (see src/db/test-client.ts). The stub
+// below throws loudly if a test reaches the real module — silent emptiness
+// would let a forgotten mock pass tests against a fake-empty DB.
+jest.mock("expo-sqlite", () => {
+  const explode = () => {
+    throw new Error(
+      "expo-sqlite was called from a test. Did you forget to `jest.mock(\"@/db/client\", ...)` " +
+        "with the test client? See src/db/queries/accounts.test.ts for the pattern.",
+    );
+  };
+  return {
+    openDatabaseSync: () => ({
+      execSync: explode,
+      runSync: explode,
+      getAllSync: explode,
+      getFirstSync: explode,
+    }),
+  };
+});

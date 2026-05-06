@@ -26,6 +26,7 @@ import {
   templates,
   templateSubcategories,
   budgets,
+  places,
 } from "@/db/schema";
 import { getSetting, setSetting } from "@/db/queries/settings";
 import { eq, desc, sql } from "drizzle-orm";
@@ -86,6 +87,7 @@ async function exportAllData() {
     templates: await db.select().from(templates),
     templateSubcategories: await db.select().from(templateSubcategories),
     budgets: await db.select().from(budgets),
+    places: await db.select().from(places),
   };
   return JSON.stringify(data, null, 2);
 }
@@ -234,9 +236,13 @@ async function restoreData(
     await db.delete(templateSubcategories);
     await db.delete(templates);
     await db.delete(transactionSubcategories);
+    // Places sit between transactions and the rest in FK terms — transactions
+    // reference places. Delete transactions BEFORE places so the FK column
+    // doesn't dangle.
     await db.delete(recurringSubcategories);
     await db.delete(transactions);
     await db.delete(recurringTransactions);
+    await db.delete(places);
     await db.delete(subcategories);
     await db.delete(categories);
     await db.delete(accounts);
@@ -247,6 +253,9 @@ async function restoreData(
     if (data.categories?.length) await db.insert(categories).values(data.categories as never[]);
     if (data.subcategories?.length)
       await db.insert(subcategories).values(data.subcategories as never[]);
+    // Places must be restored BEFORE transactions because transactions.place_id
+    // references them.
+    if (data.places?.length) await db.insert(places).values(data.places as never[]);
     if (data.transactions?.length)
       await db.insert(transactions).values(data.transactions as never[]);
     if (data.transactionSubcategories?.length)

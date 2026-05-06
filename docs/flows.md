@@ -24,7 +24,8 @@ User-facing scenarios this app supports. Written for QA and for anyone trying to
 - [Themes](#11-themes)
 - [Analytics](#12-analytics)
 - [Contacts](#13-contacts)
-- [Cross-cutting test ideas](#14-cross-cutting-test-ideas)
+- [Places](#14-places)
+- [Cross-cutting test ideas](#15-cross-cutting-test-ideas)
 
 ---
 
@@ -631,7 +632,54 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 
 ---
 
-## 14. Cross-cutting test ideas
+## 14. Places
+
+### 14.1 Auto-pick on transaction creation
+**Trigger**: New Transaction with Location Stamps enabled, GPS captured (manually via "Add Location" or automatically when `auto_add_location` is on).
+
+1. `getCurrentLocation()` returns `{ latitude, longitude, name? }` after permission gate.
+2. `findNearestPlace(lat, lng, radiusM)` runs a bounding-box pre-filter (uses `idx_places_coords`) then a Haversine refinement on the candidates.
+3. **Hit**: form sets `placeId`/`placeName` and shows the place card with an "Auto-picked from nearby places" caption.
+4. **Miss**: form keeps the GPS-captured location stamp visible and surfaces two affordances:
+   - **Create one for here** — instantiates a place with the GPS coords + reverse-geocoded name, source = `"geocoded"`. User can rename later.
+   - **Pick existing** — opens the picker (active places, sortable by visit count, searchable by name + address).
+5. Submit writes both `place_id` (the canonical link) and the legacy `latitude/longitude/locationName` columns (the fallback, populated only when GPS was actually used).
+
+**Edge cases**
+- Place with no coords — never auto-picked, but pickable manually for "Online" / "Bank transfer" style entries.
+- GPS denied or low-accuracy — surfaces the existing `locationFailed` warning; user can still pick a place from the list manually.
+- Radius set to 50 m and user is in the wrong room — auto-pick misses and falls through to the "no place nearby" hint, which is the intended UX.
+
+### 14.2 Places CRUD (Settings → Places)
+**Trigger**: Settings → Places row.
+
+1. Active places listed most-frequent first (`getPlacesWithStats` — JOIN-derived live transaction count, not the denormalised `visit_count`).
+2. Each row: location icon (greyed when no coords), name, optional address, transaction count, chevron.
+3. Tap a row → `/place/form` in edit mode.
+4. FAB → `/place/form` in create mode.
+5. Form fields: name (required), address (optional), coordinates (optional, capturable via "Use my current location" button which calls `getCurrentLocation`).
+6. **Archive** (soft-delete): hides the place from pickers and the list but leaves transactions linked. Reversible via "Restore".
+7. **Delete** (hard): removes the row. Linked transactions hold a dangling `place_id` (FK is unenforced); display code falls back to nothing for those rows.
+
+### 14.3 Legacy location backfill
+**Trigger**: First launch of v2.0 (gated by `places_migrated` settings flag).
+
+1. `backfillPlaces` in `DatabaseProvider.tsx` reads every transaction with a non-null `latitude` or non-empty `locationName`.
+2. `bucketLegacyLocations` (pure function in `utils/placesMigration`, unit-tested) groups rows:
+   - Coord-rich rows by `(round(lat,4), round(lng,4), name.toLowerCase())` — same coords + different labels stay split.
+   - Name-only rows by lowercased name.
+3. One Place row per bucket inserted with `source = "migrated"` and an initial `visit_count` matching bucket size.
+4. Transactions in the bucket get their `place_id` updated.
+5. `places_migrated` flag is written, even when no legacy rows existed (avoids re-scanning every boot).
+
+**Edge cases**
+- Rows with neither coords nor name are skipped (caller filters them out, but the bucketing function tolerates them too).
+- Whitespace-only names are skipped (treated as empty).
+- Two visits to the same coords with different labels stay separate — *over-split rather than over-merge*. Users can manually merge later (rename + reassign), but a wrong merge silently corrupts visit counts.
+
+---
+
+## 15. Cross-cutting test ideas
 
 These touch multiple flows. Worth running periodically:
 

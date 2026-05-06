@@ -9,6 +9,7 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
+import { PickerModal } from "@/components/molecules/PickerModal";
 import { PinEntryModal } from "@/components/molecules/PinEntryModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
@@ -261,6 +262,8 @@ export default function SettingsScreen() {
   const backupGate = useAuthGate("backup");
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [autoAddLocation, setAutoAddLocation] = useState(false);
+  const [placesAutoRadiusM, setPlacesAutoRadiusM] = useState(100);
+  const [showRadiusPicker, setShowRadiusPicker] = useState(false);
   const [hideDefault, setHideDefault] = useState(false);
   const [randomDefault, setRandomDefault] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
@@ -274,6 +277,11 @@ export default function SettingsScreen() {
   useEffect(() => {
     getSetting("location_enabled").then((v) => setLocationEnabled(v === "true"));
     getSetting("auto_add_location").then((v) => setAutoAddLocation(v === "true"));
+    getSetting("places_auto_radius_m").then((v) => {
+      const n = parseInt(v ?? "", 10);
+      // Treat NaN/0/negative as "no value stored" → keep the 100 m default.
+      if (Number.isFinite(n) && n > 0) setPlacesAutoRadiusM(n);
+    });
     getSetting("privacy_hide_default").then((v) => setHideDefault(v === "true"));
     getSetting("privacy_random_default").then((v) => setRandomDefault(v === "true"));
     getSetting("display_currency").then((v) => setDisplayCurrency(v ?? "USD"));
@@ -305,6 +313,12 @@ export default function SettingsScreen() {
   const handleAutoAddLocationToggle = async (value: boolean) => {
     setAutoAddLocation(value);
     await setSetting("auto_add_location", value.toString());
+    invalidate("settings");
+  };
+
+  const handleRadiusChange = async (value: number) => {
+    setPlacesAutoRadiusM(value);
+    await setSetting("places_auto_radius_m", String(value));
     invalidate("settings");
   };
 
@@ -453,13 +467,27 @@ export default function SettingsScreen() {
         onToggle={handleLocationToggle}
       />
       {locationEnabled && (
-        <SettingsToggle
-          icon="map-marker-plus"
-          title={t("settings.autoAddLocation")}
-          subtitle={t("settings.autoAddLocationDesc")}
-          value={autoAddLocation}
-          onToggle={handleAutoAddLocationToggle}
-        />
+        <>
+          <SettingsToggle
+            icon="map-marker-plus"
+            title={t("settings.autoAddLocation")}
+            subtitle={t("settings.autoAddLocationDesc")}
+            value={autoAddLocation}
+            onToggle={handleAutoAddLocationToggle}
+          />
+          <SettingsRow
+            icon="map-marker-radius"
+            title={t("settings.placesAutoPickRadius")}
+            subtitle={`${placesAutoRadiusM} m · ${t("settings.placesAutoPickRadiusDesc")}`}
+            onPress={() => setShowRadiusPicker(true)}
+          />
+          <SettingsRow
+            icon="map-search"
+            title={t("settings.places")}
+            subtitle={t("settings.placesDesc")}
+            onPress={() => router.push("/place" as never)}
+          />
+        </>
       )}
       <Divider />
 
@@ -560,9 +588,34 @@ export default function SettingsScreen() {
           fails or isn't configured AND a PIN is set for the protected action. */}
       <PinEntryModal {...randomToggleGate.pinModal} title={t("security.pinPrompt.verifyTitle")} />
       <PinEntryModal {...backupGate.pinModal} title={t("security.pinPrompt.verifyTitle")} />
+      <PickerModal
+        visible={showRadiusPicker}
+        title={t("settings.placesAutoPickRadius")}
+        items={RADIUS_OPTIONS_M}
+        keyExtractor={(m) => String(m)}
+        selectedKey={String(placesAutoRadiusM)}
+        onSelect={(m) => {
+          handleRadiusChange(m);
+          setShowRadiusPicker(false);
+        }}
+        onClose={() => setShowRadiusPicker(false)}
+        renderItem={(m, isSelected) => (
+          <>
+            <AppText variant="body" style={{ flex: 1 }}>
+              {m} m
+            </AppText>
+            {isSelected && <AppIcon name="check" size={20} color={colors.primary} />}
+          </>
+        )}
+      />
     </ScreenLayout>
   );
 }
+
+// Discrete radius choices for auto-picking. 50 m is "must be standing in
+// the same room"; 1 km is "broad neighbourhood". 100 m is the default and
+// matches the precision of GPS in urban canyons.
+const RADIUS_OPTIONS_M = [50, 100, 250, 500, 1000];
 
 const styles = StyleSheet.create({
   row: {

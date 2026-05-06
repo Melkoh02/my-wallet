@@ -152,6 +152,7 @@ export default function BackupScreen() {
       "backups",
       "templates",
       "budgets",
+      "places",
     );
   };
 

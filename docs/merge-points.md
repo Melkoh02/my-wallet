@@ -30,6 +30,7 @@ Each entry has:
 - Category multi-select via subcategories, with "Suggested" chips driven by `getFrequentCategoriesByType`.
 - Contact picker (with permission caching at the service level).
 - Location service (manual button or auto-fetch on mount, gated by two settings flags).
+- Place picker / auto-pick (`findNearestPlace` runs whenever GPS coords come in; tap "Pick existing" to choose manually; "Create one for here" instantiates a place with the current GPS stamp). The form persists `placeId` plus the legacy `latitude/longitude/locationName` for backward compat.
 - Cashback toggles (instant vs pending) which create or defer a linked income row.
 - Split-bill module which creates `loan_lent` accounts and optional settling transfers.
 - Template apply chip (pre-fills any subset of fields).
@@ -45,6 +46,7 @@ Each entry has:
 4. Currency snapshot fields (`currency`, `rateToDisplay`, `displayCurrencySnapshot`) captured at insert. Don't rewrite them on edit (would falsify history) — see glossary § "Currency snapshot fields".
 5. Instant-cashback creates a linked income row; deleting/editing the original must clean the link.
 6. Split-bill block only runs for new transactions (`!params.id`). Editing an originally-split expense renders a read-only locked notice (since v1.10) listing the spawned loans; the user must delete those loans before re-creating the transaction. True split-edit is gated on the v2.0 `split_bill_entries` schema change.
+7. Place auto-pick is best-effort. A miss never blocks transaction submission — it only changes which UI hint the user sees. Manual selection from the picker overrides any auto-pick. `placeId` is the canonical link; the legacy lat/lng/name columns are populated only when GPS was actually used and serve as fallback for any reader that hasn't migrated to `placeName`.
 
 **Touch radius**:
 - Any change here affects: balance computation on the source account, balance computation on the destination account (transfers), `linkedTransactionId` integrity, the visible balance on Home / Accounts / Account detail, every analytics aggregate (via row inserts), the auto-suggest chips on subsequent forms (frequents change), recurring rows (no — but they pass through `processDueRecurring` which has its own copy of the rate-capture logic — keep them in sync).
@@ -359,3 +361,4 @@ Each entry has:
 | `AmountDisplay` | Every number anywhere in the UI |
 | Boot pipeline ordering | First launch, every cold start, the backup-setup gate |
 | `useAuthGate` order or fall-through | Every protected-action call site (random-toggle, Backups, future) |
+| `findNearestPlace` / `bucketLegacyLocations` | Place auto-pick UX, the v2.0 backfill, transaction enrichment fallback for legacy rows |

@@ -20,6 +20,7 @@ import {
   getSplitSourceInfo,
   type SplitSourceInfo,
 } from "@/db/queries/accounts";
+import { decrementVisitCount, incrementVisitCount } from "@/db/queries/places";
 import { db } from "@/db/client";
 import { settings, transactions, transactionSubcategories } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -41,6 +42,7 @@ export default function TransactionFormScreen() {
   const { invalidate } = useDataRefresh();
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [autoAddLocation, setAutoAddLocation] = useState(false);
+  const [placesAutoRadiusM, setPlacesAutoRadiusM] = useState(100);
   const [initialData, setInitialData] = useState<
     (TransactionFormData & { subcategoryIds: number[] }) | undefined
   >();
@@ -59,6 +61,13 @@ export default function TransactionFormScreen() {
       .where(eq(settings.key, "auto_add_location"))
       .then(([s]) => {
         if (s?.value === "true") setAutoAddLocation(true);
+      });
+    db.select()
+      .from(settings)
+      .where(eq(settings.key, "places_auto_radius_m"))
+      .then(([s]) => {
+        const n = parseInt(s?.value ?? "", 10);
+        if (Number.isFinite(n) && n > 0) setPlacesAutoRadiusM(n);
       });
   }, []);
 
@@ -132,6 +141,11 @@ export default function TransactionFormScreen() {
                 latitude: data.latitude,
                 longitude: data.longitude,
                 locationName: data.locationName,
+                // why: edit path bypasses createTransaction's visit-count
+                // increment / deleteTransaction's decrement. We capture the
+                // old placeId before the .set() so the recomputation block
+                // below knows whether to nudge any counters.
+                placeId: data.placeId,
                 cashbackAmount: data.cashbackAmount,
                 cashbackAccountId: data.cashbackAccountId,
               })
@@ -161,6 +175,19 @@ export default function TransactionFormScreen() {
                 "transfer",
                 false,
               );
+            }
+            // why: edit moves a transaction's placeId out of band of the
+            // create/delete maintenance hooks. Nudge the denormalised
+            // visit_count so picker sort order stays accurate. The list
+            // screen's count is a live JOIN so any drift only ever affected
+            // sort order, but keeping it tidy is cheap.
+            if (existing.placeId !== data.placeId) {
+              if (existing.placeId != null) {
+                await decrementVisitCount(existing.placeId);
+              }
+              if (data.placeId != null) {
+                await incrementVisitCount(data.placeId);
+              }
             }
             await db.run(sql`COMMIT`);
           } catch (e) {
@@ -281,6 +308,7 @@ export default function TransactionFormScreen() {
         initialData={initialData}
         locationEnabled={locationEnabled}
         autoAddLocation={autoAddLocation}
+        placesAutoRadiusM={placesAutoRadiusM}
         splitSourceInfo={splitSourceInfo}
       />
     </ModalLayout>

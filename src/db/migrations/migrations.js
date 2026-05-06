@@ -74,6 +74,13 @@ export default {
         tag: "0009_budgets",
         breakpoints: true,
       },
+      {
+        idx: 10,
+        version: "6",
+        when: 1778119200000,
+        tag: "0010_places",
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -293,5 +300,22 @@ ALTER TABLE \`recurring_transactions\` ADD COLUMN \`display_currency_snapshot\` 
 );
 --> statement-breakpoint
 CREATE INDEX \`idx_budgets_category\` ON \`budgets\` (\`category_id\`);`,
+    m0010: `CREATE TABLE \`places\` (
+\t\`id\` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+\t\`name\` text NOT NULL,
+\t\`latitude\` real,
+\t\`longitude\` real,
+\t\`address\` text,
+\t\`source\` text DEFAULT 'manual' NOT NULL,
+\t\`visit_count\` integer DEFAULT 0 NOT NULL,
+\t\`is_active\` integer DEFAULT true NOT NULL,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX \`idx_places_coords\` ON \`places\` (\`latitude\`,\`longitude\`);
+--> statement-breakpoint
+ALTER TABLE \`transactions\` ADD COLUMN \`place_id\` integer REFERENCES \`places\`(\`id\`);
+--> statement-breakpoint
+CREATE INDEX \`idx_transactions_place\` ON \`transactions\` (\`place_id\`);`,
   },
 };

@@ -438,6 +438,13 @@ export default function SettingsScreen() {
         onPress={() => router.push("/contact" as never)}
       />
       <Divider />
+      <SettingsRow
+        icon="wallet"
+        title={t("settings.budgets")}
+        subtitle={t("settings.budgetsDesc")}
+        onPress={() => router.push("/budget" as never)}
+      />
+      <Divider />
       <SettingsToggle
         icon="map-marker"
         title={t("settings.locationStamps")}

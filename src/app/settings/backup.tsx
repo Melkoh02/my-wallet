@@ -151,6 +151,7 @@ export default function BackupScreen() {
       "settings",
       "backups",
       "templates",
+      "budgets",
     );
   };
 

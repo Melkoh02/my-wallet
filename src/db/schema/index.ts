@@ -3,6 +3,7 @@ import { accounts } from "./accounts";
 import { categories, subcategories } from "./categories";
 import { transactions, transactionSubcategories } from "./transactions";
 import { recurringTransactions, recurringSubcategories } from "./recurring";
+import { budgets } from "./budgets";
 
 // --- Relations ---
 
@@ -21,6 +22,18 @@ export const subcategoriesRelations = relations(subcategories, ({ one, many }) =
   }),
   transactionSubcategories: many(transactionSubcategories),
   recurringSubcategories: many(recurringSubcategories),
+  budgets: many(budgets),
+}));
+
+export const budgetsRelations = relations(budgets, ({ one }) => ({
+  category: one(categories, {
+    fields: [budgets.categoryId],
+    references: [categories.id],
+  }),
+  subcategory: one(subcategories, {
+    fields: [budgets.subcategoryId],
+    references: [subcategories.id],
+  }),
 }));
 
 export const transactionsRelations = relations(transactions, ({ one, many }) => ({
@@ -89,3 +102,4 @@ export { themes, type Theme, type NewTheme } from "./themes";
 export { settings, type Setting } from "./settings";
 export { backups, type Backup, type NewBackup } from "./backups";
 export { templates, templateSubcategories, type Template, type NewTemplate } from "./templates";
+export { budgets, type Budget, type NewBudget } from "./budgets";

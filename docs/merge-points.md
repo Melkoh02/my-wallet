@@ -334,7 +334,7 @@ Each entry has:
 **Invariants**:
 1. Gate order is biometric → PIN → fall-through. If biometric is configured and succeeds, no PIN prompt is shown.
 2. When the protected setting is "true" but no auth method is configured, the gate falls through and runs the callback. The Settings screen disables protected toggles in that state, but the hook itself stays defensive.
-3. PIN hash is `sha256(salt + pin)`, salt is 16 random bytes per user. Threat model is "casual peek"; not designed for offline-attacker resistance — see `glossary.md` § Security.
+3. PIN hash is `sha256("{salt}:{pin}")` with a colon delimiter; salt is 16 random bytes per user. Threat model is "casual peek"; not designed for offline-attacker resistance — see `glossary.md` § Security.
 
 **Touch radius**:
 - Adding a new protected action: extend `ProtectedAction`, register a settings key (`security_protected_<name>`), add a Switch on `settings/security`, wrap the action's call site with `useAuthGate(name).guard(callback)`, render the matching `<PinEntryModal>` near the call site.

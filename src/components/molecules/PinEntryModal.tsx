@@ -71,7 +71,14 @@ export function PinEntryModal({ visible, mode, title, onSubmit, onCancel }: PinE
             const ok = await Promise.resolve(onSubmit(pin));
             if (cancelled) return;
             if (!ok) {
-              setError(t("security.pinPrompt.incorrect"));
+              // why: setup-mode submit returning false means the underlying
+              // savePin failed (extremely unlikely — regex on UI-restricted
+              // input always passes). Reset to phase 1 with the mismatch
+              // message rather than "incorrect PIN", which is semantically
+              // wrong for setup.
+              setError(t("security.pinPrompt.mismatch"));
+              setPhase("first");
+              setFirstPin("");
               setPin("");
             }
           } else {

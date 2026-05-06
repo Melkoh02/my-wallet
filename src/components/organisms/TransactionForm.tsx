@@ -144,9 +144,12 @@ export function TransactionForm({
     initialData?.cashbackAccountId ?? null,
   );
   // Tracks whether the user has manually picked a cashback destination. Once
-  // touched, we stop auto-tracking the from-account. Pre-touched when editing
-  // an existing transaction that already had a cashback account set.
-  const cashbackAccountIdTouchedRef = useRef(initialData?.cashbackAccountId != null);
+  // touched, we stop auto-tracking the from-account. Editing an existing
+  // transaction is always treated as touched — preserves whatever was saved,
+  // even for legacy rows where cashbackEnabled was true but cashbackAccountId
+  // was inconsistent (null). New transactions start untouched and follow the
+  // from-account until the user picks a different destination.
+  const cashbackAccountIdTouchedRef = useRef(isEditing);
   // Auto-default cashback destination to the from-account: fires when cashback
   // toggles on or when the from-account changes (until the user manually picks
   // a different destination, at which point the touched ref stops the

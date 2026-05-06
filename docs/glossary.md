@@ -319,7 +319,7 @@ The app gates a configurable set of "protected actions" behind biometric authent
 
 ### Authentication methods
 - **Biometric** — toggle on `security_biometric_enabled`. Only effective when the device has hardware AND the user has enrolled at the OS level. The Settings screen disables the switch with helper text when either check fails.
-- **PIN** — 6 digits, stored as `sha256(salt + pin)` with a 16-byte random `salt` per user. Set/change/remove from `settings/security`.
+- **PIN** — 6 digits, stored as `sha256("{salt}:{pin}")` (colon delimiter) with a 16-byte random `salt` per user. Set/change/remove from `settings/security`.
 
 > **Threat model**: a casual peeker who has the unlocked phone tries to bypass random-numbers / backups in seconds. SHA-256 + salt is enough to prevent visual peek, *not* to resist a determined attacker who exfiltrates the settings table. Don't lean on this for actual confidentiality of stored data.
 

@@ -33,41 +33,51 @@ export function useAuthGate(action: ProtectedAction) {
   const { t } = useTranslation();
   const [pinModalVisible, setPinModalVisible] = useState(false);
   const pendingCallback = useRef<(() => void) | null>(null);
+  // Prevents concurrent guard runs (rapid double-tap). Without this, two
+  // overlapping guards can trigger the system biometric prompt twice or
+  // overwrite each other's pending callback.
+  const inFlightRef = useRef(false);
 
   const guard = useCallback(
     async (callback: () => void) => {
-      const isProtected = (await getSetting(KEY_BY_ACTION[action])) === "true";
-      if (!isProtected) {
-        callback();
-        return;
-      }
-
-      const [biometricOn, hwOk, enrolledOk] = await Promise.all([
-        isBiometricEnabled(),
-        hasBiometricHardware(),
-        isBiometricEnrolled(),
-      ]);
-
-      if (biometricOn && hwOk && enrolledOk) {
-        const ok = await authenticateWithBiometric(t("security.biometricPrompt"));
-        if (ok) {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+      try {
+        const isProtected = (await getSetting(KEY_BY_ACTION[action])) === "true";
+        if (!isProtected) {
           callback();
           return;
         }
-        // Biometric cancelled or failed → fall through to PIN if available.
-      }
 
-      if (await hasPinSet()) {
-        pendingCallback.current = callback;
-        setPinModalVisible(true);
-        return;
-      }
+        const [biometricOn, hwOk, enrolledOk] = await Promise.all([
+          isBiometricEnabled(),
+          hasBiometricHardware(),
+          isBiometricEnrolled(),
+        ]);
 
-      // gotcha: protection toggle is on but no auth method is configured —
-      // shouldn't happen via the security screen UI (toggles are disabled in
-      // that case), but defend defensively by letting the action through. The
-      // user will be prompted to set up auth from settings/security.
-      callback();
+        if (biometricOn && hwOk && enrolledOk) {
+          const ok = await authenticateWithBiometric(t("security.biometricPrompt"));
+          if (ok) {
+            callback();
+            return;
+          }
+          // Biometric cancelled or failed → fall through to PIN if available.
+        }
+
+        if (await hasPinSet()) {
+          pendingCallback.current = callback;
+          setPinModalVisible(true);
+          return;
+        }
+
+        // gotcha: protection toggle is on but no auth method is configured —
+        // shouldn't happen via the security screen UI (toggles are disabled in
+        // that case + cleared when all auth is removed), but defend defensively
+        // by letting the action through.
+        callback();
+      } finally {
+        inFlightRef.current = false;
+      }
     },
     [action, t],
   );

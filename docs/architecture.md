@@ -54,7 +54,7 @@ For hand-written migrations (no `drizzle-kit generate`): write the `.sql` and th
 
 ## One-time data migrations
 
-Drizzle migrations only do schema. Data backfills + semantic flips live in `src/providers/DatabaseProvider.tsx`, gated by idempotent flags in the `settings` table:
+Drizzle migrations only do schema. Data backfills + semantic flips live in `src/db/dataMigrations.ts`, exposed via a single `runDataMigrations()` orchestrator. Each function is gated by an idempotent flag in the `settings` table:
 
 | Flag                       | Purpose                                                |
 | -------------------------- | ------------------------------------------------------ |
@@ -63,10 +63,12 @@ Drizzle migrations only do schema. Data backfills + semantic flips live in `src/
 | `txn_currency_backfilled`  | Phase-2 fill of `transactions.currency` from accounts  |
 | `places_migrated`          | v2.0 backfill of legacy `transactions.{latitude,longitude,locationName}` into rows on the new `places` table, plus FK update on each transaction |
 
+The chain is called from two places: `DatabaseProvider`'s boot `useEffect` (every cold start, runs after schema migrations + seed) and `restoreData` in `backup.service.ts` (after a successful import, since restore wipes the settings table including these flags). The idempotency flags make repeat calls free.
+
 Pattern for a new one-time migration:
-1. Add a function in `DatabaseProvider.tsx` that early-returns when the flag is set.
+1. Add a function in `src/db/dataMigrations.ts` that early-returns when the flag is set.
 2. After the work, insert the flag with `onConflictDoNothing` so reruns are no-ops.
-3. Wire it into the boot pipeline `useEffect` chain *after* `seed()` and any schema migration that introduces the columns it touches.
+3. Add the call to `runDataMigrations()`, ordered *after* any prior migration whose output it depends on.
 4. Document the flag in `glossary.md` under "Settings keys".
 
 ## Boot pipeline (`DatabaseProvider`)
@@ -74,10 +76,11 @@ Pattern for a new one-time migration:
 ```
 schema migrations (drizzle)
   → seed()                              ← default categories, subcategories, settings
-  → migrateCreditCardBalances()         ← gated by credit_balance_migrated
-  → seedDefaultThemes()                 ← gated by default_themes_seeded
-  → backfillTransactionCurrency()       ← gated by txn_currency_backfilled
-  → backfillPlaces()                    ← gated by places_migrated
+  → runDataMigrations()                 ← see src/db/dataMigrations.ts
+      → migrateCreditCardBalances()     ← gated by credit_balance_migrated
+      → seedDefaultThemes()             ← gated by default_themes_seeded
+      → backfillTransactionCurrency()   ← gated by txn_currency_backfilled
+      → backfillPlaces()                ← gated by places_migrated
   → setIsSeeded(true)
     → check backup_setup_done
       → if missing: render BackupSetupModal, block here
@@ -117,7 +120,7 @@ Foreground tasks are fired in parallel (each as its own unawaited promise inside
 | Add a new screen | create file under `src/app/...`; register in `src/app/_layout.tsx` (or `(tabs)/_layout.tsx` for tabs); add i18n keys; add to `flows.md` |
 | Add a new entity (table) | schema → migration (`drizzle-kit generate` + inline) → query module → hook → `DataRefreshProvider` entity key → backup service export/restore lists → `invalidateAll` helper in `src/app/settings/backup.tsx` → `glossary.md` DataRefresh table → `merge-points.md` § restore touch radius |
 | Add a new setting | `getSetting`/`setSetting` to read/write; default in `src/constants/settings.ts` if applicable; UI row in `src/app/settings/index.tsx`; entry in `glossary.md` Settings table |
-| Add a new one-time data migration | function in `DatabaseProvider.tsx`, gated by a settings flag; chain into the boot pipeline `useEffect`; document the flag in `glossary.md` Settings table; see § "One-time data migrations" above |
+| Add a new one-time data migration | function in `src/db/dataMigrations.ts`, gated by a settings flag; chain into `runDataMigrations()`; document the flag in `glossary.md` Settings table; see § "One-time data migrations" above |
 | Investigate an aggregate showing the "≈" or "missing rates" banner | `convertRow` in `src/db/queries/transactions.ts` and the `CurrencyConverter` in `src/services/exchangeRate.service.ts`; conceptually documented in `glossary.md` § Currency snapshot fields |
 | Diagnose "balance + transactions row got out of sync" | the edit path in `src/app/transaction/form.tsx` and `updateAccountBalance` in `src/db/queries/accounts.ts`. The atomic `BEGIN/COMMIT/ROLLBACK` is the safety net; if it's bypassed (e.g. a new mutation path skipped the wrap), that's where the bug lives |
 | Add a money-math test | co-locate `*.test.ts` next to source. Use `setupTestDb` / `resetTestDb` from `@/db/test-client` and `jest.mock("@/db/client", ...)`. See `src/db/queries/accounts.test.ts` as a template |

@@ -277,12 +277,12 @@ Each entry has:
 
 ### 11. `DatabaseProvider` — the boot pipeline
 
-**File**: `src/providers/DatabaseProvider.tsx`.
+**File**: `src/providers/DatabaseProvider.tsx`. Migration functions live in `src/db/dataMigrations.ts` and are also called from `restoreData` after a successful import.
 
 **Converges here**:
 - Drizzle migrations.
 - `seed()` (default categories + subcategories + settings).
-- Three one-time data migrations (credit balance flip, default themes, transaction currency backfill).
+- `runDataMigrations()` — currently four one-time data migrations (credit balance flip, default themes, transaction currency backfill, places backfill from legacy lat/lng/locationName).
 - The backup-setup gate.
 - Four foreground tasks (recurring catchup, investment interest, auto backup, exchange rate refresh).
 
@@ -308,11 +308,13 @@ Each entry has:
 - Both "Restore Backup" (in-app history) and "Import" (file picker) call this.
 - Wraps the entire delete-then-insert sequence in a SQLite transaction.
 - Validates backup format (`version`, `accounts`, `transactions`) before the transaction begins.
+- After commit, calls `runDataMigrations()` so flags wiped by the settings-table delete are repopulated and any data the imported snapshot lacks (e.g. a v1.x backup has no `places` array → `backfillPlaces` rebuilds them from legacy lat/lng/locationName) is filled in immediately. Migration errors are logged but don't fail the restore — the boot pipeline retries on next launch.
 
 **Invariants**:
 1. Atomic: any insert error rolls back to the state before the call. The user's existing data is never partially overwritten.
 2. Delete order = reverse FK dependency order. Insert order = FK dependency order. (Even though FKs are off, the dependency order avoids transient broken references mid-import.)
 3. Adding a new entity to the backup means: include in `exportAllData`, include in `restoreData` deletes (right place by dependency order), include in `restoreData` inserts (right place by dependency order). Skipping a table means it's silently lost on import.
+4. Post-restore data migrations are best-effort: they run after commit, so a failure can't roll back the restore. If they fail, the boot pipeline catches up on next cold start.
 
 **Touch radius**:
 - Every user who restores or imports. Bugs here destroy data — review with extra care.

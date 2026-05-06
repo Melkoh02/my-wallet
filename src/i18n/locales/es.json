@@ -259,7 +259,38 @@
     "templates": "Plantillas",
     "templatesDesc": "Atajos para transacciones frecuentes",
     "changelog": "Historial de cambios",
-    "changelogDesc": "Ver las novedades de cada versión"
+    "changelogDesc": "Ver las novedades de cada versión",
+    "security": "Seguridad",
+    "securityDesc": "Biometría, PIN y acciones protegidas"
+  },
+  "security": {
+    "title": "Seguridad",
+    "methodsHeader": "Métodos de autenticación",
+    "biometric": "Biometría",
+    "biometricDesc": "Usa Face ID / Touch ID / huella dactilar",
+    "biometricNotEnrolled": "No hay biometría configurada en este dispositivo. Configúralo primero en los ajustes del sistema.",
+    "biometricNotSupported": "Tu dispositivo no admite autenticación biométrica.",
+    "pinSet": "PIN configurado",
+    "setPin": "Establecer PIN",
+    "changePin": "Cambiar PIN",
+    "removePin": "Eliminar PIN",
+    "removePinConfirmTitle": "¿Eliminar PIN?",
+    "removePinConfirmMessage": "Sin un PIN, la biometría será la única forma de autenticarse. Si la biometría falla o se desactiva, las acciones protegidas se ejecutarán sin autenticación.",
+    "protectedHeader": "Acciones protegidas",
+    "protectedDesc": "Requiere autenticación antes de realizar estas acciones",
+    "protectedNoAuthHint": "Configura biometría o un PIN arriba para habilitar las acciones protegidas.",
+    "protectedRandomToggle": "Desactivar números aleatorios",
+    "protectedRandomToggleDesc": "Requiere autenticación para desactivar el modo de números aleatorios",
+    "protectedBackup": "Pantalla de copias de seguridad",
+    "protectedBackupDesc": "Requiere autenticación para abrir las copias de seguridad",
+    "biometricPrompt": "Autentícate para continuar",
+    "pinPrompt": {
+      "verifyTitle": "Ingresa el PIN",
+      "setupTitle": "Establecer PIN",
+      "confirmTitle": "Confirma el PIN",
+      "mismatch": "Los PIN no coinciden — inténtalo de nuevo",
+      "incorrect": "PIN incorrecto"
+    }
   },
   "templates": {
     "title": "Plantillas",

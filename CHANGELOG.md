@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-05-06
+
+### Added
+- **Budgets** — per-category (or per-subcategory) monthly spending caps. New screen under Settings → Budgets, plus a creation modal that defaults the name to the category, follows your display currency by default (toggle to pin a specific currency), and shows a colour-graded progress bar (green → amber → red) on the list. Each row displays `spend / amount` with a percent-used label that respects privacy mode. The spend computation honours stored `rate_to_display` snapshots when stable and only falls back to today's rate (with the ≈ marker) for excluded rows; cross-currency budgets pinned to a non-display currency get a second-phase conversion at today's rate, marked approximate. Multi-subcategory transactions use the same `amount/N` split rule as the existing analytics aggregates so a row tagged across two budgets contributes proportionally to each instead of being double-counted. Soft-deleted target categories surface a banner inside the budget so the user knows to re-pick.
+- **Places** — saved locations for tagging transactions. New screen under Settings → Places lists every saved place with its visit count; each row opens a form for renaming, capturing GPS via "Use my current location", or archiving / deleting. New transactions auto-pick the nearest saved place when GPS is captured (within a configurable radius — Settings → Auto-pick radius, defaults to 100 m, options 50 / 100 / 250 / 500 / 1000). When no place is in range, the form offers "Create one for here" (instant create from the GPS stamp + reverse-geocoded label, renameable later) or "Pick existing" (searchable picker over all active places). Archived places that were already selected on a transaction stay visible in the picker so the user can confirm what's currently set. Place data round-trips through backup / restore.
+- **Categories moved to Settings** — the Categories tab is gone from the bottom bar; tap Settings → Categories to reach it. The bottom bar now shows Home / Transactions / Analytics / Accounts (four tabs, down from five), trading travel-distance for the Analytics tab that users actually visit more often. Categories functionality is unchanged — same screen, same FAB, same picker.
+
+### Internal
+- **Migration 0009 (`budgets` table)** + **migration 0010 (`places` table + `transactions.place_id` FK + index)**. Both additive; existing v1.x data is unaffected. `BACKUP_VERSION` stays at `1` (additive precedent — same as `cashback_rules` was added then dropped).
+- **One-time `places_migrated` data migration** runs on first launch of v2.0: scans every transaction with non-null `latitude` or non-empty `locationName`, buckets them into Place records, and updates each transaction's `place_id`. Bucketing heuristic *over-splits rather than over-merges* — coords + name is the key, so two visits to the same address with different labels stay separate (manual merge is recoverable; an unwanted merge silently corrupts visit counts). The flag is written **inside** the same transaction as the inserts so a crash mid-migration can't double-create on the next boot, and the legacy-row query filters on `placeId IS NULL` so a re-run after backup restore is a no-op for already-linked rows.
+- **One-time data migrations extracted** to `src/db/dataMigrations.ts` and called from both `DatabaseProvider`'s boot pipeline and `restoreData` after a successful import. Without the post-restore call, a user restoring a v1.x backup on v2.0 would see no Places (and no auto-pick) until the next cold start because the boot pipeline `useEffect` is keyed on schema-migration success and never re-fires.
+- **`findNearestPlace`** is a two-stage filter: SQL bounding-box pre-filter via `idx_places_coords`, then JS Haversine refinement. Antimeridian-aware — queries near ±180° longitude drop the longitude filter and let Haversine see every row in the latitude band, so users near Fiji / NZ-east-coast aren't silently broken. Latitude is clamped to ±90 so polar queries don't produce a degenerate box.
+- **`searchPlacesByName`** uses `lower()` on both sides of the LIKE so non-ASCII names (Japanese, Chinese, accented characters) match case-insensitively, and escapes `%` / `_` / `\` so a user typing "50%" gets a literal substring match instead of a wildcard.
+- **`enrichTransactionsBatch`** now resolves a single `placeName` field (preferring `place.name` via `place_id` and falling back to legacy `locationName` for pre-migration rows) so consumers don't double-render a location.
+- **Cross-cutting invalidations**: TransactionForm submit invalidates `places` (visit count drift affects picker order); display-currency change invalidates `budgets` (null-currency budgets follow display currency, so their resolvedCurrency / spend shifts).
+- **Visit-count maintenance**: `createTransaction` increments, `deleteTransaction` decrements, and the edit path nudges the counter on `placeId` change. `processDueRecurring` carries a `gotcha:` comment because it inserts directly rather than via `createTransaction` — load-bearing only when a future schema adds `recurringTransactions.placeId`.
+- **65 new tests** (geo, places-migration bucketing, places query layer including antimeridian + LIKE-escape + non-ASCII search, plus the existing budgets test suite) — 180 total, up from 116 in v1.10.0.
+- **Documentation**: glossary gains Budgets and Places sections (definitions, spend computation, auto-pick + bucketing semantics, BACKUP_VERSION precedent, settings keys, DataRefresh entries); flows gains §14 Places (auto-pick, CRUD, legacy backfill); architecture's "One-time data migrations" + boot pipeline now point at `dataMigrations.ts`; merge-points adds a fixes-row reference and updates entries 11 (DatabaseProvider) and 12 (restoreData) to reflect the post-restore migration call.
+- **Two cumulative code-review passes** caught: a places-migration idempotency hole (flag write outside the transaction would have allowed duplicate places after a crash); the `placeId IS NULL` legacy-row guard for restore-from-v1; antimeridian + LIKE wildcard issues; the post-restore data-migration gap; missing `places` invalidation on TransactionForm submit; missing `budgets` invalidation on display-currency change; archived-but-selected places hidden from the picker; double-tap "Create one for here" race. All BUG / HIGH findings fixed before tag.
+
+### Technical Details
+- New schema tables: `budgets` (migration 0009), `places` (migration 0010). New transactions column: `place_id` (nullable FK, indexed). All other tables unchanged.
+- New utility module: `src/utils/geo.ts` (Haversine + bounding box, no external deps).
+- Reused dependencies only — no new production deps in v2.0.0. The `expo-location` dependency from v1.x is now load-bearing for the place GPS-capture flow.
+
 ## [1.10.0] - 2026-05-06
 
 ### Added
@@ -522,6 +547,7 @@ Initial release of My Wallet.
 - React Native Reanimated 4.2 for animations
 - Package: `dev.melkoh.mywallet`
 
+[2.0.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v2.0.0
 [1.10.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.10.0
 [1.9.0]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.9.0
 [1.8.3]: https://github.com/Melkoh02/my-wallet/releases/tag/v1.8.3

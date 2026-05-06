@@ -209,6 +209,15 @@ export async function exportBackup(): Promise<void> {
   });
 }
 
+// Exported for tests; not part of the public API. The `_` prefix flags that
+// callers should go through importBackup / restoreFromBackup, which validate
+// the file before calling this.
+export async function _restoreDataForTests(
+  data: Record<string, unknown[]>,
+): Promise<{ success: boolean; error?: string }> {
+  return restoreData(data);
+}
+
 async function restoreData(
   data: Record<string, unknown[]>,
 ): Promise<{ success: boolean; error?: string }> {

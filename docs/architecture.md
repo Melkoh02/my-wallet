@@ -101,6 +101,7 @@ Foreground tasks are fired in parallel (each as its own unawaited promise inside
 - **`src/constants/`** — pure data: currencies, palette colors, FAB actions, default categories, default settings.
 - **`src/plugins/`** — Expo config plugins (release signing).
 - **`src/utils/`** — pure transforms (formatting, date arithmetic, amount input helpers). No side effects.
+- **Tests** — `*.test.ts` files co-located with source. Run via `npm test` (Jest + `jest-expo` preset). Integration tests use `better-sqlite3` for in-memory SQLite via `src/db/test-client.ts`. See `CLAUDE.md` § Testing for what's covered and how to run.
 
 ## Where to look for X
 
@@ -117,6 +118,7 @@ Foreground tasks are fired in parallel (each as its own unawaited promise inside
 | Add a new one-time data migration | function in `DatabaseProvider.tsx`, gated by a settings flag; chain into the boot pipeline `useEffect`; document the flag in `glossary.md` Settings table; see § "One-time data migrations" above |
 | Investigate an aggregate showing the "≈" or "missing rates" banner | `convertRow` in `src/db/queries/transactions.ts` and the `CurrencyConverter` in `src/services/exchangeRate.service.ts`; conceptually documented in `glossary.md` § Currency snapshot fields |
 | Diagnose "balance + transactions row got out of sync" | the edit path in `src/app/transaction/form.tsx` and `updateAccountBalance` in `src/db/queries/accounts.ts`. The atomic `BEGIN/COMMIT/ROLLBACK` is the safety net; if it's bypassed (e.g. a new mutation path skipped the wrap), that's where the bug lives |
+| Add a money-math test | co-locate `*.test.ts` next to source. Use `setupTestDb` / `resetTestDb` from `@/db/test-client` and `jest.mock("@/db/client", ...)`. See `src/db/queries/accounts.test.ts` as a template |
 
 ## When to update which doc
 

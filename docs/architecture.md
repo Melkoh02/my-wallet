@@ -61,6 +61,7 @@ Drizzle migrations only do schema. Data backfills + semantic flips live in `src/
 | `credit_balance_migrated`  | v1.0.1 flip from "balance = debt" to "balance = available credit" |
 | `default_themes_seeded`    | First-launch insert of 4 default themes                |
 | `txn_currency_backfilled`  | Phase-2 fill of `transactions.currency` from accounts  |
+| `places_migrated`          | v2.0 backfill of legacy `transactions.{latitude,longitude,locationName}` into rows on the new `places` table, plus FK update on each transaction |
 
 Pattern for a new one-time migration:
 1. Add a function in `DatabaseProvider.tsx` that early-returns when the flag is set.
@@ -76,6 +77,7 @@ schema migrations (drizzle)
   → migrateCreditCardBalances()         ← gated by credit_balance_migrated
   → seedDefaultThemes()                 ← gated by default_themes_seeded
   → backfillTransactionCurrency()       ← gated by txn_currency_backfilled
+  → backfillPlaces()                    ← gated by places_migrated
   → setIsSeeded(true)
     → check backup_setup_done
       → if missing: render BackupSetupModal, block here

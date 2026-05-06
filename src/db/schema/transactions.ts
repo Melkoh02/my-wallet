@@ -41,6 +41,11 @@ export const transactions = sqliteTable(
     // queries detect that the user has changed display currency since insert
     // and the stored rate is no longer applicable.
     displayCurrencySnapshot: text("display_currency_snapshot"),
+    // FK to places.id, added in v2.0 (migration 0010). New transactions set
+    // this; legacy `latitude`/`longitude`/`locationName` columns stay alive
+    // as a fallback for rows that pre-date the migration. Display code
+    // prefers placeId when set.
+    placeId: integer("place_id"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(datetime('now'))`),
@@ -51,6 +56,7 @@ export const transactions = sqliteTable(
     index("idx_transactions_type").on(table.type),
     index("idx_transactions_contact").on(table.contactId),
     index("idx_transactions_recurring").on(table.recurringId),
+    index("idx_transactions_place").on(table.placeId),
   ],
 );
 

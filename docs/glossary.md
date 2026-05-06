@@ -239,6 +239,7 @@ Stored in the `settings` table, every value is a string.
 | `backup_setup_done`        | First-launch backup setup gate               | unset → `"true"`       |
 | `location_enabled`         | Show "Add Location" on transaction form      | `"false"`              |
 | `auto_add_location`        | Fetch location automatically on each new txn | unset (off)            |
+| `places_auto_radius_m`     | Auto-pick radius for nearby saved places (m) | `"100"`                |
 | `privacy_hide_default`     | Activate hideAmounts on app open             | unset (off)            |
 | `privacy_random_default`   | Activate randomNumbers on app open           | unset (off)            |
 | `language`                 | Active locale code                           | device locale          |
@@ -253,6 +254,7 @@ Stored in the `settings` table, every value is a string.
 | `credit_balance_migrated`  | v1.0.1 credit-balance semantic flip          | set once               |
 | `txn_currency_backfilled`  | Phase-2 currency column backfill             | set once               |
 | `default_themes_seeded`    | Default themes inserted                      | set once               |
+| `places_migrated`          | v2.0 backfill of legacy location data → places | set once             |
 
 > Adding a new setting? Use `getSetting`/`setSetting` from `src/db/queries/settings.ts`. If it has a default for new installs, register it in `DEFAULT_SETTINGS`. If it ships with a one-time data migration, add a flag here and a migration function in `DatabaseProvider.tsx`.
 
@@ -284,6 +286,41 @@ The `BudgetWithSpend` row carries `approximate`, `missingRates`, `resolvedCurren
 ### `BACKUP_VERSION`
 Adding the `budgets` table is **additive** — existing v1.x backups don't include a `budgets` array, and the import path tolerates its absence (`if (data.budgets?.length) ...`). `BACKUP_VERSION` stays at `1`. Same precedent as when `cashback_rules` was added in v1.0.0 then removed in v1.8.x without a version bump.
 
+## Places
+
+Saved locations for tagging transactions. A place is a row in the `places` table with:
+
+- **`name`** — user-facing label.
+- **`latitude`** / **`longitude`** — optional. A place without coords (e.g., a free-typed name like "Online") never gets auto-picked but still works as a manual tag.
+- **`address`** — optional reverse-geocoded display text.
+- **`source`** — `"manual"` (user typed a name), `"geocoded"` (captured from current GPS or address lookup), or `"migrated"` (imported from legacy `transactions.locationName` during the v2.0 backfill).
+- **`visitCount`** — denormalised count of transactions linked via `transactions.place_id`. Maintained imperatively by `createTransaction` / `deleteTransaction`; the live JOIN-based count returned by `getPlacesWithStats()` is the source of truth for the list screen, so any drift only affects picker sort order, not displayed totals.
+- **`isActive`** — soft-delete flag. Archived places stay in the DB so transactions still resolve their name; they're hidden from pickers and the list. `archivePlace` flips this to false; `unarchivePlace` flips it back.
+
+### Auto-pick (`findNearestPlace`)
+
+Two-stage filter that runs on every transaction-form GPS capture:
+1. **SQL bounding-box pre-filter** using `idx_places_coords` — narrows the candidate set without paying the Haversine cost per row. The box is computed from the centre's latitude (looser than per-edge), but that just lets a few extra candidates through to the JS pass; it never excludes a real match.
+2. **JS Haversine refinement** — computes true great-circle distance (`utils/geo.ts`) and returns the nearest place ≤ `radiusM`.
+
+Radius is configurable in Settings (`places_auto_radius_m`, default 100 m). Discrete options: 50, 100, 250, 500, 1000 m.
+
+### Legacy fallback
+
+Existing `transactions.{latitude,longitude,locationName}` columns stay alive. New writes go through `place_id`; legacy columns are populated only on the GPS-capture path so any future code still finds coords. `enrichTransactionsBatch` resolves a single `placeName` field by preferring `place.name` (when `place_id` is set) and falling back to `locationName` for pre-migration rows.
+
+### One-time backfill (`backfillPlaces` in DatabaseProvider)
+
+Gated by the `places_migrated` settings flag. Heuristic in `utils/placesMigration` (unit-tested separately):
+
+- Coord-rich rows bucket by `(round(lat,4), round(lng,4), name.toLowerCase())` ≈ 11 m precision. Same coords with different labels stay split — *over-split rather than over-merge* because manual merging is cheap and an unwanted merge silently corrupts visit counts.
+- Name-only rows bucket case-insensitively.
+- Each bucket becomes one place with `source = "migrated"` and an initial `visitCount` matching the bucket size.
+- Transactions in the bucket get their `place_id` updated in a single transaction.
+
+### `BACKUP_VERSION`
+Adding the `places` table is **additive** — same precedent as `budgets`. `BACKUP_VERSION` stays at `1`. The import path tolerates a missing `places` array (`if (data.places?.length) ...`). Place inserts run **before** transactions so FKs resolve in the right order during restore.
+
 ## DataRefresh entities
 
 `DataRefreshProvider` exposes `revisions: Record<EntityKey, number>` and `invalidate(...keys)`. The eight keys, and what triggers them:
@@ -295,6 +332,7 @@ Adding the `budgets` table is **additive** — existing v1.x backups don't inclu
 | `categories`   | category/subcategory create/edit/delete                                          |
 | `recurring`    | recurring create/edit/delete; pause toggle; trigger now                          |
 | `budgets`      | budget create/edit/delete                                                         |
+| `places`       | place create/edit/archive/unarchive/delete                                       |
 | `themes`       | theme create/edit/delete/activate                                                |
 | `settings`     | any settings mutation; backup folder change                                      |
 | `backups`      | backup create/delete                                                             |

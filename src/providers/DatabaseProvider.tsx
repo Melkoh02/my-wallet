@@ -1,14 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { accounts, settings, themes } from "@/db/schema";
+import { accounts, places, settings, themes, transactions } from "@/db/schema";
 import { seed } from "@/db/seed";
 import { processDueRecurring } from "@/db/queries/recurring";
 import { applyInvestmentInterest, applyLoanInterest } from "@/db/queries/interest";
 import { checkAndRunAutoBackup, BACKUP_SETUP_DONE_KEY } from "@/services/backup.service";
 import { checkAndFetchRates } from "@/services/exchangeRate.service";
 import { getSetting } from "@/db/queries/settings";
+import { bucketLegacyLocations } from "@/utils/placesMigration";
 import migrationData from "@/db/migrations/migrations";
 
 type DatabaseContextValue = {
@@ -84,6 +85,74 @@ async function backfillTransactionCurrency() {
     .onConflictDoNothing();
 }
 
+/**
+ * One-time backfill: convert legacy `transactions.{latitude,longitude,locationName}`
+ * rows into Place records and link each transaction to the matching place via
+ * `place_id`. Added in v2.0 alongside migration 0010.
+ *
+ * The legacy columns stay in the schema as a fallback for any row this
+ * migration somehow misses; new writes go through `place_id` only. Bucketing
+ * heuristic lives in `utils/placesMigration` and is unit-tested separately.
+ */
+async function backfillPlaces() {
+  const [flag] = await db.select().from(settings).where(eq(settings.key, "places_migrated"));
+  if (flag) return;
+
+  // why: only consider rows that don't yet have a place_id. After a backup
+  // restore from v1 we may rerun this migration against transactions that
+  // were already linked in the previous install — the placeId IS NULL guard
+  // keeps the rerun a no-op for already-linked rows and prevents duplicate
+  // place creation.
+  const legacyRows = await db
+    .select({
+      id: transactions.id,
+      latitude: transactions.latitude,
+      longitude: transactions.longitude,
+      locationName: transactions.locationName,
+    })
+    .from(transactions)
+    .where(
+      and(
+        isNull(transactions.placeId),
+        or(
+          isNotNull(transactions.latitude),
+          and(isNotNull(transactions.locationName), ne(transactions.locationName, "")),
+        ),
+      ),
+    );
+
+  const buckets = bucketLegacyLocations(legacyRows);
+
+  // invariant: place inserts AND the flag write must commit together.
+  // Without the flag inside the transaction, a crash between commit and
+  // flag-write would re-run the migration on next boot, creating duplicate
+  // place records (the bucketer doesn't know which rows are already linked).
+  await db.transaction(async (tx) => {
+    for (const bucket of buckets) {
+      const inserted = await tx
+        .insert(places)
+        .values({
+          name: bucket.name,
+          latitude: bucket.latitude,
+          longitude: bucket.longitude,
+          source: "migrated",
+          visitCount: bucket.transactionIds.length,
+        })
+        .returning({ id: places.id });
+      const placeId = inserted[0].id;
+
+      await tx
+        .update(transactions)
+        .set({ placeId })
+        .where(inArray(transactions.id, bucket.transactionIds));
+    }
+    await tx
+      .insert(settings)
+      .values({ key: "places_migrated", value: "true" })
+      .onConflictDoNothing();
+  });
+}
+
 const DEFAULT_THEMES = [
   { name: "Dark Blue", mode: "dark", accentColor: "#3B82F6", statusBarStyle: "light" },
   { name: "Light Blue", mode: "light", accentColor: "#3B82F6", statusBarStyle: "dark" },
@@ -123,6 +192,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
       .then(() => migrateCreditCardBalances())
       .then(() => seedDefaultThemes())
       .then(() => backfillTransactionCurrency())
+      .then(() => backfillPlaces())
       .then(() => setIsSeeded(true));
   }, [success]);
 

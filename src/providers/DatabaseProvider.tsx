@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import { eq, and, isNotNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { accounts, settings, themes } from "@/db/schema";
 import { seed } from "@/db/seed";
 import { processDueRecurring } from "@/db/queries/recurring";
+import { applyInvestmentInterest, applyLoanInterest } from "@/db/queries/interest";
 import { checkAndRunAutoBackup, BACKUP_SETUP_DONE_KEY } from "@/services/backup.service";
 import { checkAndFetchRates } from "@/services/exchangeRate.service";
 import { getSetting } from "@/db/queries/settings";
@@ -104,49 +105,8 @@ async function seedDefaultThemes() {
     .onConflictDoNothing();
 }
 
-/**
- * Apply compound interest to investment accounts.
- * Runs on each app foreground. Uses daily compounding:
- * newBalance = balance * (1 + rate/100/365) ^ days
- */
-async function applyInvestmentInterest() {
-  const today = new Date().toISOString().slice(0, 10);
-  const investmentAccounts = await db
-    .select()
-    .from(accounts)
-    .where(
-      and(
-        eq(accounts.type, "investment"),
-        eq(accounts.isActive, true),
-        isNotNull(accounts.interestRate),
-      ),
-    );
-
-  for (const acc of investmentAccounts) {
-    if (!acc.interestRate) continue;
-    const lastDate = acc.lastInterestDate ?? acc.createdAt.slice(0, 10);
-    if (lastDate >= today) continue;
-
-    // why: zero-or-negative balance just advances lastInterestDate without compounding.
-    // without this, an account drained to zero would accrue retroactive interest when refilled.
-    if (acc.balance <= 0) {
-      await db.update(accounts).set({ lastInterestDate: today }).where(eq(accounts.id, acc.id));
-      continue;
-    }
-
-    const days = Math.floor((new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000);
-    if (days <= 0) continue;
-
-    const dailyRate = acc.interestRate / 100 / 365;
-    const newBalance = acc.balance * Math.pow(1 + dailyRate, days);
-    const rounded = Math.round(newBalance * 100) / 100;
-
-    await db
-      .update(accounts)
-      .set({ balance: rounded, lastInterestDate: today })
-      .where(eq(accounts.id, acc.id));
-  }
-}
+// Investment + loan interest accrual lives in src/db/queries/interest.ts so
+// it can be unit-tested. Foreground task wiring stays here.
 
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { success, error } = useMigrations(db, migrationData);
@@ -179,6 +139,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
       }
     });
     applyInvestmentInterest().catch((e) => console.warn("Investment interest failed:", e));
+    applyLoanInterest().catch((e) => console.warn("Loan interest failed:", e));
     checkAndRunAutoBackup().then((didBackup) => {
       if (didBackup) {
         console.log("Auto backup completed");

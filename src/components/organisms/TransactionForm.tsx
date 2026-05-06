@@ -23,6 +23,7 @@ import {
 import { getCurrentLocation } from "@/services/location.service";
 import { useConverter } from "@/hooks/useConverter";
 import { getLastAccountByType, getFrequentCategoriesByType } from "@/db/queries/transactions";
+import type { SplitSourceInfo } from "@/db/queries/accounts";
 import type { Account, NewTransaction } from "@/db/schema";
 import type { CategoryWithSubs } from "@/db/queries/categories";
 import type { TemplateWithSubs } from "@/db/queries/templates";
@@ -55,6 +56,13 @@ type TransactionFormProps = {
   initialData?: TransactionFormData & { subcategoryIds: number[] };
   locationEnabled?: boolean;
   autoAddLocation?: boolean;
+  /**
+   * When editing an expense that already spawned split-bill loan accounts,
+   * the form renders a read-only locked-state notice instead of letting the
+   * user re-edit the split. Recomputing splits on edit is gated on a v2.0
+   * schema change (split metadata table); v1.10 ships the lock + message.
+   */
+  splitSourceInfo?: SplitSourceInfo | null;
 };
 
 /* ---------- Main Form ---------- */
@@ -69,6 +77,7 @@ export function TransactionForm({
   initialData,
   locationEnabled = false,
   autoAddLocation = false,
+  splitSourceInfo,
 }: TransactionFormProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -725,6 +734,39 @@ export function TransactionForm({
               </View>
             </View>
           )}
+        </View>
+      )}
+
+      {/* Split bill — locked notice when editing an expense that already
+          spawned loans. Modifying splits on edit needs schema-level metadata
+          (v2.0); for now we communicate the limitation clearly. */}
+      {type === "expense" && isEditing && splitSourceInfo?.isSplitSource && (
+        <View
+          style={[
+            styles.cashbackCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.cashbackHeader}>
+            <AppIcon name="account-group" size={20} color={colors.iconSecondary} />
+            <AppText variant="label" style={styles.flex}>
+              {t("splitBill.title")}
+            </AppText>
+            <AppIcon name="lock-outline" size={18} color={colors.iconSecondary} />
+          </View>
+          <AppText variant="bodySmall" color={colors.textSecondary}>
+            {t("splitBill.editLocked")}
+          </AppText>
+          <View style={{ gap: spacing.xs }}>
+            {splitSourceInfo.loanAccounts.map((loan) => (
+              <AppText key={loan.id} variant="bodySmall" color={colors.text}>
+                · {loan.name}
+              </AppText>
+            ))}
+          </View>
+          <AppText variant="caption" color={colors.textTertiary}>
+            {t("splitBill.editLockedHint")}
+          </AppText>
         </View>
       )}
 

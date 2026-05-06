@@ -157,19 +157,38 @@ npm run check-docs
 
 The script (`scripts/check-docs.sh`) is non-blocking — it just lists `src/` files that changed and which docs are likely candidates if any were missed. If the change is a pure refactor / visual / test-only change, ignore the warning and continue. Otherwise update the docs per the rules above before merging.
 
+## Testing
+
+Tests live next to the source as `*.test.ts` (Jest convention). Run with `npm test` (single run) or `npm run test:watch` (TDD loop). The harness uses:
+- **`jest-expo`** preset for the runner.
+- **`better-sqlite3`** + **`drizzle-orm/better-sqlite3`** for in-memory DB integration tests. Tests import a swappable test client via `@/db/test-client` (`setupTestDb`, `resetTestDb`, `getTestDb`) and `jest.mock("@/db/client", ...)` redirects production code to the test DB.
+- `jest.setup.ts` mocks the Expo native modules (`expo-localization`, `expo-local-authentication`, `expo-crypto`, `expo-sqlite`) with Node-friendly stubs.
+
+What we test:
+- Money math at the unit level — every direction × type combination of `updateAccountBalance`, every account-type classification in `getAccountsTotals`, the three-state `convertRow` behaviour, `transferDestAmount`'s `toAmount ?? amount` rule.
+- DB-touching invariants — `createTransaction` currency snapshot capture, `deleteTransaction` reversal, `processDueRecurring` catchup + 90-day cap + rate-stamping rule, `restoreData` atomic rollback on insert error.
+- Security — PIN hash round-trip, salt regeneration, hex-format salt.
+
+What we don't test (yet): React components, hooks, screens, navigation flows. Add these as the surface area justifies the cost.
+
+When changing money-math code, **run `npm test` before committing**. Failing tests usually mean either the code broke an invariant the docs documented, or the docs and code drifted — fix whichever is wrong, not the test.
+
+There are no documented test skips at the moment — if you add one, also add a line here pointing at the fix branch / issue and the expected behaviour the test asserts.
+
 ## Quality Checklist
 Before any commit:
 1. `npm run format` — Prettier
 2. `npm run lint` — ESLint (must be clean, warnings OK for pre-existing issues only)
-3. If the change is user-visible or shifts shared vocabulary, update `docs/` per the rules in the Documentation section.
+3. `npm test` — Jest (must be green; documented `it.skip` is OK)
+4. If the change is user-visible or shifts shared vocabulary, update `docs/` per the rules in the Documentation section.
 
 Before merging a feat/fix branch into `develop`:
-4. `npm run check-docs` — non-blocking reminder; review and update docs if the suggested files apply.
+5. `npm run check-docs` — non-blocking reminder; review and update docs if the suggested files apply.
 
 Before any release:
-5. `npm run check-docs` against `develop..main` — confirms cumulative doc coverage for the release.
-6. Run code reviewer agent on changed files.
-7. Fix all BUG and HIGH severity issues.
-8. Test on physical Android device.
-9. Update version everywhere.
-10. Update CHANGELOG.md.
+6. `npm run check-docs` against `develop..main` — confirms cumulative doc coverage for the release.
+7. Run code reviewer agent on changed files.
+8. Fix all BUG and HIGH severity issues.
+9. Test on physical Android device.
+10. Update version everywhere.
+11. Update CHANGELOG.md.

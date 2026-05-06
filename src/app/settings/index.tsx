@@ -431,6 +431,13 @@ export default function SettingsScreen() {
         onPress={() => router.push("/template" as never)}
       />
       <Divider />
+      <SettingsRow
+        icon="account-multiple"
+        title={t("settings.contacts")}
+        subtitle={t("settings.contactsDesc")}
+        onPress={() => router.push("/contact" as never)}
+      />
+      <Divider />
       <SettingsToggle
         icon="map-marker"
         title={t("settings.locationStamps")}
@@ -512,7 +519,7 @@ export default function SettingsScreen() {
       {/* App version */}
       <View style={styles.versionContainer}>
         <AppText variant="caption" color={colors.textTertiary}>
-          {t("settings.version", { version: "1.9.0" })}
+          {t("settings.version", { version: "1.10.0" })}
         </AppText>
       </View>
 

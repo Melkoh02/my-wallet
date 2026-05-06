@@ -49,8 +49,9 @@ User-facing scenarios this app supports. Written for QA and for anyone trying to
 After migrations + seed + backup-setup gate are clear, the provider runs (in this order):
 1. `processDueRecurring` — creates any due recurring transactions (capped at 90 days).
 2. `applyInvestmentInterest` — compounds investment accounts.
-3. `checkAndRunAutoBackup` — once-a-day auto-backup (skips if already backed up today).
-4. `checkAndFetchRates` — refreshes exchange rate cache if stale + needed.
+3. `applyLoanInterest` — compounds loan accounts (sign-aware: borrowed/lent grow in opposite directions; settled or overpaid loans skip but advance the date).
+4. `checkAndRunAutoBackup` — once-a-day auto-backup (skips if already backed up today).
+5. `checkAndFetchRates` — refreshes exchange rate cache if stale + needed.
 
 **Touches**: every entity. Stale rates → analytics shows "≈" markers. Network down → catchup still works (rate capture leaves NULLs, surfaced as approximate). Long offline (90+ days) → recurring catchup creates only one row dated today.
 
@@ -185,7 +186,7 @@ Same as expense, but type = `income`. `delta = +amount`.
 - Re-splitting with the same contact who already has a `loan_lent` account → existing account is reused; their balance increases by the new amount (no second account created). If "Already paid" is also set, the settling transfer still fires — drains the existing loan back to its prior balance and refunds the source. Net effect on the existing loan = $0.
 - Free-typed person (no contactId) → always creates a new loan account; no de-duplication.
 - Split toggle is only available on expense type; switching the form to income/transfer hides it.
-- Splitting on edit is **not** supported — the split-bill block only runs for new transactions (`!params.id`). Editing an expense that was originally split doesn't recompute the loan accounts.
+- Splitting on edit is **not** supported in v1.10. When the user opens an originally-split expense in the edit form, the split section renders a read-only locked notice listing the spawned loan accounts ("To modify the split, first delete these loan accounts"). The split toggle stays disabled. Recomputing splits on edit is gated on a v2.0 schema change (a `split_bill_entries` metadata table) — until then, locked-with-message is the deliberate trade. Detection: an account exists with `originTransactionId == thisTxn.id` (`getSplitSourceInfo` in `src/db/queries/accounts.ts`).
 
 ---
 
@@ -590,6 +591,22 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 **Trigger**: tap a contact name on a transaction row → contact detail screen.
 
 - Lists transactions for that contact.
+
+### 13.3 Contacts list (Settings → Contacts)
+**Trigger**: Settings → Contacts row.
+
+1. Lists every contact that appears on at least one transaction, derived from `transactions.contactId` + `transactions.contactName` (no separate Contacts table — MVP).
+2. Each row: avatar, contact name, "{count} transactions · {lastDate}" subtitle, chevron right.
+3. Sorted by most-recent activity desc.
+4. Tap a row with `contactId` → existing `/contact/[id]` detail screen (transactions for that contact).
+5. Free-typed contacts (no `contactId`) appear in the list with a different trailing icon (text marker) and don't navigate — the detail route requires `contactId`. Re-pick from the device contact picker on a transaction to consolidate.
+
+**Touches**: `transactions` table only — list is purely a SQL aggregate via `getAllContactsWithActivity` in `src/db/queries/transactions.ts`. Refreshes on screen focus AND on `revisions.transactions` bumps so edits/deletes anywhere in the app are reflected.
+
+**Edge cases**
+- Same display name typed manually then later linked to a device contact shows as two separate rows (different `contactId` keys). Re-pick to consolidate.
+- Empty state shows when no transactions reference any contact.
+- Device contacts that have *never* been used in a transaction don't appear here — this is the user's transaction history view, not their address book.
 
 ---
 

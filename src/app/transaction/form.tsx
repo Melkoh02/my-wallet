@@ -13,7 +13,13 @@ import {
   deleteTransaction,
   transferDestAmount,
 } from "@/db/queries/transactions";
-import { updateAccountBalance, createAccount, getAccounts } from "@/db/queries/accounts";
+import {
+  updateAccountBalance,
+  createAccount,
+  getAccounts,
+  getSplitSourceInfo,
+  type SplitSourceInfo,
+} from "@/db/queries/accounts";
 import { db } from "@/db/client";
 import { settings, transactions, transactionSubcategories } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -38,6 +44,7 @@ export default function TransactionFormScreen() {
   const [initialData, setInitialData] = useState<
     (TransactionFormData & { subcategoryIds: number[] }) | undefined
   >();
+  const [splitSourceInfo, setSplitSourceInfo] = useState<SplitSourceInfo | null>(null);
   const [loaded, setLoaded] = useState(!params.id);
 
   useEffect(() => {
@@ -55,10 +62,12 @@ export default function TransactionFormScreen() {
       });
   }, []);
 
-  // Load existing transaction for editing
+  // Load existing transaction for editing, plus split-source info so the form
+  // can lock the split-bill section when this expense already spawned loans.
   useEffect(() => {
     if (params.id) {
-      getTransactionById(parseInt(params.id, 10)).then((txn) => {
+      const id = parseInt(params.id, 10);
+      Promise.all([getTransactionById(id), getSplitSourceInfo(id)]).then(([txn, splitInfo]) => {
         if (txn) {
           setInitialData({
             ...txn,
@@ -71,6 +80,7 @@ export default function TransactionFormScreen() {
             subcategoryIds: txn.subcategoryList.map((s) => s.id),
           });
         }
+        setSplitSourceInfo(splitInfo);
         setLoaded(true);
       });
     }
@@ -271,6 +281,7 @@ export default function TransactionFormScreen() {
         initialData={initialData}
         locationEnabled={locationEnabled}
         autoAddLocation={autoAddLocation}
+        splitSourceInfo={splitSourceInfo}
       />
     </ModalLayout>
   );

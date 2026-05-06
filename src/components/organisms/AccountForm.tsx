@@ -204,8 +204,15 @@ export function AccountForm({
       interestRate:
         isLoanType(type) || type === "investment" ? parseFloat(interestRate) || null : null,
       dueDate: isLoanType(type) && dueDate ? dueDate : null,
+      // why: stamp lastInterestDate on creation for any account type that
+      // accrues interest (investment, loan_borrowed, loan_lent). Without this,
+      // the first accrual run would compound from `createdAt` — the math is
+      // the same in practice, but explicit > implicit for "when did the clock
+      // start ticking?" especially as users edit a loan to add a rate later.
       lastInterestDate:
-        !initial && type === "investment" ? new Date().toISOString().slice(0, 10) : undefined,
+        !initial && (type === "investment" || isLoanType(type))
+          ? new Date().toISOString().slice(0, 10)
+          : undefined,
       includeInNetWorth,
     };
 

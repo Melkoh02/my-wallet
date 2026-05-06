@@ -258,6 +258,8 @@
     "cashbackAccount": "Conta de cashback",
     "templates": "Modelos",
     "templatesDesc": "Atalhos para transações frequentes",
+    "contacts": "Contatos",
+    "contactsDesc": "Veja transações agrupadas por contato",
     "changelog": "Histórico de alterações",
     "changelogDesc": "Veja as novidades de cada versão",
     "security": "Segurança",
@@ -311,7 +313,9 @@
     "addPerson": "Adicionar pessoa",
     "splitEvenly": "Dividir igualmente",
     "loanName": "Me deve: {{name}}",
-    "alreadyPaid": "Já pagou"
+    "alreadyPaid": "Já pagou",
+    "editLocked": "Esta despesa foi dividida com outras pessoas. Para modificar a divisão, exclua primeiro as contas de empréstimo criadas:",
+    "editLockedHint": "Abra Contas, exclua os empréstimos listados acima e volte para editar esta transação."
   },
   "themes": {
     "title": "Temas",
@@ -379,6 +383,13 @@
     "migrationDone_other": "{{count}} backups movidos para a nova pasta",
     "migrationPartial": "{{migrated}} de {{total}} movidos — {{failed}} não puderam ser movidos",
     "migrationNothing": "Não há backups existentes para mover"
+  },
+  "contactsList": {
+    "title": "Contatos",
+    "emptyTitle": "Ainda não há transações com contatos",
+    "emptyDesc": "Os contatos que você adicionar às transações aparecerão aqui",
+    "subtitle_one": "{{count}} transação · {{date}}",
+    "subtitle_other": "{{count}} transações · {{date}}"
   },
   "contacts": {
     "selectContact": "Selecionar Contato",

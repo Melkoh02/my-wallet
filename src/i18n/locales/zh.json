@@ -258,6 +258,8 @@
     "cashbackAccount": "返现账户",
     "templates": "模板",
     "templatesDesc": "常用交易的快捷方式",
+    "contacts": "联系人",
+    "contactsDesc": "按联系人查看交易",
     "changelog": "更新日志",
     "changelogDesc": "查看每个版本的更新内容",
     "security": "安全",
@@ -311,7 +313,9 @@
     "addPerson": "添加人员",
     "splitEvenly": "平均分摊",
     "loanName": "欠我：{{name}}",
-    "alreadyPaid": "已支付"
+    "alreadyPaid": "已支付",
+    "editLocked": "此支出已与他人分摊。要修改分摊，请先删除自动创建的贷款账户：",
+    "editLockedHint": "打开账户页面，删除上述贷款，然后返回编辑此交易。"
   },
   "themes": {
     "title": "主题",
@@ -378,6 +382,13 @@
     "migrationDone_other": "已将 {{count}} 个备份移到新文件夹",
     "migrationPartial": "已移动 {{total}} 个中的 {{migrated}} 个 — {{failed}} 个无法移动",
     "migrationNothing": "没有要移动的现有备份"
+  },
+  "contactsList": {
+    "title": "联系人",
+    "emptyTitle": "还没有联系人交易",
+    "emptyDesc": "添加到交易中的联系人会显示在这里",
+    "subtitle_one": "{{count}} 笔交易 · {{date}}",
+    "subtitle_other": "{{count}} 笔交易 · {{date}}"
   },
   "contacts": {
     "selectContact": "选择联系人",

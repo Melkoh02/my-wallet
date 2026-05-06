@@ -44,7 +44,7 @@ Each entry has:
 3. Edit must be atomic: reverse → mutate → apply, all inside `BEGIN/COMMIT/ROLLBACK`. A naked sequence leaves balances and rows desynced on partial failure.
 4. Currency snapshot fields (`currency`, `rateToDisplay`, `displayCurrencySnapshot`) captured at insert. Don't rewrite them on edit (would falsify history) — see glossary § "Currency snapshot fields".
 5. Instant-cashback creates a linked income row; deleting/editing the original must clean the link.
-6. Split-bill block only runs for new transactions (`!params.id`). Editing an originally-split expense does NOT recompute loan accounts — known gap, intentional.
+6. Split-bill block only runs for new transactions (`!params.id`). Editing an originally-split expense renders a read-only locked notice (since v1.10) listing the spawned loans; the user must delete those loans before re-creating the transaction. True split-edit is gated on the v2.0 `split_bill_entries` schema change.
 
 **Touch radius**:
 - Any change here affects: balance computation on the source account, balance computation on the destination account (transfers), `linkedTransactionId` integrity, the visible balance on Home / Accounts / Account detail, every analytics aggregate (via row inserts), the auto-suggest chips on subsequent forms (frequents change), recurring rows (no — but they pass through `processDueRecurring` which has its own copy of the rate-capture logic — keep them in sync).

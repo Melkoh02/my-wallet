@@ -258,6 +258,8 @@
     "cashbackAccount": "キャッシュバック口座",
     "templates": "テンプレート",
     "templatesDesc": "よく使う取引のショートカット",
+    "contacts": "連絡先",
+    "contactsDesc": "連絡先ごとに取引を表示",
     "changelog": "変更履歴",
     "changelogDesc": "各バージョンの変更点を確認",
     "security": "セキュリティ",
@@ -311,7 +313,9 @@
     "addPerson": "人を追加",
     "splitEvenly": "均等に分ける",
     "loanName": "貸付: {{name}}",
-    "alreadyPaid": "支払い済み"
+    "alreadyPaid": "支払い済み",
+    "editLocked": "この支出は他の人と分割されています。分割を変更するには、まず作成されたローン口座を削除してください：",
+    "editLockedHint": "口座画面を開き、上記のローンを削除してから、この取引を編集してください。"
   },
   "themes": {
     "title": "テーマ",
@@ -378,6 +382,13 @@
     "migrationDone_other": "{{count}} 件のバックアップを新しいフォルダへ移動しました",
     "migrationPartial": "{{total}} 件中 {{migrated}} 件を移動 — {{failed}} 件は移動できませんでした",
     "migrationNothing": "移動する既存のバックアップはありません"
+  },
+  "contactsList": {
+    "title": "連絡先",
+    "emptyTitle": "まだ連絡先との取引がありません",
+    "emptyDesc": "取引に追加した連絡先がここに表示されます",
+    "subtitle_one": "{{count}}件の取引 · {{date}}",
+    "subtitle_other": "{{count}}件の取引 · {{date}}"
   },
   "contacts": {
     "selectContact": "連絡先を選択",

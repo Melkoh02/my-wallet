@@ -258,6 +258,8 @@
     "cashbackAccount": "Cuenta de cashback",
     "templates": "Plantillas",
     "templatesDesc": "Atajos para transacciones frecuentes",
+    "contacts": "Contactos",
+    "contactsDesc": "Ver transacciones agrupadas por contacto",
     "changelog": "Historial de cambios",
     "changelogDesc": "Ver las novedades de cada versión",
     "security": "Seguridad",
@@ -381,6 +383,13 @@
     "migrationDone_other": "Se movieron {{count}} respaldos a la nueva carpeta",
     "migrationPartial": "Se movieron {{migrated}} de {{total}} — {{failed}} no se pudieron mover",
     "migrationNothing": "No hay respaldos existentes para mover"
+  },
+  "contactsList": {
+    "title": "Contactos",
+    "emptyTitle": "Aún no hay transacciones con contactos",
+    "emptyDesc": "Los contactos que agregues a tus transacciones aparecerán aquí",
+    "subtitle_one": "{{count}} transacción · {{date}}",
+    "subtitle_other": "{{count}} transacciones · {{date}}"
   },
   "contacts": {
     "selectContact": "Seleccionar Contacto",

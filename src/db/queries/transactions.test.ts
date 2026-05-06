@@ -22,7 +22,12 @@ jest.mock("@/services/exchangeRate.service", () => ({
   })),
 }));
 
-import { createTransaction, deleteTransaction, transferDestAmount } from "./transactions";
+import {
+  createTransaction,
+  deleteTransaction,
+  transferDestAmount,
+  getAllContactsWithActivity,
+} from "./transactions";
 import { createAccount, getAccountById } from "./accounts";
 import type { NewAccount, Transaction } from "@/db/schema";
 
@@ -232,6 +237,166 @@ describe("createTransaction — currency snapshot capture", () => {
     );
     expect(txn.rateToDisplay).toBeNull();
     expect(txn.displayCurrencySnapshot).toBeNull();
+  });
+});
+
+describe("getAllContactsWithActivity", () => {
+  it("returns empty when no transactions reference any contact", async () => {
+    const acc = await createAccount({ ...baseAccount, balance: 1000 });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 50,
+        description: "no contact",
+        accountId: acc.id,
+        date: "2026-01-15",
+        time: "12:00",
+      },
+      [],
+    );
+    expect(await getAllContactsWithActivity()).toEqual([]);
+  });
+
+  it("groups transactions by contactId when present", async () => {
+    const acc = await createAccount({ ...baseAccount, balance: 10000 });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 30,
+        description: "lunch",
+        accountId: acc.id,
+        date: "2026-01-15",
+        time: "12:00",
+        contactId: "device-001",
+        contactName: "Alice",
+      },
+      [],
+    );
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 50,
+        description: "dinner",
+        accountId: acc.id,
+        date: "2026-01-20",
+        time: "12:00",
+        contactId: "device-001",
+        contactName: "Alice",
+      },
+      [],
+    );
+    const result = await getAllContactsWithActivity();
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      contactId: "device-001",
+      contactName: "Alice",
+      count: 2,
+      lastDate: "2026-01-20",
+    });
+  });
+
+  it("groups free-typed contacts by name when contactId is null", async () => {
+    const acc = await createAccount({ ...baseAccount, balance: 10000 });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 10,
+        description: "x",
+        accountId: acc.id,
+        date: "2026-01-10",
+        time: "12:00",
+        contactId: null,
+        contactName: "Bob (free-typed)",
+      },
+      [],
+    );
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 20,
+        description: "y",
+        accountId: acc.id,
+        date: "2026-01-15",
+        time: "12:00",
+        contactId: null,
+        contactName: "Bob (free-typed)",
+      },
+      [],
+    );
+    const result = await getAllContactsWithActivity();
+    expect(result).toHaveLength(1);
+    expect(result[0].contactId).toBeNull();
+    expect(result[0].contactName).toBe("Bob (free-typed)");
+    expect(result[0].count).toBe(2);
+  });
+
+  it("sorts by most-recent activity first", async () => {
+    const acc = await createAccount({ ...baseAccount, balance: 10000 });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 10,
+        description: "old",
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "12:00",
+        contactId: "c1",
+        contactName: "Old contact",
+      },
+      [],
+    );
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 10,
+        description: "new",
+        accountId: acc.id,
+        date: "2026-03-15",
+        time: "12:00",
+        contactId: "c2",
+        contactName: "New contact",
+      },
+      [],
+    );
+    const result = await getAllContactsWithActivity();
+    expect(result.map((c) => c.contactName)).toEqual(["New contact", "Old contact"]);
+  });
+
+  it("treats same name with different contactIds as separate rows", async () => {
+    // Same display name typed manually then later linked to a device contact
+    // shows up as two rows. User can re-link to consolidate.
+    const acc = await createAccount({ ...baseAccount, balance: 10000 });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 5,
+        description: "free-typed first",
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "12:00",
+        contactId: null,
+        contactName: "Same Name",
+      },
+      [],
+    );
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 5,
+        description: "device-linked second",
+        accountId: acc.id,
+        date: "2026-02-01",
+        time: "12:00",
+        contactId: "device-007",
+        contactName: "Same Name",
+      },
+      [],
+    );
+    const result = await getAllContactsWithActivity();
+    expect(result).toHaveLength(2);
+    const ids = result.map((c) => c.contactId);
+    expect(ids).toContain(null);
+    expect(ids).toContain("device-007");
   });
 });
 

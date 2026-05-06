@@ -258,6 +258,8 @@
     "cashbackAccount": "Cashback account",
     "templates": "Templates",
     "templatesDesc": "Quick-fill transaction shortcuts",
+    "contacts": "Contacts",
+    "contactsDesc": "View transactions grouped by contact",
     "changelog": "Changelog",
     "changelogDesc": "See what's new in each version",
     "security": "Security",
@@ -381,6 +383,13 @@
     "migrationDone_other": "Moved {{count}} backups to the new folder",
     "migrationPartial": "Moved {{migrated}} of {{total}} — {{failed}} couldn't be moved",
     "migrationNothing": "No existing backups to move"
+  },
+  "contactsList": {
+    "title": "Contacts",
+    "emptyTitle": "No contact transactions yet",
+    "emptyDesc": "Contacts you add to transactions will show up here",
+    "subtitle_one": "{{count}} transaction · {{date}}",
+    "subtitle_other": "{{count}} transactions · {{date}}"
   },
   "contacts": {
     "selectContact": "Select Contact",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, Pressable, Switch, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -67,34 +67,63 @@ export default function SecurityScreen() {
 
   const hasAnyAuth = (biometric && hwSupported && enrolled) || pinExists;
 
-  const onBiometricToggle = async (value: boolean) => {
-    if (value && (!hwSupported || !enrolled)) return;
-    await setBiometricEnabled(value);
-    setBiometric(value);
-    invalidate("settings");
-  };
+  // why: when the user removes all auth methods, also clear any "true" protected
+  // toggles in the DB. Without this, re-enabling auth later silently reactivates
+  // protections the user thought were off — they only saw the masked UI value
+  // (`value && hasAnyAuth`), not the underlying setting.
+  const clearProtectedTogglesIfNoAuth = useCallback(async () => {
+    await Promise.all([
+      setSetting(PROTECTED_RANDOM_TOGGLE_KEY, "false"),
+      setSetting(PROTECTED_BACKUP_KEY, "false"),
+    ]);
+    setProtectRandomToggle(false);
+    setProtectBackup(false);
+  }, []);
 
-  const onPinSubmit = async (pin: string): Promise<boolean> => {
-    try {
-      await savePin(pin);
-      setPinExists(true);
-      setPinFlow(null);
+  const onBiometricToggle = useCallback(
+    async (value: boolean) => {
+      if (value && (!hwSupported || !enrolled)) return;
+      await setBiometricEnabled(value);
+      setBiometric(value);
+      // After this update: hasAnyAuth = (value && hwSupported && enrolled) || pinExists.
+      // Clear protected toggles if everything is off.
+      const willHaveAuth = (value && hwSupported && enrolled) || pinExists;
+      if (!willHaveAuth) await clearProtectedTogglesIfNoAuth();
       invalidate("settings");
-      return true;
-    } catch {
-      return false;
-    }
-  };
+    },
+    [hwSupported, enrolled, pinExists, clearProtectedTogglesIfNoAuth, invalidate],
+  );
 
-  const confirmRemovePin = async () => {
+  // useCallback so PinEntryModal's auto-submit effect (which lists onSubmit in
+  // its deps) doesn't re-fire savePin twice on rapid parent re-renders.
+  const onPinSubmit = useCallback(
+    async (pin: string): Promise<boolean> => {
+      try {
+        await savePin(pin);
+        setPinExists(true);
+        setPinFlow(null);
+        invalidate("settings");
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [invalidate],
+  );
+
+  const onPinCancel = useCallback(() => setPinFlow(null), []);
+
+  const confirmRemovePin = useCallback(async () => {
     await clearPin();
     setPinExists(false);
     setShowRemovePinConfirm(false);
-    // If neither auth method is left, the protected toggles fall back to "no
-    // auth configured" — keep the user's stored preference, but the gate hook
-    // handles the fall-through gracefully.
+    // After removing the PIN, biometric is the only remaining method. If it's
+    // also off, clear the protected-toggle flags so they don't silently
+    // reactivate when auth is configured again later.
+    const stillHasAuth = biometric && hwSupported && enrolled;
+    if (!stillHasAuth) await clearProtectedTogglesIfNoAuth();
     invalidate("settings");
-  };
+  }, [biometric, hwSupported, enrolled, clearProtectedTogglesIfNoAuth, invalidate]);
 
   const onProtectedToggle = async (key: string, value: boolean, setter: (v: boolean) => void) => {
     if (value && !hasAnyAuth) return;
@@ -220,7 +249,7 @@ export default function SecurityScreen() {
         mode="setup"
         title={t("security.pinPrompt.setupTitle")}
         onSubmit={onPinSubmit}
-        onCancel={() => setPinFlow(null)}
+        onCancel={onPinCancel}
       />
 
       <ConfirmModal

@@ -480,7 +480,7 @@ Each is its own screen reachable from Settings. Recurring and Templates have the
 
 1. **Authentication methods**:
    - **Biometric** Switch — disabled with helper text when the device has no biometric hardware or the user hasn't enrolled biometric at the OS level. Otherwise toggling on writes `security_biometric_enabled = "true"`.
-   - **Set / Change PIN** row → opens `PinEntryModal` in setup mode. The user enters the PIN twice; mismatch resets to phase 1 with a "PINs don't match" error. On a confirmed match, the PIN is hashed (`sha256(salt + pin)` with a fresh 16-byte salt) and stored.
+   - **Set / Change PIN** row → opens `PinEntryModal` in setup mode. The user enters the PIN twice; mismatch resets to phase 1 with a "PINs don't match" error. On a confirmed match, the PIN is hashed (`sha256("{salt}:{pin}")` with a fresh 16-byte salt) and stored.
    - **Remove PIN** row → confirm dialog explains the consequences ("if biometric also fails, protected actions will run without auth"), then clears the hash + salt.
 2. **Protected actions** section — each its own Switch. Switches are disabled with a hint when neither biometric nor PIN is configured. Toggle on writes `security_protected_<action> = "true"`.
 

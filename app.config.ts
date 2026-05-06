@@ -29,6 +29,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       UIFileSharingEnabled: true,
       LSSupportsOpeningDocumentsInPlace: true,
+      NSFaceIDUsageDescription:
+        "Use Face ID to authenticate before performing protected actions in My Wallet (e.g. opening Backups or disabling random-numbers privacy mode).",
     },
   },
   android: {
@@ -62,6 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-sharing",
     "@react-native-community/datetimepicker",
     "expo-localization",
+    "expo-local-authentication",
   ],
   experiments: {
     typedRoutes: true,

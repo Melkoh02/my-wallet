@@ -38,7 +38,7 @@ User-facing scenarios this app supports. Written for QA and for anyone trying to
 3. `BackupSetupModal` appears on top of the first screen.
 4. User picks an Android external folder *or* taps "Skip — use app storage anyway" *or* (iOS) reads the explanation and taps "Got it".
 5. Setting `backup_setup_done = "true"`. Modal dismisses.
-6. App lands on the Home tab. Default categories visible from Categories tab. No accounts yet.
+6. App lands on the Home tab. Default categories visible from Settings → Categories. No accounts yet.
 
 **Edge cases**
 - User force-quits during the setup modal → next launch shows it again.
@@ -278,7 +278,7 @@ Shows balance/debt/available credit (depending on type), transactions for this a
 ## 4. Categories
 
 ### 4.1 Create a category
-**Trigger**: Categories tab FAB.
+**Trigger**: Settings → Categories → FAB. (Categories was a top-level tab in v1.x; v2.0 lives under Settings to free up bottom-bar real estate for Home / Transactions / Analytics / Accounts.)
 
 1. Form: name, color, icon (icon picker has a search), isIncome / isExpense flags.
 2. On save, the category is created with `isSystem = false` and a `General` subcategory is auto-inserted.

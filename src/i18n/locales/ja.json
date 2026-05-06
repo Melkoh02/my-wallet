@@ -262,6 +262,8 @@
     "cashbackFulfilled": "キャッシュバック受領済み",
     "cashbackPending": "保留中",
     "cashbackAccount": "キャッシュバック口座",
+    "categories": "カテゴリー",
+    "categoriesDesc": "カスタムカテゴリーとサブカテゴリーで取引を整理",
     "templates": "テンプレート",
     "templatesDesc": "よく使う取引のショートカット",
     "contacts": "連絡先",
@@ -499,7 +501,6 @@
   "tabs": {
     "home": "ホーム",
     "transactions": "取引",
-    "categories": "カテゴリー",
     "accounts": "口座"
   },
   "fab": {

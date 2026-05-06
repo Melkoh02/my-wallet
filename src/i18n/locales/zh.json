@@ -262,6 +262,8 @@
     "cashbackFulfilled": "返现已到账",
     "cashbackPending": "待处理",
     "cashbackAccount": "返现账户",
+    "categories": "类别",
+    "categoriesDesc": "用自定义类别和子类别来整理交易",
     "templates": "模板",
     "templatesDesc": "常用交易的快捷方式",
     "contacts": "联系人",
@@ -499,7 +501,6 @@
   "tabs": {
     "home": "首页",
     "transactions": "交易",
-    "categories": "分类",
     "accounts": "账户"
   },
   "fab": {

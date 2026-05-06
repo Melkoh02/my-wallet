@@ -38,6 +38,7 @@ function AppStack() {
         <Stack.Screen name="settings/index" />
         <Stack.Screen name="settings/themes" />
         <Stack.Screen name="settings/backup" />
+        <Stack.Screen name="settings/security" />
       </Stack>
       <AppStatusBar />
       <BackupSetupModal visible={needsBackupSetup} onComplete={dismissBackupSetup} />

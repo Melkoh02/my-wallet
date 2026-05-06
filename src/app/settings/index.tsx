@@ -9,10 +9,12 @@ import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { Divider } from "@/components/atoms/Divider";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
+import { PinEntryModal } from "@/components/molecules/PinEntryModal";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePrivacy } from "@/providers/PrivacyProvider";
 import { getSetting, setSetting } from "@/db/queries/settings";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { refreshExchangeRates, getAccountCurrencies } from "@/services/exchangeRate.service";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -255,6 +257,8 @@ export default function SettingsScreen() {
   const { invalidate, revisions } = useDataRefresh();
   const { language, changeLanguage } = useLanguage();
   const { randomNumbers, toggleRandomNumbers } = usePrivacy();
+  const randomToggleGate = useAuthGate("random_toggle");
+  const backupGate = useAuthGate("backup");
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [autoAddLocation, setAutoAddLocation] = useState(false);
   const [hideDefault, setHideDefault] = useState(false);
@@ -410,7 +414,7 @@ export default function SettingsScreen() {
         icon="cloud-upload"
         title={t("settings.backup")}
         subtitle={t("settings.backupDesc")}
-        onPress={() => router.push("/settings/backup")}
+        onPress={() => backupGate.guard(() => router.push("/settings/backup"))}
       />
       <Divider />
       <SettingsRow
@@ -467,7 +471,15 @@ export default function SettingsScreen() {
         title={t("settings.randomNumbers")}
         subtitle={t("settings.randomNumbersDesc")}
         value={randomNumbers}
-        onToggle={toggleRandomNumbers}
+        onToggle={(v) => {
+          // why: gate only the disabling direction — turning random OFF reduces protection
+          // (real numbers become visible). Enabling random doesn't need auth.
+          if (randomNumbers && !v) {
+            randomToggleGate.guard(() => toggleRandomNumbers());
+          } else {
+            toggleRandomNumbers();
+          }
+        }}
       />
       <SettingsToggle
         icon="shuffle-variant"
@@ -478,6 +490,14 @@ export default function SettingsScreen() {
           setRandomDefault(v);
           await setSetting("privacy_random_default", v.toString());
         }}
+      />
+      <Divider />
+
+      <SettingsRow
+        icon="shield-key"
+        title={t("settings.security")}
+        subtitle={t("settings.securityDesc")}
+        onPress={() => router.push("/settings/security" as never)}
       />
       <Divider />
 
@@ -522,6 +542,10 @@ export default function SettingsScreen() {
         onConfirm={confirmCurrencyChange}
         onCancel={() => setPendingCurrency(null)}
       />
+      {/* Auth gates render their own PIN modal — only ever visible when biometric
+          fails or isn't configured AND a PIN is set for the protected action. */}
+      <PinEntryModal {...randomToggleGate.pinModal} title={t("security.pinPrompt.verifyTitle")} />
+      <PinEntryModal {...backupGate.pinModal} title={t("security.pinPrompt.verifyTitle")} />
     </ScreenLayout>
   );
 }

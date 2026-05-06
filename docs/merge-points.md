@@ -320,6 +320,31 @@ Each entry has:
 
 ---
 
+### 13. `useAuthGate` — the protected-action gate
+
+**Files**: `src/hooks/useAuthGate.ts` (the hook), `src/services/auth.service.ts` (biometric + PIN primitives), `src/components/molecules/PinEntryModal.tsx` (the PIN UI).
+
+**Converges here**:
+- All paths that perform a protected action (currently: disabling random-numbers, opening Backups).
+- Reading the per-action protected setting (`security_protected_*`).
+- Biometric availability (hardware check + enrollment check + user-enabled flag).
+- PIN verification (hash compare).
+- The PIN modal's verify flow.
+
+**Invariants**:
+1. Gate order is biometric → PIN → fall-through. If biometric is configured and succeeds, no PIN prompt is shown.
+2. When the protected setting is "true" but no auth method is configured, the gate falls through and runs the callback. The Settings screen disables protected toggles in that state, but the hook itself stays defensive.
+3. PIN hash is `sha256(salt + pin)`, salt is 16 random bytes per user. Threat model is "casual peek"; not designed for offline-attacker resistance — see `glossary.md` § Security.
+
+**Touch radius**:
+- Adding a new protected action: extend `ProtectedAction`, register a settings key (`security_protected_<name>`), add a Switch on `settings/security`, wrap the action's call site with `useAuthGate(name).guard(callback)`, render the matching `<PinEntryModal>` near the call site.
+- Changing the gate order or fall-through behaviour affects every protected call site at once. Test with: biometric+PIN, biometric only, PIN only, neither, while the protected setting toggles on/off.
+- The PIN modal is rendered per-call-site (each `useAuthGate` call has its own modal state). Sharing one modal across actions would be a refactor — currently fine because at most one gate is active at a time.
+
+**Tested by**: `flows.md` §9.7, §9.8, §9.9.
+
+---
+
 ## Quick-reference: changing X breaks Y
 
 | If you change... | You should re-test or re-read... |
@@ -333,3 +358,4 @@ Each entry has:
 | `DataRefreshProvider`'s `EntityKey` | Every `invalidate` call site, the backup restore `invalidateAll` |
 | `AmountDisplay` | Every number anywhere in the UI |
 | Boot pipeline ordering | First launch, every cold start, the backup-setup gate |
+| `useAuthGate` order or fall-through | Every protected-action call site (random-toggle, Backups, future) |

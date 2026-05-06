@@ -259,7 +259,38 @@
     "templates": "テンプレート",
     "templatesDesc": "よく使う取引のショートカット",
     "changelog": "変更履歴",
-    "changelogDesc": "各バージョンの変更点を確認"
+    "changelogDesc": "各バージョンの変更点を確認",
+    "security": "セキュリティ",
+    "securityDesc": "生体認証、PIN、保護されたアクション"
+  },
+  "security": {
+    "title": "セキュリティ",
+    "methodsHeader": "認証方法",
+    "biometric": "生体認証",
+    "biometricDesc": "Face ID / Touch ID / 指紋を使用",
+    "biometricNotEnrolled": "このデバイスに生体認証が登録されていません。まずデバイスの設定で登録してください。",
+    "biometricNotSupported": "このデバイスは生体認証に対応していません。",
+    "pinSet": "PIN設定済み",
+    "setPin": "PINを設定",
+    "changePin": "PINを変更",
+    "removePin": "PINを削除",
+    "removePinConfirmTitle": "PINを削除しますか?",
+    "removePinConfirmMessage": "PINを削除すると、生体認証のみが認証手段になります。生体認証が失敗または無効になった場合、保護されたアクションは認証なしで実行されます。",
+    "protectedHeader": "保護されたアクション",
+    "protectedDesc": "これらのアクションの前に認証を要求",
+    "protectedNoAuthHint": "上で生体認証またはPINを設定して保護を有効にしてください。",
+    "protectedRandomToggle": "ランダム数字を無効にする",
+    "protectedRandomToggleDesc": "ランダム数字プライバシーモードをオフにする際に認証を要求",
+    "protectedBackup": "バックアップ画面",
+    "protectedBackupDesc": "バックアップ画面を開く際に認証を要求",
+    "biometricPrompt": "続行するには認証してください",
+    "pinPrompt": {
+      "verifyTitle": "PINを入力",
+      "setupTitle": "PINを設定",
+      "confirmTitle": "PINを確認",
+      "mismatch": "PINが一致しません — もう一度お試しください",
+      "incorrect": "PINが正しくありません"
+    }
   },
   "templates": {
     "title": "テンプレート",

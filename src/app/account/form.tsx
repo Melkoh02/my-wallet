@@ -1,8 +1,9 @@
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { sql } from "drizzle-orm";
 import { ModalLayout } from "@/components/templates/ModalLayout";
-import { AccountForm } from "@/components/organisms/AccountForm";
+import { AccountForm, type LinkedTransferOptions } from "@/components/organisms/AccountForm";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import {
@@ -15,6 +16,9 @@ import {
   AccountInUseError,
   AccountCurrencyLockedError,
 } from "@/db/queries/accounts";
+import { createTransaction } from "@/db/queries/transactions";
+import { db } from "@/db/client";
+import { todayDateString, nowTimeString } from "@/utils/format";
 import type { Account, NewAccount } from "@/db/schema";
 
 export default function AccountFormScreen() {
@@ -42,10 +46,40 @@ export default function AccountFormScreen() {
     }
   }, [params.id, revisions.transactions]);
 
-  const handleSubmit = async (data: NewAccount) => {
+  const handleSubmit = async (data: NewAccount, linked?: LinkedTransferOptions) => {
     try {
       if (initial) {
         await updateAccount(initial.id, data);
+      } else if (linked) {
+        // invariant: account create + offsetting transfer must be atomic. partial failure
+        // would leave a loan with no money or the linked account out of sync.
+        // direction encodes the loan side: borrowed → loan→linked (loan gets debited to
+        // -amount, linked credited +amount); lent → linked→loan (linked debited -amount,
+        // loan credited +amount). data.balance is already 0 from the form for this path.
+        await db.run(sql`BEGIN TRANSACTION`);
+        try {
+          const loanAcc = await createAccount(data);
+          const isBorrowed = data.type === "loan_borrowed";
+          const desc = isBorrowed
+            ? t("accounts.linkedTransferDescBorrowed", { name: data.name })
+            : t("accounts.linkedTransferDescLent", { name: data.name });
+          await createTransaction(
+            {
+              type: "transfer",
+              amount: linked.transferAmount,
+              description: desc,
+              accountId: isBorrowed ? loanAcc.id : linked.linkedAccountId,
+              toAccountId: isBorrowed ? linked.linkedAccountId : loanAcc.id,
+              date: todayDateString(),
+              time: nowTimeString(),
+            },
+            [],
+          );
+          await db.run(sql`COMMIT`);
+        } catch (e) {
+          await db.run(sql`ROLLBACK`);
+          throw e;
+        }
       } else {
         await createAccount(data);
       }

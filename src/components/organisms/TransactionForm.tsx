@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { View, ScrollView, Switch, Pressable, StyleSheet, TextInput, FlatList } from "react-native";
 import { useTranslation } from "react-i18next";
 import { AppInput } from "@/components/atoms/AppInput";
@@ -73,7 +73,33 @@ export function TransactionForm({
   const { colors } = useTheme();
   const { t } = useTranslation();
   const amountRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const isEditing = !!initialData;
+
+  // Bring a focused input above the keyboard. Android resizes the window via
+  // adjustResize, but inputs deeper in the form (split-bill rows, cashback)
+  // can still sit below the visible area — RN's scroll-responder helper scrolls
+  // the input's native handle so it lands ~120px above the keyboard. Param is
+  // typed loose because TextInput's onFocus signature differs subtly between
+  // RN 0.83 and React 19 type bundles; runtime contract (e.target = number) is
+  // stable.
+  // gotcha: `scrollResponderScrollNativeHandleToKeyboard` exists at runtime on
+  // the scroll responder but isn't in the public types — cast through unknown.
+  const scrollInputIntoView = useCallback((e: { target?: unknown }) => {
+    const responder = scrollRef.current?.getScrollResponder();
+    const scrollFn = (
+      responder as unknown as {
+        scrollResponderScrollNativeHandleToKeyboard?: (
+          node: number,
+          additionalOffset: number,
+          preventNegativeScrollOffset: boolean,
+        ) => void;
+      }
+    )?.scrollResponderScrollNativeHandleToKeyboard;
+    if (scrollFn && typeof e?.target === "number") {
+      scrollFn.call(responder, e.target, 120, true);
+    }
+  }, []);
 
   // Core fields
   const [type, setType] = useState<TransactionType>(
@@ -117,6 +143,22 @@ export function TransactionForm({
   const [cashbackAccountId, setCashbackAccountId] = useState<number | null>(
     initialData?.cashbackAccountId ?? null,
   );
+  // Tracks whether the user has manually picked a cashback destination. Once
+  // touched, we stop auto-tracking the from-account. Editing an existing
+  // transaction is always treated as touched — preserves whatever was saved,
+  // even for legacy rows where cashbackEnabled was true but cashbackAccountId
+  // was inconsistent (null). New transactions start untouched and follow the
+  // from-account until the user picks a different destination.
+  const cashbackAccountIdTouchedRef = useRef(isEditing);
+  // Auto-default cashback destination to the from-account: fires when cashback
+  // toggles on or when the from-account changes (until the user manually picks
+  // a different destination, at which point the touched ref stops the
+  // auto-tracking).
+  useEffect(() => {
+    if (cashbackEnabled && !cashbackAccountIdTouchedRef.current && accountId !== null) {
+      setCashbackAccountId(accountId);
+    }
+  }, [cashbackEnabled, accountId]);
   const [instantCashback, setInstantCashback] = useState(initialData?.instantCashback ?? false);
 
   // Split bill
@@ -352,6 +394,7 @@ export function TransactionForm({
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
@@ -640,6 +683,7 @@ export function TransactionForm({
                         ? t("transactionForm.cashbackPercentPlaceholder")
                         : t("transactionForm.cashbackFlatPlaceholder")
                     }
+                    onFocus={scrollInputIntoView}
                   />
                 </View>
               </View>
@@ -750,6 +794,7 @@ export function TransactionForm({
                           prev.map((p, i) => (i === idx ? { ...p, name: text } : p)),
                         )
                       }
+                      onFocus={scrollInputIntoView}
                     />
                   )}
                   <AppInput
@@ -762,6 +807,7 @@ export function TransactionForm({
                       )
                     }
                     keyboardType="decimal-pad"
+                    onFocus={scrollInputIntoView}
                   />
                   <View style={styles.splitPaidRow}>
                     <AppText variant="caption" color={colors.textSecondary} style={styles.flex}>
@@ -905,7 +951,10 @@ export function TransactionForm({
         items={accounts}
         keyExtractor={(item) => item.id.toString()}
         selectedKey={cashbackAccountId?.toString()}
-        onSelect={(item) => setCashbackAccountId(item.id)}
+        onSelect={(item) => {
+          cashbackAccountIdTouchedRef.current = true;
+          setCashbackAccountId(item.id);
+        }}
         onClose={() => setShowCashbackAccountPicker(false)}
         renderItem={(item, isSelected) => (
           <>

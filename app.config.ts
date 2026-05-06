@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 
 const IS_DEV = process.env.APP_VARIANT === "development";
 
-const VERSION = "1.8.3";
+const VERSION = "1.9.0";
 
 // Android requires a monotonically-increasing integer per release. Derive it
 // deterministically from the version string: major*10000 + minor*100 + patch.
@@ -29,6 +29,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       UIFileSharingEnabled: true,
       LSSupportsOpeningDocumentsInPlace: true,
+      NSFaceIDUsageDescription:
+        "Use Face ID to authenticate before performing protected actions in My Wallet (e.g. opening Backups or disabling random-numbers privacy mode).",
     },
   },
   android: {
@@ -62,6 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-sharing",
     "@react-native-community/datetimepicker",
     "expo-localization",
+    "expo-local-authentication",
   ],
   experiments: {
     typedRoutes: true,

@@ -198,13 +198,31 @@ Same as expense, but type = `income`. `delta = +amount`.
 2. Fields shown depend on the type:
    - All: name, institution, color, icon, currency, includeInNetWorth.
    - `credit`: creditLimit, initialBalance (= initial available credit).
-   - `loan_borrowed` / `loan_lent`: counterparty (typed or picked from contacts), interestRate, dueDate, loanAmount.
+   - `loan_borrowed` / `loan_lent`: counterparty (typed or picked from contacts), interestRate, dueDate, loanAmount, **optional Linked account** (see 3.1.1).
    - `investment`: interestRate (annual %).
 3. Save → `accounts` invalidates → account appears in the list.
 
 **Edge cases**
 - Currency picker locked = false on a brand-new account. After the first transaction lands, it becomes locked (see 3.4).
 - Creating a `loan_borrowed` with a positive starting balance is technically allowed but means "lender owes me from day one" — usually a data-entry mistake.
+
+### 3.1.1 Loan with a linked real account (optional)
+**Trigger**: New Account form → type = `loan_borrowed` or `loan_lent` → pick a non-loan account in the same currency from the **Linked account** picker.
+
+When a linked account is set, the loan account opens at `balance: 0` and an atomic transfer is created on save so the user doesn't have to record the inflow/outflow manually:
+
+- **Borrowed**: transfer FROM loan TO linked account. End state: loan = `-loanAmount`, linked = `+loanAmount`. Models "the lender wired me the money into my checking account."
+- **Lent**: transfer FROM linked account TO loan. End state: linked = `-loanAmount`, loan = `+loanAmount`. Models "I sent the money to the borrower from my checking account."
+
+Both writes happen inside `BEGIN/COMMIT/ROLLBACK` — partial failure rolls back so neither side ends up out of sync.
+
+**Touches**: `accounts`, `transactions`. Both invalidate together.
+
+**Edge cases**
+- The linked-account picker only appears when at least one same-currency non-loan account exists. With a brand-new install (no other accounts), the field is hidden — the user falls back to setting initial balance directly.
+- Changing the loan currency or switching type away from a loan resets the linked-account selection.
+- Linked is **create-only**: the field doesn't appear when editing an existing loan. To add money to an existing loan account after the fact, create a transfer manually.
+- Cross-currency linking is not supported in v1 — the picker filters out accounts in different currencies. (Cross-currency loan disbursement adds `toAmount` UX complexity that's out of scope for now.)
 
 ### 3.2 Account detail screen
 Shows balance/debt/available credit (depending on type), transactions for this account, and type-specific action buttons:
@@ -349,10 +367,11 @@ Standard CRUD via the template list screen.
 **Trigger**: New transaction (expense) → "Instant cashback" toggle on, "Confirm Cashback Received" on.
 
 1. User picks mode (flat or %), enters value, picks the cashback destination account.
-2. On save, the form creates **two** rows:
+2. **Smart default**: when cashback is toggled on (and the user hasn't manually picked a destination), the destination defaults to the **from-account** of the transaction. If the user later changes the from-account before save, the destination follows — until the user picks a specific destination from the modal, at which point the auto-tracking stops.
+3. On save, the form creates **two** rows:
    - The expense itself, with `cashbackAmount` populated.
    - An income row in the destination account (description: "Cashback: …"), linked back via `linkedTransactionId`.
-3. Editing the original cashback expense deletes the old linked row and re-creates it from the edited form values; deleting the original cascades the link.
+4. Editing the original cashback expense deletes the old linked row and re-creates it from the edited form values; deleting the original cascades the link.
 
 ### 7.2 Pending cashback (mark as received later)
 **Trigger**: same form, "Confirm Cashback Received" toggle off.
@@ -455,6 +474,35 @@ Standard CRUD via the template list screen.
 
 ### 9.6 Open Recurring / Templates / Themes / Backup / Changelog
 Each is its own screen reachable from Settings. Recurring and Templates have their own FABs; Themes and Backup are managed inline.
+
+### 9.7 Security: biometric + PIN setup
+**Trigger**: Settings → Security.
+
+1. **Authentication methods**:
+   - **Biometric** Switch — disabled with helper text when the device has no biometric hardware or the user hasn't enrolled biometric at the OS level. Otherwise toggling on writes `security_biometric_enabled = "true"`.
+   - **Set / Change PIN** row → opens `PinEntryModal` in setup mode. The user enters the PIN twice; mismatch resets to phase 1 with a "PINs don't match" error. On a confirmed match, the PIN is hashed (`sha256("{salt}:{pin}")` with a fresh 16-byte salt) and stored.
+   - **Remove PIN** row → confirm dialog explains the consequences ("if biometric also fails, protected actions will run without auth"), then clears the hash + salt.
+2. **Protected actions** section — each its own Switch. Switches are disabled with a hint when neither biometric nor PIN is configured. Toggle on writes `security_protected_<action> = "true"`.
+
+**Edge cases**
+- Toggling biometric on when hardware is present but not enrolled: the switch refuses to flip; helper text directs the user to OS settings.
+- Removing the PIN while biometric is also off effectively disables all protections — the gate hook falls through and runs callbacks unconditionally. The confirm dialog spells this out.
+- The "random by default" toggle is *not* protected (only affects future cold starts).
+
+### 9.8 Disabling random-numbers (when protected)
+**Trigger**: Settings → Privacy → "Random numbers" → toggle off, with `security_protected_random_toggle = "true"` and at least one auth method configured.
+
+1. The toggle's onValueChange detects the off direction and calls `useAuthGate("random_toggle").guard(...)`.
+2. If biometric is on + enrolled, the OS biometric prompt appears.
+3. If biometric isn't configured or fails/cancels, and a PIN is set, `PinEntryModal` opens in verify mode.
+4. On success, the random-numbers privacy mode turns off. On cancel, the switch remains in the original (on) position.
+
+Turning random ON is unprotected — it increases protection.
+
+### 9.9 Opening Backups (when protected)
+**Trigger**: Settings → Backup row → tapping it, with `security_protected_backup = "true"`.
+
+Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is aborted. The Backup screen itself is unchanged once opened.
 
 ---
 

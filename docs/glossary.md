@@ -46,8 +46,12 @@ Per-account opt-out. The account still tracks its own transactions and balance; 
 ### `loan_borrowed`
 Money the user **owes**. Created with a starting `balance` typically negative (e.g. user borrowed 1000 → balance = −1000). Receiving money from the lender (income) makes it more negative; paying the lender (expense / transfer out from a debit account) makes it less negative. When `balance` crosses 0 the loan is settled; positive means the user overpaid (lender owes them money). Optional fields: `interestRate`, `dueDate`, `counterparty`, `counterpartyContactId`.
 
+> **Linked-account create flow**: at create time, AccountForm has an optional "Linked account" picker for `loan_borrowed` and `loan_lent`. If set, the loan account opens at `0` and an atomic transfer is created — `loan_borrowed` ⇒ transfer FROM loan TO linked (loan ends at `-amount`, linked at `+amount`), modelling "the lender deposited the money into my real account." Avoids the prior workflow of creating the loan AND a separate income transaction. Same-currency only in v1; create-only (not exposed on edit). See `flows.md` §3.1.1.
+
 ### `loan_lent`
 Money the user **lent out**. Starts positive (user lent 1000 → balance = 1000). Payments from the counterparty are recorded as transfers *into* the user's debit/cash account, drawing this account's balance down toward zero. A `loan_lent` account is also created automatically by **Split Bill** for each owing person.
+
+> **Linked-account create flow**: same as `loan_borrowed` (above), but the transfer goes the other way — FROM the linked real account TO the loan (linked at `-amount`, loan at `+amount`), modelling "I sent the money to the borrower from my checking account."
 
 ### `credit`
 Card with a `creditLimit` and a `balance` representing **available credit, not debt**. This inversion is the single most non-obvious thing in the codebase — see the migration note below.
@@ -163,9 +167,7 @@ UI-only. `maskAmount(real)` returns a stable fake number for that real amount wi
 ## Currency & exchange rates
 
 ### Display currency
-Per-user setting (`display_currency`, default `USD`). Every total — net worth, month income/expense, analytics, account totals — is converted to this currency before being shown.
-
-> **Note**: `DEFAULT_SETTINGS` in `src/constants/settings.ts` seeds `currency` (legacy key); the active code reads `display_currency`. New databases get `USD` from the fallback in `getDisplayCurrency`. The unused `currency` seed is harmless but should be reconciled.
+Per-user setting (`display_currency`, default `USD`). Every total — net worth, month income/expense, analytics, account totals — is converted to this currency before being shown. New databases don't seed this key — `getDisplayCurrency` falls back to `USD` when unset, so the seed would be redundant.
 
 ### `CurrencyConverter` (`exchangeRate.service.ts`)
 Pre-loads display currency + rates **once** so aggregate queries can convert synchronously over many rows. `convert(amount, fromCurrency)` divides by the rate (since the API expresses rates as "1 displayCurrency = N fromCurrency"). `hasRateFor` lets callers detect missing rates.
@@ -237,6 +239,12 @@ Stored in the `settings` table, every value is a string.
 | `privacy_random_default`   | Activate randomNumbers on app open           | unset (off)            |
 | `language`                 | Active locale code                           | device locale          |
 | `exchange_rates_cache`     | Cached `{base, rates, updatedAt}` JSON       | unset                  |
+| **Security**               |                                              |                        |
+| `security_biometric_enabled`     | Use biometric (Face ID / Touch ID / fingerprint) for protected actions | unset (off) |
+| `security_pin_hash`              | SHA-256 hex of `salt:pin`. Empty string when no PIN set | unset                  |
+| `security_pin_salt`              | 16-byte random hex salt paired with `security_pin_hash` | unset                  |
+| `security_protected_random_toggle` | Require auth when turning the in-session "random numbers" toggle off | unset (off) |
+| `security_protected_backup`      | Require auth when opening the Backups screen | unset (off)            |
 | **One-time data flags**    |                                              |                        |
 | `credit_balance_migrated`  | v1.0.1 credit-balance semantic flip          | set once               |
 | `txn_currency_backfilled`  | Phase-2 currency column backfill             | set once               |
@@ -304,6 +312,26 @@ Pulled lazily from device contacts via `expo-contacts`. The app **never copies c
 - Recurring transactions, themes, templates, transactions: hard delete.
 
 ---
+
+## Security: biometric + PIN
+
+The app gates a configurable set of "protected actions" behind biometric authentication (Face ID / Touch ID / fingerprint via `expo-local-authentication`) with a 6-digit PIN as fallback.
+
+### Authentication methods
+- **Biometric** — toggle on `security_biometric_enabled`. Only effective when the device has hardware AND the user has enrolled at the OS level. The Settings screen disables the switch with helper text when either check fails.
+- **PIN** — 6 digits, stored as `sha256("{salt}:{pin}")` (colon delimiter) with a 16-byte random `salt` per user. Set/change/remove from `settings/security`.
+
+> **Threat model**: a casual peeker who has the unlocked phone tries to bypass random-numbers / backups in seconds. SHA-256 + salt is enough to prevent visual peek, *not* to resist a determined attacker who exfiltrates the settings table. Don't lean on this for actual confidentiality of stored data.
+
+### Protected actions
+Each protected action is its own setting key (`security_protected_*`). The Settings screen has switches for the available actions; switches are disabled with a hint when no auth method is configured. Currently:
+- `security_protected_random_toggle` — gates *disabling* the in-session random-numbers toggle. Turning random ON is unprotected (it increases protection).
+- `security_protected_backup` — gates opening the Backups screen.
+
+### `useAuthGate(action)` hook
+Returns `{ guard, pinModal }`. Call `guard(callback)` before running the protected action; the callback runs only after auth passes (or immediately if the action isn't marked protected). Order is biometric (when enabled + hardware + enrolled) → PIN (when set) → fall-through. The `pinModal` props are spread onto a `<PinEntryModal>` rendered by the consumer.
+
+When `setting === "true"` but no auth method is configured, the gate falls through and runs the callback. The Settings screen blocks this state by disabling the protected toggles when no auth exists, but the gate stays defensive.
 
 ## Error types worth knowing
 

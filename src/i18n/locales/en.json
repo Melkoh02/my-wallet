@@ -121,7 +121,13 @@
     "loanPaymentDesc": "Loan payment: {{name}}",
     "loanReceivedDesc": "Loan received: {{name}}",
     "exceedsRemaining": "Amount exceeds remaining balance",
-    "payCard": "Pay Card"
+    "payCard": "Pay Card",
+    "linkedAccount": "Linked account",
+    "linkedAccountNone": "None — set initial balance manually",
+    "linkedAccountBorrowedHint": "Where the borrowed money was deposited (auto-records the inflow into that account)",
+    "linkedAccountLentHint": "Where the money came from (auto-records the outflow from that account)",
+    "linkedTransferDescBorrowed": "Borrowed: {{name}}",
+    "linkedTransferDescLent": "Lent: {{name}}"
   },
   "categories": {
     "title": "Categories",
@@ -253,7 +259,38 @@
     "templates": "Templates",
     "templatesDesc": "Quick-fill transaction shortcuts",
     "changelog": "Changelog",
-    "changelogDesc": "See what's new in each version"
+    "changelogDesc": "See what's new in each version",
+    "security": "Security",
+    "securityDesc": "Biometric, PIN, and protected actions"
+  },
+  "security": {
+    "title": "Security",
+    "methodsHeader": "Authentication methods",
+    "biometric": "Biometric",
+    "biometricDesc": "Use Face ID / Touch ID / fingerprint",
+    "biometricNotEnrolled": "No biometric is enrolled on this device. Set one up in your device settings first.",
+    "biometricNotSupported": "Your device doesn't support biometric authentication.",
+    "pinSet": "PIN is set",
+    "setPin": "Set PIN",
+    "changePin": "Change PIN",
+    "removePin": "Remove PIN",
+    "removePinConfirmTitle": "Remove PIN?",
+    "removePinConfirmMessage": "Without a PIN, biometric will be the only way to authenticate. If biometric fails or gets disabled, protected actions will run without authentication.",
+    "protectedHeader": "Protected actions",
+    "protectedDesc": "Require authentication before performing these actions",
+    "protectedNoAuthHint": "Set up biometric or a PIN above to enable protected actions.",
+    "protectedRandomToggle": "Disabling random numbers",
+    "protectedRandomToggleDesc": "Require auth to turn off random-numbers privacy mode",
+    "protectedBackup": "Backups screen",
+    "protectedBackupDesc": "Require auth to open the Backups screen",
+    "biometricPrompt": "Authenticate to continue",
+    "pinPrompt": {
+      "verifyTitle": "Enter PIN",
+      "setupTitle": "Set PIN",
+      "confirmTitle": "Confirm PIN",
+      "mismatch": "PINs don't match — try again",
+      "incorrect": "Incorrect PIN"
+    }
   },
   "templates": {
     "title": "Templates",

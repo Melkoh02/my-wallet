@@ -121,7 +121,13 @@
     "loanPaymentDesc": "贷款还款：{{name}}",
     "loanReceivedDesc": "贷款收回：{{name}}",
     "exceedsRemaining": "金额超过剩余余额",
-    "payCard": "还信用卡"
+    "payCard": "还信用卡",
+    "linkedAccount": "关联账户",
+    "linkedAccountNone": "无 — 手动设置初始余额",
+    "linkedAccountBorrowedHint": "借入资金存入的账户（自动记录该账户的资金流入）",
+    "linkedAccountLentHint": "资金来源账户（自动记录该账户的资金流出）",
+    "linkedTransferDescBorrowed": "借入：{{name}}",
+    "linkedTransferDescLent": "借出：{{name}}"
   },
   "categories": {
     "title": "分类",
@@ -253,7 +259,38 @@
     "templates": "模板",
     "templatesDesc": "常用交易的快捷方式",
     "changelog": "更新日志",
-    "changelogDesc": "查看每个版本的更新内容"
+    "changelogDesc": "查看每个版本的更新内容",
+    "security": "安全",
+    "securityDesc": "生物识别、PIN码和受保护的操作"
+  },
+  "security": {
+    "title": "安全",
+    "methodsHeader": "认证方式",
+    "biometric": "生物识别",
+    "biometricDesc": "使用面容ID / Touch ID / 指纹",
+    "biometricNotEnrolled": "本设备未注册生物识别。请先在系统设置中设置。",
+    "biometricNotSupported": "您的设备不支持生物识别认证。",
+    "pinSet": "PIN码已设置",
+    "setPin": "设置PIN码",
+    "changePin": "更改PIN码",
+    "removePin": "移除PIN码",
+    "removePinConfirmTitle": "移除PIN码？",
+    "removePinConfirmMessage": "没有PIN码后，生物识别将成为唯一的认证方式。如果生物识别失败或被禁用，受保护的操作将无需认证即可执行。",
+    "protectedHeader": "受保护的操作",
+    "protectedDesc": "在执行这些操作前要求认证",
+    "protectedNoAuthHint": "在上方设置生物识别或PIN码以启用受保护的操作。",
+    "protectedRandomToggle": "关闭随机数字",
+    "protectedRandomToggleDesc": "关闭随机数字隐私模式时要求认证",
+    "protectedBackup": "备份页面",
+    "protectedBackupDesc": "打开备份页面时要求认证",
+    "biometricPrompt": "请验证以继续",
+    "pinPrompt": {
+      "verifyTitle": "输入PIN码",
+      "setupTitle": "设置PIN码",
+      "confirmTitle": "确认PIN码",
+      "mismatch": "PIN码不匹配 — 请重试",
+      "incorrect": "PIN码错误"
+    }
   },
   "templates": {
     "title": "模板",

@@ -281,7 +281,10 @@ export default function TransactionFormScreen() {
         }
       }
 
-      invalidate("transactions", "accounts");
+      // why: include "places" so the picker / list re-sort when the new
+      // transaction (or an edited placeId) changes a place's visit count.
+      // Cheap to over-invalidate; missing it leaves stale Frequents order.
+      invalidate("transactions", "accounts", "places");
       router.back();
     } catch (e) {
       console.error("Transaction save failed:", e);

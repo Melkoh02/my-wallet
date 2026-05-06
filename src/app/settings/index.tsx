@@ -334,7 +334,10 @@ export default function SettingsScreen() {
     }
     setDisplayCurrency(currency);
     await setSetting("display_currency", currency);
-    invalidate("settings", "accounts");
+    // why: budgets with currency=null follow display currency, so their
+    // resolvedCurrency + computed spend shifts when display flips. Without
+    // a budgets bump, an open Budgets screen shows stale numbers.
+    invalidate("settings", "accounts", "budgets");
   };
 
   const confirmCurrencyChange = async () => {
@@ -342,7 +345,7 @@ export default function SettingsScreen() {
     setDisplayCurrency(pendingCurrency);
     await setSetting("display_currency", pendingCurrency);
     setPendingCurrency(null);
-    invalidate("settings", "accounts");
+    invalidate("settings", "accounts", "budgets");
   };
 
   const handleRefreshRates = async () => {
@@ -432,13 +435,6 @@ export default function SettingsScreen() {
       />
       <Divider />
       <SettingsRow
-        icon="shape"
-        title={t("settings.categories")}
-        subtitle={t("settings.categoriesDesc")}
-        onPress={() => router.push("/category" as never)}
-      />
-      <Divider />
-      <SettingsRow
         icon="refresh"
         title={t("settings.recurringTransactions")}
         subtitle={t("settings.recurringDesc")}
@@ -457,6 +453,13 @@ export default function SettingsScreen() {
         title={t("settings.contacts")}
         subtitle={t("settings.contactsDesc")}
         onPress={() => router.push("/contact" as never)}
+      />
+      <Divider />
+      <SettingsRow
+        icon="shape"
+        title={t("settings.categories")}
+        subtitle={t("settings.categoriesDesc")}
+        onPress={() => router.push("/category" as never)}
       />
       <Divider />
       <SettingsRow

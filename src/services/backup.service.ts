@@ -29,6 +29,7 @@ import {
   places,
 } from "@/db/schema";
 import { getSetting, setSetting } from "@/db/queries/settings";
+import { runDataMigrations } from "@/db/dataMigrations";
 import { eq, desc, sql } from "drizzle-orm";
 
 const BACKUP_DIR = `${documentDirectory}backups/`;
@@ -274,6 +275,22 @@ async function restoreData(
     if (data.budgets?.length) await db.insert(budgets).values(data.budgets as never[]);
 
     await db.run(sql`COMMIT`);
+
+    // why: restoring an older backup wipes the settings table, including the
+    // *_migrated flags. Re-running the data migrations fills any gaps the
+    // imported snapshot left — most importantly, a v1.x backup has no places
+    // array, so backfillPlaces converts the imported transactions' legacy
+    // lat/lng/locationName into Place records. Without this, the user would
+    // see no Places (and no auto-pick) until the next cold start.
+    try {
+      await runDataMigrations();
+    } catch (migrationErr) {
+      // The transactional import already committed cleanly — surfacing the
+      // migration error here would lie about data state. Log instead; the
+      // boot pipeline will retry on next launch.
+      console.warn("Post-restore data migrations failed:", migrationErr);
+    }
+
     return { success: true };
   } catch (e) {
     await db.run(sql`ROLLBACK`);

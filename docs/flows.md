@@ -657,7 +657,7 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 2. Each row: location icon (greyed when no coords), name, optional address, transaction count, chevron.
 3. Tap a row → `/place/form` in edit mode.
 4. FAB → `/place/form` in create mode.
-5. Form fields: name (required), address (optional), coordinates (optional, capturable via "Use my current location" button which calls `getCurrentLocation`).
+5. Form fields: **name** (required, free-text), **map** (pan to drop a pin — center-pin pattern, MapLibre + OpenFreeMap tiles, see `architecture.md`), **GPS button** (capture current location, pans the map to follow). **Address** is auto-derived: a debounced (800 ms) reverse-geocode runs whenever the coords change and the result is shown read-only under the name; resolution failure is silent (place saves without an address). The place form has no manual address input.
 6. **Archive** (soft-delete): hides the place from pickers and the list but leaves transactions linked. Reversible via "Restore".
 7. **Delete** (hard): removes the row. Linked transactions hold a dangling `place_id` (FK is unenforced); display code falls back to nothing for those rows.
 

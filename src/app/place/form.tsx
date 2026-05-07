@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import { AppButton } from "@/components/atoms/AppButton";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
 import { ConfirmModal } from "@/components/atoms/ConfirmModal";
+import { PlaceMapPicker, type PlaceMapPickerHandle } from "@/components/organisms/PlaceMapPicker";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
 import { spacing } from "@/theme/spacing";
@@ -19,8 +20,10 @@ import {
   unarchivePlace,
   updatePlace,
 } from "@/db/queries/places";
-import { getCurrentLocation } from "@/services/location.service";
+import { getCurrentLocation, reverseGeocodeCoords } from "@/services/location.service";
 import type { NewPlace } from "@/db/schema";
+
+const REVERSE_GEOCODE_DEBOUNCE_MS = 800;
 
 export default function PlaceFormScreen() {
   const router = useRouter();
@@ -31,14 +34,19 @@ export default function PlaceFormScreen() {
   const isEditing = !!params.id;
 
   const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  // why: distinguish "user-typed name" from "captured-by-GPS" so we know which
-  // `source` to set when saving. A migrated place that the user later edits
-  // keeps its 'migrated' source unless they re-capture coords.
+  // why: distinguish "user-typed name" from "captured-by-GPS" so we know
+  // which `source` to set when saving. A migrated place that the user later
+  // edits keeps its 'migrated' source unless they re-capture coords.
   const [originalSource, setOriginalSource] = useState<NewPlace["source"]>("manual");
   const [coordsCapturedNow, setCoordsCapturedNow] = useState(false);
+
+  // Address is auto-derived from the coords via reverse-geocoding. UI shows
+  // it as a read-only caption; never user-typed. Null = not yet resolved or
+  // resolution failed (still saves null on the row, no error shown).
+  const [address, setAddress] = useState<string | null>(null);
+  const [resolvingAddress, setResolvingAddress] = useState(false);
 
   const [fetchingCoords, setFetchingCoords] = useState(false);
   const [coordsError, setCoordsError] = useState("");
@@ -49,13 +57,19 @@ export default function PlaceFormScreen() {
 
   const [loaded, setLoaded] = useState(!isEditing);
 
+  const mapRef = useRef<PlaceMapPickerHandle>(null);
+  const reverseGeocodeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks the most-recent coords we've kicked a reverse-geocode for, so a
+  // late-arriving result for stale coords doesn't overwrite a fresher one.
+  const lastResolveTokenRef = useRef(0);
+
   useEffect(() => {
     if (!params.id) return;
     (async () => {
       const p = await getPlaceById(parseInt(params.id!, 10));
       if (p) {
         setName(p.name);
-        setAddress(p.address ?? "");
+        setAddress(p.address);
         setLatitude(p.latitude);
         setLongitude(p.longitude);
         setOriginalSource(p.source as NewPlace["source"]);
@@ -64,6 +78,43 @@ export default function PlaceFormScreen() {
       setLoaded(true);
     })();
   }, [params.id]);
+
+  // Reverse-geocode coords → human-readable address. Fires when coords
+  // change (whether from map pan, GPS capture, or initial load with a
+  // pre-existing place that has coords but no address). Debounced so a
+  // sweeping map pan doesn't hammer the geocoder.
+  useEffect(() => {
+    if (latitude === null || longitude === null) {
+      setAddress(null);
+      setResolvingAddress(false);
+      return;
+    }
+    if (reverseGeocodeDebounceRef.current) {
+      clearTimeout(reverseGeocodeDebounceRef.current);
+    }
+    setResolvingAddress(true);
+    const token = ++lastResolveTokenRef.current;
+    reverseGeocodeDebounceRef.current = setTimeout(async () => {
+      const resolved = await reverseGeocodeCoords(latitude, longitude);
+      // Discard stale results — user may have moved the pin again before
+      // this geocoder call returned.
+      if (token !== lastResolveTokenRef.current) return;
+      setAddress(resolved);
+      setResolvingAddress(false);
+    }, REVERSE_GEOCODE_DEBOUNCE_MS);
+
+    return () => {
+      if (reverseGeocodeDebounceRef.current) {
+        clearTimeout(reverseGeocodeDebounceRef.current);
+      }
+    };
+  }, [latitude, longitude]);
+
+  const handleCoordsFromMap = (lat: number, lng: number) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    setCoordsCapturedNow(true);
+  };
 
   const handleCaptureCoords = async () => {
     setFetchingCoords(true);
@@ -77,15 +128,19 @@ export default function PlaceFormScreen() {
     setLatitude(stamp.latitude);
     setLongitude(stamp.longitude);
     setCoordsCapturedNow(true);
-    // Pre-fill the name with the reverse-geocoded label only if the user
+    // Pre-fill the name from the GPS-suggested label only if the user
     // hasn't typed anything yet — keeps manual edits sticky.
     if (!name && stamp.name) setName(stamp.name);
+    // Pan the map to the captured coords so the pin visibly tracks the
+    // GPS reading instead of drifting silently.
+    mapRef.current?.recenterToCoords(stamp.latitude, stamp.longitude);
   };
 
   const handleClearCoords = () => {
     setLatitude(null);
     setLongitude(null);
     setCoordsCapturedNow(false);
+    setAddress(null);
   };
 
   const isValid = !!name.trim();
@@ -98,7 +153,7 @@ export default function PlaceFormScreen() {
   const handleSubmit = async () => {
     const data: NewPlace = {
       name: name.trim(),
-      address: address.trim() ? address.trim() : null,
+      address: address && address.trim() ? address.trim() : null,
       latitude,
       longitude,
       source: resolveSource(),
@@ -148,24 +203,35 @@ export default function PlaceFormScreen() {
       onClose={() => router.back()}
     >
       <View style={styles.container}>
-        <AppInput
-          label={t("places.nameLabel")}
-          value={name}
-          onChangeText={setName}
-          placeholder={t("places.namePlaceholder")}
-        />
-
-        <AppInput
-          label={t("places.addressLabel")}
-          value={address}
-          onChangeText={setAddress}
-          placeholder={t("places.addressPlaceholder")}
-        />
+        <View style={styles.section}>
+          <AppInput
+            label={t("places.nameLabel")}
+            value={name}
+            onChangeText={setName}
+            placeholder={t("places.namePlaceholder")}
+          />
+          {/* Read-only address derived from coords. Empty / not-yet-resolved
+              states are quiet — no error UI; the place still saves with
+              null address. */}
+          {hasCoords && (
+            <AppText variant="caption" color={colors.textSecondary}>
+              {resolvingAddress
+                ? t("places.addressResolving")
+                : (address ?? t("places.addressUnknown"))}
+            </AppText>
+          )}
+        </View>
 
         <View style={styles.section}>
           <AppText variant="caption" color={colors.textSecondary}>
-            {t("places.coordsLabel")}
+            {t("places.mapHint")}
           </AppText>
+          <PlaceMapPicker
+            ref={mapRef}
+            latitude={latitude}
+            longitude={longitude}
+            onCoordsChange={handleCoordsFromMap}
+          />
           <View style={[styles.coordsRow, { backgroundColor: colors.card }]}>
             <AppIcon
               name={hasCoords ? "map-marker" : "map-marker-off"}

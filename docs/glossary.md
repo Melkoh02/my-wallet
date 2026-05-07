@@ -292,7 +292,7 @@ Saved locations for tagging transactions. A place is a row in the `places` table
 
 - **`name`** — user-facing label.
 - **`latitude`** / **`longitude`** — optional. A place without coords (e.g., a free-typed name like "Online") never gets auto-picked but still works as a manual tag.
-- **`address`** — optional reverse-geocoded display text.
+- **`address`** — display-only text auto-derived from `latitude`/`longitude` via reverse-geocoding (`Location.reverseGeocodeAsync` on Apple Maps / Android Geocoder). The place form has no manual address input — the column is populated automatically when coords change (debounced 800 ms) and cleared when coords are removed. Resolution failure is silent: address stays null, the place still saves.
 - **`source`** — `"manual"` (user typed a name), `"geocoded"` (captured from current GPS or address lookup), or `"migrated"` (imported from legacy `transactions.locationName` during the v2.0 backfill).
 - **`visitCount`** — denormalised count of transactions linked via `transactions.place_id`. Maintained imperatively by `createTransaction` / `deleteTransaction`; the live JOIN-based count returned by `getPlacesWithStats()` is the source of truth for the list screen, so any drift only affects picker sort order, not displayed totals.
 - **`isActive`** — soft-delete flag. Archived places stay in the DB so transactions still resolve their name; they're hidden from pickers and the list. `archivePlace` flips this to false; `unarchivePlace` flips it back.

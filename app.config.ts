@@ -65,6 +65,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "@react-native-community/datetimepicker",
     "expo-localization",
     "expo-local-authentication",
+    "@maplibre/maplibre-react-native",
   ],
   experiments: {
     typedRoutes: true,

@@ -21,6 +21,31 @@ jest.mock("expo-local-authentication", () => ({
   authenticateAsync: jest.fn(async () => ({ success: false })),
 }));
 
+// expo-location: stub the geocoding helpers so the location.service tests
+// don't need a real Geocoder. Per-test code can override behaviour via
+// `jest.spyOn`.
+jest.mock("expo-location", () => ({
+  Accuracy: { Low: 1, Balanced: 3, High: 4, Highest: 5 },
+  getForegroundPermissionsAsync: jest.fn(async () => ({ status: "denied" })),
+  requestForegroundPermissionsAsync: jest.fn(async () => ({ status: "denied" })),
+  getLastKnownPositionAsync: jest.fn(async () => null),
+  getCurrentPositionAsync: jest.fn(async () => null),
+  reverseGeocodeAsync: jest.fn(async () => []),
+}));
+
+// MapLibre RN — native module. Stubs are minimal because nothing under test
+// actually mounts a map view; they exist so transitive imports don't crash
+// the JS module graph. Names match the v11 API (Map, Camera, Marker,
+// GeoJSONSource, Layer).
+jest.mock("@maplibre/maplibre-react-native", () => ({
+  Map: "Map",
+  Camera: "Camera",
+  Marker: "Marker",
+  GeoJSONSource: "GeoJSONSource",
+  Layer: "Layer",
+  ViewAnnotation: "ViewAnnotation",
+}));
+
 jest.mock("expo-crypto", () => {
   const crypto = require("crypto");
   return {

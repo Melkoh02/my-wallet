@@ -126,9 +126,17 @@ export async function backfillPlaces() {
   // invariant: place inserts AND the flag write commit together. A crash
   // between commit and flag write would re-run the migration on next boot —
   // and without the placeId IS NULL guard above, that meant duplicate places.
-  await db.transaction(async (tx) => {
+  // gotcha: do NOT use `db.transaction(async (tx) => ...)` here. Both Drizzle
+  // SQLite drivers run `transaction()` in "sync" mode — an async callback
+  // returns its Promise immediately, COMMIT fires, and the awaited body
+  // resumes against a closed transaction (every insert auto-commits
+  // individually instead). Manual BEGIN/COMMIT via `db.run(sql)` shares the
+  // single underlying connection with subsequent `db.insert/update` calls
+  // and gives real atomicity. Same pattern as restoreData.
+  await db.run(sql`BEGIN TRANSACTION`);
+  try {
     for (const bucket of buckets) {
-      const inserted = await tx
+      const inserted = await db
         .insert(places)
         .values({
           name: bucket.name,
@@ -140,16 +148,20 @@ export async function backfillPlaces() {
         .returning({ id: places.id });
       const placeId = inserted[0].id;
 
-      await tx
+      await db
         .update(transactions)
         .set({ placeId })
         .where(inArray(transactions.id, bucket.transactionIds));
     }
-    await tx
+    await db
       .insert(settings)
       .values({ key: "places_migrated", value: "true" })
       .onConflictDoNothing();
-  });
+    await db.run(sql`COMMIT`);
+  } catch (e) {
+    await db.run(sql`ROLLBACK`);
+    throw e;
+  }
 }
 
 /**

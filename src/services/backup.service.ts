@@ -229,6 +229,13 @@ async function restoreData(
   // invariant: import is atomic — wrap in BEGIN TRANSACTION; ROLLBACK on any error so the
   // user's existing data is never partially overwritten. delete order = reverse FK dependency
   // order; insert order = FK dependency order. see docs/merge-points.md § restoreData.
+  // gotcha: do NOT switch this to `db.transaction(async (tx) => ...)`. Both
+  // the expo-sqlite and better-sqlite3 Drizzle drivers define `transaction()`
+  // in "sync" mode — an async callback resolves to a Promise that the wrapper
+  // returns immediately, then COMMIT runs and the awaited body executes
+  // against a closed transaction. Manual BEGIN/COMMIT via `db.run(sql\`...\`)`
+  // shares the connection with subsequent `db.delete`/`db.insert` calls and
+  // is the correct pattern here.
   await db.run(sql`BEGIN TRANSACTION`);
   try {
     // invariant: delete in reverse FK order (children before parents) and re-insert in forward

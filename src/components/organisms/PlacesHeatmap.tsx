@@ -89,11 +89,31 @@ export function PlacesHeatmap({ data, onPlacePress, onRegionChange }: PlacesHeat
 
   const { center, zoom } = useMemo<{ center: [number, number]; zoom: number }>(() => {
     if (data.features.length === 0) return { center: [0, 20], zoom: 1 };
+
+    // why: focus the camera on where the heat actually is, not on a bbox
+    // that fits every outlier. Sort features by weight (descending) and
+    // include them until the running total covers DOMINANT_WEIGHT_PCT of
+    // the total weight; fit the camera to that subset's bbox. Result:
+    // a rare-but-far-away place doesn't pull the camera all the way out
+    // to a continental view, while two genuinely-balanced centres of
+    // activity stay visible together.
+    const DOMINANT_WEIGHT_PCT = 0.8;
+    const sorted = [...data.features].sort((a, b) => b.properties.weight - a.properties.weight);
+    const totalWeight = sorted.reduce((s, f) => s + f.properties.weight, 0);
+    const target = totalWeight * DOMINANT_WEIGHT_PCT;
+    let accum = 0;
+    const dominant: typeof sorted = [];
+    for (const f of sorted) {
+      dominant.push(f);
+      accum += f.properties.weight;
+      if (accum >= target) break;
+    }
+
     let minLng = Infinity;
     let minLat = Infinity;
     let maxLng = -Infinity;
     let maxLat = -Infinity;
-    for (const f of data.features) {
+    for (const f of dominant) {
       const [lng, lat] = f.geometry.coordinates;
       if (lng < minLng) minLng = lng;
       if (lng > maxLng) maxLng = lng;

@@ -443,6 +443,9 @@
     "fetchingCoords": "現在地を取得中...",
     "coordsCaptured": "{{lat}}, {{lng}}",
     "noCoords": "座標なし — この場所は自動選択されません",
+    "archivedBanner": "この場所はアーカイブされています。ピッカーには表示されませんが、履歴は保持されます。",
+    "detailEmptyTitle": "ここでの取引はまだありません",
+    "detailEmptyDesc": "この場所で取引にタグを付けると、ここに表示されます",
     "coordsFailed": "現在地を取得できませんでした。座標なしで保存できます。",
     "selectPlace": "場所を選択",
     "searchPlaces": "場所を検索...",
@@ -500,7 +503,11 @@
     "spendingMapEmpty": "まだ表示する支出がありません",
     "spendingMapEmptyDesc": "座標のある場所で取引にタグ付けすると、マップに表示されます",
     "spendingMapExcluded_one": "{{count}}件の取引を除外 — 座標なし",
-    "spendingMapExcluded_other": "{{count}}件の取引を除外 — 座標なし"
+    "spendingMapExcluded_other": "{{count}}件の取引を除外 — 座標なし",
+    "showAllInView": "表示中をすべて表示",
+    "inViewTitle": "現在の表示範囲",
+    "inViewEmpty": "表示範囲内に取引はありません",
+    "inViewEmptyDesc": "マップを動かしたり拡大して取引を探してください"
   },
   "format": {
     "today": "今日",

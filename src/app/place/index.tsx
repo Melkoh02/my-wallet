@@ -42,12 +42,7 @@ export default function PlacesListScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <Pressable
-            onPress={() =>
-              router.push({
-                pathname: "/place/form" as never,
-                params: { id: item.id.toString() },
-              })
-            }
+            onPress={() => router.push(`/place/${item.id}` as never)}
             style={({ pressed }) => [
               styles.row,
               { backgroundColor: pressed ? colors.borderLight : "transparent" },

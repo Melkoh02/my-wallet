@@ -443,6 +443,9 @@
     "fetchingCoords": "正在获取你的位置...",
     "coordsCaptured": "{{lat}}, {{lng}}",
     "noCoords": "无坐标 — 此地点不会自动选择",
+    "archivedBanner": "此地点已归档。不会出现在选择器中，但历史记录会保留。",
+    "detailEmptyTitle": "这里还没有交易",
+    "detailEmptyDesc": "为交易标记此地点以便在此查看",
     "coordsFailed": "无法获取你的位置。可以在没有坐标的情况下保存地点。",
     "selectPlace": "选择地点",
     "searchPlaces": "搜索地点...",
@@ -500,7 +503,11 @@
     "spendingMapEmpty": "暂无消费可显示",
     "spendingMapEmptyDesc": "为交易标记带坐标的地点，即可在地图上查看",
     "spendingMapExcluded_one": "{{count}} 笔交易已排除 — 无地图位置",
-    "spendingMapExcluded_other": "{{count}} 笔交易已排除 — 无地图位置"
+    "spendingMapExcluded_other": "{{count}} 笔交易已排除 — 无地图位置",
+    "showAllInView": "查看视野内全部",
+    "inViewTitle": "当前视野内",
+    "inViewEmpty": "视野内没有交易",
+    "inViewEmptyDesc": "拖动或缩放地图来查找交易"
   },
   "format": {
     "today": "今天",

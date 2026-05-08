@@ -321,6 +321,10 @@ Gated by the `places_migrated` settings flag. Heuristic in `utils/placesMigratio
 ### `BACKUP_VERSION`
 Adding the `places` table is **additive** — same precedent as `budgets`. `BACKUP_VERSION` stays at `1`. The import path tolerates a missing `places` array (`if (data.places?.length) ...`). Place inserts run **before** transactions so FKs resolve in the right order during restore.
 
+### Place detail (`getTransactionsForPlace`)
+
+Tap a place row in Settings → Places — or tap a dot/cluster on the spending heatmap — and the user lands at `/place/{id}`. The screen shows the place header (name, address, coords, archived banner if applicable) plus every transaction tagged to that place, most-recent first. The header bar's pencil icon pushes `/place/form?id={id}` for editing. `getTransactionsForPlace(placeId)` does the heavy lifting via a single indexed-FK lookup; transactions go through the same `enrichTransactionsBatch` as everywhere else, so amount conversion, account names, and place names are all resolved.
+
 ### Spending heatmap (`getPlacesAsGeoJSON`)
 
 Aggregates expense transactions per place into a GeoJSON `FeatureCollection<Point>`, ready to drop into a MapLibre `<Layer type="heatmap">`. Same currency-handling shape as the other aggregates (`AggregateMeta`-style):
@@ -330,6 +334,12 @@ Aggregates expense transactions per place into a GeoJSON `FeatureCollection<Poin
 Filters: only **expense** transactions (income at "the office" doesn't represent spending), only places with non-null coords (the heatmap has no representation for coord-less places). Archived places are *included* — analytics should reflect the full spending history regardless of whether the place is hidden from the picker. Expenses with no place at all, or with a coord-less place, are reported via `excludedTransactionCount` so the UI can footnote "X transactions excluded — no map location".
 
 The `PlacesHeatmap` component normalises weights to 0..1 in JS (max → 1) before feeding them to MapLibre's `heatmap-weight: ["get", "weight"]` expression, so a single $5000 outlier doesn't wash out a hundred $5 entries. The fixed colour gradient and zoom-driven intensity / radius / opacity expressions stay constant across both metrics; only the per-feature weights change.
+
+Two GeoJSON sources back the visualisation:
+- A non-clustered source feeds the heatmap layer with the raw normalised weights so density renders accurately.
+- A clustered source (`cluster: true`, `clusterRadius: 50`, `clusterMaxZoom: 14`) feeds three additional layers — a circle layer for cluster bubbles, a symbol layer rendering `point_count_abbreviated` as the cluster label, and a circle layer for individual place dots filtered by `["!", ["has", "point_count"]]`. Tap dispatch happens on the clustered source's `onPress`: cluster hits ease the camera to the cluster's coordinates at the source's `getClusterExpansionZoom` level (breaks the cluster apart); individual hits emit `onPlacePress(placeId)` for the parent screen to navigate.
+
+The "Show all in view" affordance on `/analytics/places-map` reads the heatmap's `onRegionChange` callback (which forwards `MapLibre`'s `ViewStateChangeEvent.bounds` through `MapView`) into a ref; tapping the floating button calls `getTransactionsInBounds(west, south, east, north)` and opens a modal listing every place-tagged transaction inside the current viewport. The query handles antimeridian-wrapping bounds (`west > east` ORs two longitude ranges).
 
 ## DataRefresh entities
 

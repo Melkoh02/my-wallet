@@ -346,6 +346,64 @@ export async function getTransactionById(
   return enriched;
 }
 
+/**
+ * All transactions linked to a given place_id, most-recent first. Powers
+ * the place detail screen ("what did I buy here?") and the heatmap
+ * tap-on-marker drill-in.
+ */
+export async function getTransactionsForPlace(
+  placeId: number,
+): Promise<TransactionWithRelations[]> {
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.placeId, placeId))
+    .orderBy(desc(transactions.date), desc(transactions.time));
+  if (rows.length === 0) return [];
+  return enrichTransactionsBatch(rows);
+}
+
+/**
+ * Transactions whose linked place's coords fall inside the given lat/lng
+ * bounding box. Powers the "Show all in view" sheet on the spending map —
+ * track the camera viewport, query when the user taps the button.
+ *
+ * Antimeridian: when `west > east` (the box wraps ±180°) we OR two ranges
+ * together so an Asia-Pacific-spanning view doesn't silently exclude
+ * everything. The same logic that lives in `findNearestPlace`.
+ */
+export async function getTransactionsInBounds(bounds: {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}): Promise<TransactionWithRelations[]> {
+  const { west, south, east, north } = bounds;
+  const wrapsAntimeridian = west > east;
+  const lngCondition = wrapsAntimeridian
+    ? or(gte(places.longitude, west), lte(places.longitude, east))
+    : and(gte(places.longitude, west), lte(places.longitude, east));
+
+  const rows = await db
+    .select()
+    .from(transactions)
+    .innerJoin(places, eq(transactions.placeId, places.id))
+    .where(
+      and(
+        gte(places.latitude, south),
+        lte(places.latitude, north),
+        lngCondition,
+        // place must have coords to be in bounds — innerJoin already enforces
+        // placeId IS NOT NULL but the lat/lng IS NOT NULL guard is implicit
+        // via the between filter.
+      ),
+    )
+    .orderBy(desc(transactions.date), desc(transactions.time));
+  if (rows.length === 0) return [];
+  // .innerJoin returns { transactions: row, places: row } — pull the txn out.
+  return enrichTransactionsBatch(rows.map((r) => r.transactions));
+}
+
 export async function createTransaction(
   data: NewTransaction,
   subcategoryIds: number[],

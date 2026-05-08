@@ -34,6 +34,7 @@ function AppStack() {
         <Stack.Screen name="budget/index" />
         <Stack.Screen name="budget/form" options={{ presentation: "modal" }} />
         <Stack.Screen name="place/index" />
+        <Stack.Screen name="place/[id]" />
         <Stack.Screen name="place/form" options={{ presentation: "modal" }} />
         <Stack.Screen name="analytics/places-map" />
         <Stack.Screen name="transaction/form" options={{ presentation: "modal" }} />

@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { View, StyleSheet, Pressable, Modal, FlatList } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
 import { AppText } from "@/components/atoms/AppText";
 import { AppIcon } from "@/components/atoms/AppIcon";
+import { Divider } from "@/components/atoms/Divider";
 import { EmptyState } from "@/components/molecules/EmptyState";
+import { TransactionListItem } from "@/components/organisms/TransactionListItem";
 import { PlacesHeatmap } from "@/components/organisms/PlacesHeatmap";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useDataRefresh } from "@/providers/DataRefreshProvider";
@@ -16,7 +19,9 @@ import {
   type HeatmapMetric,
   type PlacesHeatmapData,
 } from "@/db/queries/places";
+import { getTransactionsInBounds, type TransactionWithRelations } from "@/db/queries/transactions";
 import { loadCurrencyConverter } from "@/services/exchangeRate.service";
+import type { MapRegion } from "@/components/molecules/MapView";
 
 export default function SpendingMapScreen() {
   const router = useRouter();
@@ -26,6 +31,15 @@ export default function SpendingMapScreen() {
   const [metric, setMetric] = useState<HeatmapMetric>("amount");
   const [data, setData] = useState<PlacesHeatmapData | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState<string>("");
+
+  // Latest viewport region from the heatmap. Tracked in a ref because the
+  // "show all in view" button only reads it on tap — no need to re-render
+  // the screen on every camera move.
+  const regionRef = useRef<MapRegion | null>(null);
+  const [viewportSheet, setViewportSheet] = useState<{
+    visible: boolean;
+    transactions: TransactionWithRelations[];
+  }>({ visible: false, transactions: [] });
 
   useEffect(() => {
     let cancelled = false;
@@ -43,6 +57,18 @@ export default function SpendingMapScreen() {
   }, [metric, revisions.transactions, revisions.places, revisions.settings]);
 
   const isEmpty = data !== null && data.geojson.features.length === 0;
+
+  const handlePlacePress = (placeId: number) => {
+    router.push(`/place/${placeId}` as never);
+  };
+
+  const handleShowInView = async () => {
+    const region = regionRef.current;
+    if (!region) return;
+    const [west, south, east, north] = region.bounds;
+    const txns = await getTransactionsInBounds({ west, south, east, north });
+    setViewportSheet({ visible: true, transactions: txns });
+  };
 
   return (
     <ScreenLayout>
@@ -99,9 +125,76 @@ export default function SpendingMapScreen() {
             description={t("analytics.spendingMapEmptyDesc")}
           />
         ) : data ? (
-          <PlacesHeatmap data={data.geojson} />
+          <>
+            <PlacesHeatmap
+              data={data.geojson}
+              onPlacePress={handlePlacePress}
+              onRegionChange={(region) => {
+                regionRef.current = region;
+              }}
+            />
+            {/* "Show all in view" floating button — anchored bottom-centre.
+                Querying viewport bounds happens lazily on tap so a fast
+                pan doesn't fire a transaction lookup per frame. */}
+            <Pressable
+              onPress={handleShowInView}
+              style={({ pressed }) => [
+                styles.showInViewButton,
+                {
+                  backgroundColor: pressed ? colors.primary + "CC" : colors.primary,
+                },
+              ]}
+            >
+              <AppIcon name="format-list-bulleted" size={18} color={colors.surface} />
+              <AppText variant="caption" color={colors.surface}>
+                {t("analytics.showAllInView")}
+              </AppText>
+            </Pressable>
+          </>
         ) : null}
       </View>
+
+      {/* Viewport sheet — modal listing every transaction whose place's
+          coords sit inside the current map bounds. */}
+      <Modal
+        visible={viewportSheet.visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setViewportSheet({ visible: false, transactions: [] })}
+      >
+        <SafeAreaView style={[styles.sheetContainer, { backgroundColor: colors.background }]}>
+          <View style={styles.sheetHeader}>
+            <AppText variant="h3">{t("analytics.inViewTitle")}</AppText>
+            <Pressable
+              onPress={() => setViewportSheet({ visible: false, transactions: [] })}
+              hitSlop={8}
+            >
+              <AppIcon name="close" size={24} color={colors.icon} />
+            </Pressable>
+          </View>
+          <FlatList
+            data={viewportSheet.transactions}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TransactionListItem
+                transaction={item}
+                onPress={() => {
+                  setViewportSheet({ visible: false, transactions: [] });
+                  router.push(`/transaction/${item.id}`);
+                }}
+              />
+            )}
+            ItemSeparatorComponent={Divider}
+            ListEmptyComponent={
+              <EmptyState
+                icon="receipt"
+                title={t("analytics.inViewEmpty")}
+                description={t("analytics.inViewEmptyDesc")}
+              />
+            }
+          />
+        </SafeAreaView>
+      </Modal>
     </ScreenLayout>
   );
 }
@@ -162,5 +255,32 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
+    position: "relative",
+  },
+  showInViewButton: {
+    position: "absolute",
+    bottom: spacing.lg,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  sheetContainer: {
+    flex: 1,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
   },
 });

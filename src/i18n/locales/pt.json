@@ -444,6 +444,9 @@
     "fetchingCoords": "Obtendo sua localização...",
     "coordsCaptured": "{{lat}}, {{lng}}",
     "noCoords": "Sem coordenadas — este lugar não será escolhido automaticamente",
+    "archivedBanner": "Este lugar está arquivado. Não aparece nos seletores, mas o histórico é preservado.",
+    "detailEmptyTitle": "Ainda não há transações aqui",
+    "detailEmptyDesc": "Etiquete uma transação com este lugar para vê-la aqui",
     "coordsFailed": "Não foi possível obter sua localização. Você pode salvar o lugar sem coordenadas.",
     "selectPlace": "Selecionar Lugar",
     "searchPlaces": "Buscar lugares...",
@@ -501,7 +504,11 @@
     "spendingMapEmpty": "Ainda não há gastos para mapear",
     "spendingMapEmptyDesc": "Marque transações com lugares que tenham coordenadas para vê-las no mapa",
     "spendingMapExcluded_one": "{{count}} transação excluída — sem localização no mapa",
-    "spendingMapExcluded_other": "{{count}} transações excluídas — sem localização no mapa"
+    "spendingMapExcluded_other": "{{count}} transações excluídas — sem localização no mapa",
+    "showAllInView": "Ver todas na vista",
+    "inViewTitle": "Na vista atual",
+    "inViewEmpty": "Sem transações na vista",
+    "inViewEmptyDesc": "Arraste ou aumente o zoom do mapa para encontrar transações"
   },
   "format": {
     "today": "Hoje",

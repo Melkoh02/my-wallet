@@ -595,18 +595,22 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 **Trigger**: Analytics tab → "Spending map" card → opens `/analytics/places-map`.
 
 1. Loads `getPlacesAsGeoJSON(metric, converter)` and feeds the result to a MapLibre heatmap. Default metric is **amount** (sum in display currency); a toggle at the top switches to **visits** (raw expense count).
-2. Camera auto-fits to the bounding box of all features on first paint.
-3. Banners:
+2. Camera initial centre + zoom are derived from the data's bounding box up front (no imperative `fitBounds`).
+3. **Tap a cluster bubble** → camera eases in to that cluster's expansion zoom, breaking it apart.
+4. **Tap an individual place dot** → push `/place/{id}` (place detail with its transaction history).
+5. **Tap "Show all in view"** (floating button bottom-centre) → modal listing every place-tagged transaction whose place's coords fall inside the current map bounds. Tap a row → `/transaction/{id}`.
+6. Banners:
    - **"Converted at today's rate"** — shown when at least one row needed today's rate to convert (only relevant in amount mode).
    - **"Couldn't get exchange rate for X"** — when at least one row was dropped because no rate is available.
    - **"N transactions excluded — no map location"** — count of expenses linked to a place with no coords or no place at all.
-4. Empty state when there are no plottable expenses.
+7. Empty state when there are no plottable expenses.
 
 **Edge cases**
-- Single-place data shows one hot dot at street zoom (fitBounds with zero-area bbox snaps to a single point).
+- Single-place data shows one hot dot at street zoom (zoomForBbox snaps a zero-area bbox to z=14).
 - Cross-currency multi-place data: normalisation in `PlacesHeatmap` keeps small-amount places visible alongside outliers — the gradient is *relative* per-render, not absolute across sessions.
 - Switching metric refetches; data updates with revisions.transactions / revisions.places / revisions.settings (display-currency change re-renders amount totals).
 - Archived places are included — analytics shouldn't hide spending history just because the user tidied up the picker.
+- "Show all in view" with the camera at world zoom returns every place-tagged transaction (the bbox is huge); with the camera over the antimeridian, the query ORs two longitude ranges so trans-Pacific views don't silently exclude hits.
 
 ---
 
@@ -667,13 +671,13 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 - GPS denied or low-accuracy — surfaces the existing `locationFailed` warning; user can still pick a place from the list manually.
 - Radius set to 50 m and user is in the wrong room — auto-pick misses and falls through to the "no place nearby" hint, which is the intended UX.
 
-### 14.2 Places CRUD (Settings → Places)
+### 14.2 Places list + detail (Settings → Places)
 **Trigger**: Settings → Places row.
 
 1. Active places listed most-frequent first (`getPlacesWithStats` — JOIN-derived live transaction count, not the denormalised `visit_count`).
 2. Each row: location icon (greyed when no coords), name, optional address, transaction count, chevron.
-3. Tap a row → `/place/form` in edit mode.
-4. FAB → `/place/form` in create mode.
+3. Tap a row → `/place/{id}` (place detail). The detail screen shows the place's header (name, address, coords, archived banner if applicable) and every transaction tagged to that place, most-recent first. Pencil icon in the header bar → `/place/form?id={id}` for editing.
+4. FAB on the list → `/place/form` in create mode.
 5. Form fields: **name** (required, free-text), **map** (pan to drop a pin — center-pin pattern, MapLibre + OpenFreeMap tiles, see `architecture.md`), **GPS button** (capture current location, pans the map to follow). **Address** is auto-derived: a debounced (800 ms) reverse-geocode runs whenever the coords change and the result is shown read-only under the name; resolution failure is silent (place saves without an address). The place form has no manual address input.
 6. **Archive** (soft-delete): hides the place from pickers and the list but leaves transactions linked. Reversible via "Restore".
 7. **Delete** (hard): removes the row. Linked transactions hold a dangling `place_id` (FK is unenforced); display code falls back to nothing for those rows.

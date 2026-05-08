@@ -444,6 +444,9 @@
     "fetchingCoords": "Fetching your location...",
     "coordsCaptured": "{{lat}}, {{lng}}",
     "noCoords": "No coordinates — this place won't be auto-picked",
+    "archivedBanner": "This place is archived. It won't appear in pickers, but its history is preserved.",
+    "detailEmptyTitle": "No transactions here yet",
+    "detailEmptyDesc": "Tag a transaction with this place to see it here",
     "coordsFailed": "Couldn't get your location. You can save the place without coordinates.",
     "selectPlace": "Select Place",
     "searchPlaces": "Search places...",
@@ -501,7 +504,11 @@
     "spendingMapEmpty": "No spending to map yet",
     "spendingMapEmptyDesc": "Tag transactions with places that have coordinates to see them on the map",
     "spendingMapExcluded_one": "{{count}} transaction excluded — no map location",
-    "spendingMapExcluded_other": "{{count}} transactions excluded — no map location"
+    "spendingMapExcluded_other": "{{count}} transactions excluded — no map location",
+    "showAllInView": "Show all in view",
+    "inViewTitle": "In current view",
+    "inViewEmpty": "No transactions in view",
+    "inViewEmptyDesc": "Pan or zoom the map to find transactions"
   },
   "format": {
     "today": "Today",

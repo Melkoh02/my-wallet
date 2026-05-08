@@ -18,6 +18,14 @@ import {
  */
 export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
 
+/** Camera region snapshot fired on pan/zoom settle. */
+export type MapRegion = {
+  center: [number, number];
+  zoom: number;
+  /** Visible bounds: [west, south, east, north]. Use for "what's in view" queries. */
+  bounds: [number, number, number, number];
+};
+
 export type MapViewProps = {
   /** [lng, lat] of the initial camera center. */
   initialCenter: [number, number];
@@ -25,10 +33,15 @@ export type MapViewProps = {
   initialZoom: number;
   /**
    * Fires when the user finishes panning/zooming. Receives the new center
-   * as `[lng, lat]`. Wire onCenterChange when you need live coords (e.g.
-   * the place picker reading the pin location).
+   * as `[lng, lat]`. Use for "where's the pin?" semantics (place picker).
    */
   onCenterChange?: (center: [number, number], zoom: number) => void;
+  /**
+   * Fires when the user finishes panning/zooming with the full region —
+   * center + zoom + visible bounds. Use for "what's in view?" semantics
+   * (spending map's "show all in view" sheet).
+   */
+  onRegionChange?: (region: MapRegion) => void;
   /** Container style — height defaults to 250 if not provided. */
   style?: ViewStyle;
   /**
@@ -45,16 +58,23 @@ export type MapViewProps = {
  * imperatively recenter (e.g. "Use my current location" pans the map).
  */
 export const MapView = forwardRef<CameraRef, MapViewProps>(function MapView(
-  { initialCenter, initialZoom, onCenterChange, style, children },
+  { initialCenter, initialZoom, onCenterChange, onRegionChange, style, children },
   cameraRef,
 ) {
   const handleRegionDidChange = useMemo(() => {
-    if (!onCenterChange) return undefined;
+    if (!onCenterChange && !onRegionChange) return undefined;
     return (e: { nativeEvent: ViewStateChangeEvent }) => {
-      const { center, zoom } = e.nativeEvent;
-      onCenterChange([center[0], center[1]], zoom);
+      const { center, zoom, bounds } = e.nativeEvent;
+      if (onCenterChange) onCenterChange([center[0], center[1]], zoom);
+      if (onRegionChange) {
+        onRegionChange({
+          center: [center[0], center[1]],
+          zoom,
+          bounds: [bounds[0], bounds[1], bounds[2], bounds[3]],
+        });
+      }
     };
-  }, [onCenterChange]);
+  }, [onCenterChange, onRegionChange]);
 
   return (
     <Map

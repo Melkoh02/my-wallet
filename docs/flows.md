@@ -591,8 +591,14 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 ### 12.4 Top contacts (this month)
 - Aggregates expenses with a `contactId`, sums per contact, returns top N. Groups by contact ID, not name (so rename-after-split still groups correctly).
 
-### 12.5 Spending map (heatmap of place-tagged expenses)
-**Trigger**: Analytics tab → "Spending map" card → opens `/analytics/places-map`.
+### 12.5 Top places (this month)
+- "Top Places" section on the Analytics tab. The card combines the spending-map entry row (header) with a tease of the top 3 places this month underneath.
+- `getTopPlacesByMonth(year, month, converter, limit=3)` aggregates expenses with a non-null `placeId`, sums per place in display currency, and orders by total. Groups by place ID so rename-after-tag still groups correctly. Respects the same currency conversion rules as other monthly aggregates.
+- Tap a place row → `/place/{id}` (place detail).
+- The list is empty when no expenses this month carry a place. The spending-map entry row above stays clickable in that case so the user can still open the heatmap.
+
+### 12.6 Spending map (heatmap of place-tagged expenses)
+**Trigger**: Analytics tab → "Top Places" section → "Spending map" row → opens `/analytics/places-map`.
 
 1. Loads `getPlacesAsGeoJSON(metric, converter)` and feeds the result to a MapLibre heatmap. Default metric is **amount** (sum in display currency); a toggle at the top switches to **visits** (raw expense count).
 2. Camera initial centre + zoom are derived from the data's bounding box up front (no imperative `fitBounds`).

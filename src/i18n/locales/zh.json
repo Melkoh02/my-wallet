@@ -492,6 +492,7 @@
     "projected": "月末预计",
     "lastSixMonths": "过去6个月",
     "topContacts": "主要联系人",
+    "topPlaces": "主要地点",
     "oneTransaction": "1笔交易",
     "nTransactions": "{{count}}笔交易",
     "convertedAtTodaysRate": "总计按今日汇率换算为 {{currency}}",

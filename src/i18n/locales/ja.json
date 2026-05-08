@@ -492,6 +492,7 @@
     "projected": "月末予測",
     "lastSixMonths": "過去6ヶ月",
     "topContacts": "よく取引する相手",
+    "topPlaces": "よく訪れる場所",
     "oneTransaction": "取引1件",
     "nTransactions": "取引{{count}}件",
     "convertedAtTodaysRate": "本日の為替レートで{{currency}}に換算した合計",

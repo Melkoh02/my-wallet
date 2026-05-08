@@ -493,6 +493,7 @@
     "projected": "Projected End of Month",
     "lastSixMonths": "Last 6 Months",
     "topContacts": "Top Contacts",
+    "topPlaces": "Top Places",
     "oneTransaction": "1 transaction",
     "nTransactions": "{{count}} transactions",
     "convertedAtTodaysRate": "Totals converted to {{currency}} at today's exchange rate",

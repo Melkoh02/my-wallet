@@ -73,6 +73,12 @@ async function ensureBackupDir() {
 }
 
 async function exportAllData() {
+  // why: the `backups` table is intentionally omitted. Its rows track local
+  // backup files (filename + filePath in this device's documentDirectory or
+  // SAF tree) and don't transfer meaningfully across installs — restoring a
+  // backup made on a previous device shouldn't repopulate the new device's
+  // history with file paths that don't exist there. The local history
+  // rebuilds itself from the file system on next list refresh.
   const data = {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),

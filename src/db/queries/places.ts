@@ -2,7 +2,7 @@ import { and, between, count, desc, eq, isNotNull, isNull, or, sql } from "drizz
 import { db } from "@/db/client";
 import { places, transactions, type NewPlace, type Place } from "@/db/schema";
 import { boundingBox, haversineMeters } from "@/utils/geo";
-import { convertRow } from "./transactions";
+import { convertRow } from "./convert";
 import type { CurrencyConverter } from "@/services/exchangeRate.service";
 
 export type PlaceWithStats = Place & {

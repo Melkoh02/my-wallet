@@ -58,7 +58,10 @@ export default function TransactionDetailScreen() {
       await deleteTransaction(txn.linkedTransactionId);
     }
     await deleteTransaction(txn.id);
-    invalidate("transactions", "accounts");
+    // why: include "places" so the picker / list re-sort after the
+    // visit_count decrement that deleteTransaction applies (matches the
+    // edit/create paths in transaction/form.tsx).
+    invalidate("transactions", "accounts", "places");
     router.back();
   };
 

@@ -660,4 +660,48 @@ describe("getTransactionsInBounds", () => {
     const names = result.map((r) => r.placeName).sort();
     expect(names).toEqual(["East of line", "West of line"]);
   });
+
+  it("filters to expense type — income/transfer at the same place are excluded", async () => {
+    const acc = await createAccount({ ...baseAccount });
+    const place = await createPlace({
+      name: "Office",
+      latitude: 37.7749,
+      longitude: -122.4194,
+      source: "manual",
+    });
+    // Salary deposited at the office.
+    await createTransaction(
+      {
+        type: "income",
+        amount: 1000,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:00",
+        placeId: place.id,
+      },
+      [],
+    );
+    // Coffee bought at the office.
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 5,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:30",
+        placeId: place.id,
+      },
+      [],
+    );
+
+    const result = await getTransactionsInBounds({
+      west: -180,
+      south: -90,
+      east: 180,
+      north: 90,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe("expense");
+    expect(result[0].amount).toBe(5);
+  });
 });

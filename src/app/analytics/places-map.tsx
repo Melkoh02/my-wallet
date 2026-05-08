@@ -63,9 +63,13 @@ export default function SpendingMapScreen() {
   };
 
   const handleShowInView = async () => {
-    const region = regionRef.current;
-    if (!region) return;
-    const [west, south, east, north] = region.bounds;
+    // why: regionRef is null until the first onRegionChange fires (which
+    // doesn't happen until the user pans/zooms). Falling back to a world
+    // bbox lets the first tap on a freshly-opened spending map still
+    // populate the sheet — at world zoom every place-tagged expense is
+    // "in view" anyway.
+    const bbox = regionRef.current?.bounds ?? [-180, -90, 180, 90];
+    const [west, south, east, north] = bbox;
     const txns = await getTransactionsInBounds({ west, south, east, north });
     setViewportSheet({ visible: true, transactions: txns });
   };

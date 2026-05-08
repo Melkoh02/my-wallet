@@ -62,6 +62,14 @@ export default function PlaceFormScreen() {
   // Tracks the most-recent coords we've kicked a reverse-geocode for, so a
   // late-arriving result for stale coords doesn't overwrite a fresher one.
   const lastResolveTokenRef = useRef(0);
+  // why: the reverse-geocode effect runs on coord changes, including the
+  // synthetic ones that happen when an existing place loads. Without this
+  // guard, opening + saving an existing place would silently overwrite the
+  // saved address with whatever the geocoder returns *now* — and on
+  // de-Googled Android (Geocoder returns nothing) that means clobbering the
+  // address with null. The flag flips to true only when the user actually
+  // moves the pin or captures GPS.
+  const coordsTouchedRef = useRef(false);
 
   useEffect(() => {
     if (!params.id) return;
@@ -79,11 +87,12 @@ export default function PlaceFormScreen() {
     })();
   }, [params.id]);
 
-  // Reverse-geocode coords → human-readable address. Fires when coords
-  // change (whether from map pan, GPS capture, or initial load with a
-  // pre-existing place that has coords but no address). Debounced so a
-  // sweeping map pan doesn't hammer the geocoder.
+  // Reverse-geocode coords → human-readable address. Fires when the *user*
+  // changes coords (map pan, GPS capture). Skips the synthetic coord-change
+  // that comes from loading an existing place, so a saved address is never
+  // overwritten by an opportunistic geocoder lookup.
   useEffect(() => {
+    if (!coordsTouchedRef.current) return;
     if (latitude === null || longitude === null) {
       setAddress(null);
       setResolvingAddress(false);
@@ -111,6 +120,7 @@ export default function PlaceFormScreen() {
   }, [latitude, longitude]);
 
   const handleCoordsFromMap = (lat: number, lng: number) => {
+    coordsTouchedRef.current = true;
     setLatitude(lat);
     setLongitude(lng);
     setCoordsCapturedNow(true);
@@ -125,6 +135,7 @@ export default function PlaceFormScreen() {
       setCoordsError(t("places.coordsFailed"));
       return;
     }
+    coordsTouchedRef.current = true;
     setLatitude(stamp.latitude);
     setLongitude(stamp.longitude);
     setCoordsCapturedNow(true);
@@ -137,6 +148,7 @@ export default function PlaceFormScreen() {
   };
 
   const handleClearCoords = () => {
+    coordsTouchedRef.current = true;
     setLatitude(null);
     setLongitude(null);
     setCoordsCapturedNow(false);

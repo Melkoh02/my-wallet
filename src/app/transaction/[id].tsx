@@ -140,9 +140,9 @@ export default function TransactionDetailScreen() {
           {txn.contactName && (
             <DetailRow label={t("transactionForm.contact")} value={txn.contactName} />
           )}
-          {txn.locationName && (
-            <DetailRow label={t("transactionForm.location")} value={txn.locationName} />
-          )}
+          {txn.placeName ? (
+            <DetailRow label={t("transactionForm.place")} value={txn.placeName} />
+          ) : null}
         </View>
 
         {txn.subcategoryList.length > 0 && (

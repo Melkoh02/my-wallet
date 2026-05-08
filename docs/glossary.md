@@ -321,6 +321,16 @@ Gated by the `places_migrated` settings flag. Heuristic in `utils/placesMigratio
 ### `BACKUP_VERSION`
 Adding the `places` table is **additive** — same precedent as `budgets`. `BACKUP_VERSION` stays at `1`. The import path tolerates a missing `places` array (`if (data.places?.length) ...`). Place inserts run **before** transactions so FKs resolve in the right order during restore.
 
+### Spending heatmap (`getPlacesAsGeoJSON`)
+
+Aggregates expense transactions per place into a GeoJSON `FeatureCollection<Point>`, ready to drop into a MapLibre `<Layer type="heatmap">`. Same currency-handling shape as the other aggregates (`AggregateMeta`-style):
+- **`metric: "count"`** — weight is the number of expense transactions at that place.
+- **`metric: "amount"`** — weight is the sum in the user's display currency, using `convertRow` for stable rates and today's rate for stale ones (sets `approximate: true`); rows missing a rate are dropped and their source currency is added to `missingRates`.
+
+Filters: only **expense** transactions (income at "the office" doesn't represent spending), only places with non-null coords (the heatmap has no representation for coord-less places). Archived places are *included* — analytics should reflect the full spending history regardless of whether the place is hidden from the picker. Expenses with no place at all, or with a coord-less place, are reported via `excludedTransactionCount` so the UI can footnote "X transactions excluded — no map location".
+
+The `PlacesHeatmap` component normalises weights to 0..1 in JS (max → 1) before feeding them to MapLibre's `heatmap-weight: ["get", "weight"]` expression, so a single $5000 outlier doesn't wash out a hundred $5 entries. The fixed colour gradient and zoom-driven intensity / radius / opacity expressions stay constant across both metrics; only the per-feature weights change.
+
 ## DataRefresh entities
 
 `DataRefreshProvider` exposes `revisions: Record<EntityKey, number>` and `invalidate(...keys)`. The eight keys, and what triggers them:

@@ -492,7 +492,15 @@
     "oneTransaction": "取引1件",
     "nTransactions": "取引{{count}}件",
     "convertedAtTodaysRate": "本日の為替レートで{{currency}}に換算した合計",
-    "missingRates": "{{currencies}} の為替レートを取得できませんでした — それらの金額は合計から除外されています"
+    "missingRates": "{{currencies}} の為替レートを取得できませんでした — それらの金額は合計から除外されています",
+    "spendingMap": "支出マップ",
+    "spendingMapDesc": "よく使う場所のヒートマップ",
+    "metricAmount": "金額順",
+    "metricCount": "回数順",
+    "spendingMapEmpty": "まだ表示する支出がありません",
+    "spendingMapEmptyDesc": "座標のある場所で取引にタグ付けすると、マップに表示されます",
+    "spendingMapExcluded_one": "{{count}}件の取引を除外 — 座標なし",
+    "spendingMapExcluded_other": "{{count}}件の取引を除外 — 座標なし"
   },
   "format": {
     "today": "今日",

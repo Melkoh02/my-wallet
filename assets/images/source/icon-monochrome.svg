@@ -1,0 +1,17 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Adaptive-icon MONOCHROME layer. Used by Android 13+ themed icons
+       (the system replaces the white with the user's wallpaper-derived
+       theme colour) and by some notification surfaces.
+       Material spec: 1-bit foreground — fully opaque white pixels or
+       fully transparent, no shading. Hence: just the silhouette.
+       Body + eye bumps as solid white; no eyes, no smile, no cheek
+       blush — those would muddy the read at 24×24 notification size.
+       The two eye bumps protruding from the body are what makes the
+       silhouette read as "frog". -->
+
+  <g transform="translate(512 512) scale(1.9) translate(-256 -256)" fill="#FFFFFF">
+    <circle cx="256" cy="268" r="160"/>
+    <circle cx="190" cy="146" r="62"/>
+    <circle cx="322" cy="146" r="62"/>
+  </g>
+</svg>

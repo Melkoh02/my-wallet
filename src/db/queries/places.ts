@@ -1,8 +1,8 @@
-import { and, between, count, desc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { and, between, count, desc, eq, isNotNull, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { places, transactions, type NewPlace, type Place } from "@/db/schema";
 import { boundingBox, haversineMeters } from "@/utils/geo";
-import { convertRow } from "./convert";
+import { convertRow, type AggregateMeta } from "./convert";
 import type { CurrencyConverter } from "@/services/exchangeRate.service";
 
 export type PlaceWithStats = Place & {
@@ -355,4 +355,76 @@ export async function getPlacesAsGeoJSON(
     missingRates: [...missing],
     excludedTransactionCount: excluded?.c ?? 0,
   };
+}
+
+/**
+ * Top N places by total expense in the given month, in the user's display
+ * currency. Mirrors `getTopContactsByMonth` in shape so the analytics screen
+ * can render it the same way.
+ */
+export async function getTopPlacesByMonth(
+  year: number,
+  month: number,
+  converter: CurrencyConverter,
+  limit = 3,
+): Promise<
+  {
+    rows: { placeId: number; placeName: string; total: number; count: number }[];
+  } & AggregateMeta
+> {
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const rawRows = await db
+    .select({
+      placeId: transactions.placeId,
+      placeName: places.name,
+      amount: transactions.amount,
+      currency: transactions.currency,
+      rateToDisplay: transactions.rateToDisplay,
+      displayCurrencySnapshot: transactions.displayCurrencySnapshot,
+    })
+    .from(transactions)
+    .innerJoin(places, eq(transactions.placeId, places.id))
+    .where(
+      and(
+        like(transactions.date, `${monthStr}%`),
+        eq(transactions.type, "expense"),
+        isNotNull(transactions.placeId),
+      ),
+    );
+
+  const grouped = new Map<number, { placeName: string; total: number; count: number }>();
+  const missing = new Set<string>();
+  let usedTodaysRate = false;
+  for (const row of rawRows) {
+    if (row.placeId == null) continue;
+    const result = convertRow(row, converter);
+    if (result.state === "excluded") {
+      if (result.currency) missing.add(result.currency);
+      continue;
+    }
+    if (result.usedTodaysRate) usedTodaysRate = true;
+    const existing = grouped.get(row.placeId);
+    if (existing) {
+      existing.total += result.value;
+      existing.count += 1;
+    } else {
+      grouped.set(row.placeId, {
+        placeName: row.placeName,
+        total: result.value,
+        count: 1,
+      });
+    }
+  }
+
+  const sorted = [...grouped.entries()]
+    .map(([placeId, v]) => ({
+      placeId,
+      placeName: v.placeName,
+      total: v.total,
+      count: v.count,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+
+  return { rows: sorted, missingRates: [...missing], usedTodaysRate };
 }

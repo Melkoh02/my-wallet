@@ -493,6 +493,7 @@
     "projected": "Proyección Fin de Mes",
     "lastSixMonths": "Últimos 6 Meses",
     "topContacts": "Contactos Principales",
+    "topPlaces": "Lugares Principales",
     "oneTransaction": "1 transacción",
     "nTransactions": "{{count}} transacciones",
     "convertedAtTodaysRate": "Totales convertidos a {{currency}} con la tasa de cambio de hoy",

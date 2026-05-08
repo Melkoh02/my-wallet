@@ -20,6 +20,7 @@ import {
   getTopContactsByMonth,
   type TrendPoint,
 } from "@/db/queries/transactions";
+import { getTopPlacesByMonth } from "@/db/queries/places";
 import { loadCurrencyConverter } from "@/services/exchangeRate.service";
 import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
@@ -45,6 +46,9 @@ export default function AnalyticsScreen() {
   const [topContacts, setTopContacts] = useState<
     { contactId: string; contactName: string; total: number; count: number }[]
   >([]);
+  const [topPlaces, setTopPlaces] = useState<
+    { placeId: number; placeName: string; total: number; count: number }[]
+  >([]);
   const [missingRates, setMissingRates] = useState<string[]>([]);
   const [usedTodaysRate, setUsedTodaysRate] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -53,12 +57,13 @@ export default function AnalyticsScreen() {
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear = month === 1 ? year - 1 : year;
     const conv = await loadCurrencyConverter();
-    const [s, c, d, trend, contacts, pv] = await Promise.all([
+    const [s, c, d, trend, contacts, places, pv] = await Promise.all([
       getMonthSummary(year, month, conv),
       getCategorySummary(year, month, conv),
       getDailySpending(year, month, conv),
       getTrendData(6, conv),
       getTopContactsByMonth(year, month, conv, 3),
+      getTopPlacesByMonth(year, month, conv, 3),
       getMonthSummary(prevYear, prevMonth, conv),
     ]);
     setSummary({ income: s.income, expense: s.expense, net: s.net });
@@ -66,6 +71,7 @@ export default function AnalyticsScreen() {
     setDailyData(d.rows);
     setTrendData(trend.rows);
     setTopContacts(contacts.rows);
+    setTopPlaces(places.rows);
     setPrevSummary({ income: pv.income, expense: pv.expense, net: pv.net });
     const allMissing = new Set<string>([
       ...s.missingRates,
@@ -73,6 +79,7 @@ export default function AnalyticsScreen() {
       ...d.missingRates,
       ...trend.missingRates,
       ...contacts.missingRates,
+      ...places.missingRates,
       ...pv.missingRates,
     ]);
     setMissingRates([...allMissing]);
@@ -82,6 +89,7 @@ export default function AnalyticsScreen() {
         d.usedTodaysRate ||
         trend.usedTodaysRate ||
         contacts.usedTodaysRate ||
+        places.usedTodaysRate ||
         pv.usedTodaysRate,
     );
   }, [year, month]);
@@ -232,30 +240,64 @@ export default function AnalyticsScreen() {
             </View>
           </View>
 
-          {/* Spending map entry — fullscreen heatmap of place-tagged expenses.
-              Sits high in the screen so the user finds it without scrolling. */}
+          {/* Top Places section — spending map entry plus a tease of the
+              top 3 places this month. Sits high in the screen so the user
+              finds the heatmap without scrolling. */}
           <View style={styles.section}>
-            <Pressable
-              onPress={() => router.push("/analytics/places-map" as never)}
-              style={({ pressed }) => [
-                styles.spendingMapCard,
-                {
-                  backgroundColor: pressed ? colors.borderLight : colors.card,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={[styles.spendingMapIcon, { backgroundColor: colors.primary + "22" }]}>
-                <AppIcon name="map-search" size={22} color={colors.primary} />
-              </View>
-              <View style={styles.spendingMapText}>
-                <AppText variant="label">{t("analytics.spendingMap")}</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  {t("analytics.spendingMapDesc")}
-                </AppText>
-              </View>
-              <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
-            </Pressable>
+            <AppText variant="h3" style={styles.sectionTitle}>
+              {t("analytics.topPlaces")}
+            </AppText>
+            <View style={[styles.placesCard, { backgroundColor: colors.card }]}>
+              <Pressable
+                onPress={() => router.push("/analytics/places-map" as never)}
+                style={({ pressed }) => [
+                  styles.spendingMapRow,
+                  pressed && { backgroundColor: colors.borderLight },
+                ]}
+              >
+                <View style={[styles.spendingMapIcon, { backgroundColor: colors.primary + "22" }]}>
+                  <AppIcon name="map-search" size={22} color={colors.primary} />
+                </View>
+                <View style={styles.spendingMapText}>
+                  <AppText variant="label">{t("analytics.spendingMap")}</AppText>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    {t("analytics.spendingMapDesc")}
+                  </AppText>
+                </View>
+                <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
+              </Pressable>
+              {topPlaces.map((tp) => (
+                <Pressable
+                  key={tp.placeId}
+                  onPress={() => router.push(`/place/${tp.placeId}` as never)}
+                  style={({ pressed }) => [
+                    styles.placeRow,
+                    { borderTopColor: colors.borderLight },
+                    pressed && { backgroundColor: colors.borderLight },
+                  ]}
+                >
+                  <View style={styles.placeLabel}>
+                    <AppIcon name="map-marker" size={20} color={colors.primary} />
+                    <AppText variant="body" numberOfLines={1} style={styles.placeName}>
+                      {tp.placeName}
+                    </AppText>
+                  </View>
+                  <View style={styles.placeMeta}>
+                    <AmountDisplay
+                      amount={tp.total}
+                      currency={dc}
+                      approximate={usedTodaysRate}
+                      variant="label"
+                    />
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      {tp.count === 1
+                        ? t("analytics.oneTransaction")
+                        : t("analytics.nTransactions", { count: tp.count })}
+                    </AppText>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           </View>
 
           {/* Insights: savings rate, MoM change, projection */}
@@ -644,15 +686,17 @@ const styles = StyleSheet.create({
   bottomPad: {
     height: spacing["3xl"],
   },
-  spendingMapCard: {
+  placesCard: {
+    marginHorizontal: spacing.lg,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  spendingMapRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    marginHorizontal: spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
   },
   spendingMapIcon: {
     width: 36,
@@ -663,6 +707,28 @@ const styles = StyleSheet.create({
   },
   spendingMapText: {
     flex: 1,
+    gap: 2,
+  },
+  placeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+  },
+  placeLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    flex: 1,
+  },
+  placeName: {
+    flex: 1,
+  },
+  placeMeta: {
+    alignItems: "flex-end",
     gap: 2,
   },
   insightLabel: {

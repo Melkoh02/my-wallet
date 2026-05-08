@@ -1,0 +1,30 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Adaptive-icon FOREGROUND. Transparent canvas; the launcher
+       composites this on top of a coloured background tile. Content
+       fits within the central ~66% safe zone (1024 × 0.66 ≈ 676 px)
+       so launchers with aggressive masks (squircle, circle, teardrop)
+       don't clip the frog. Same scale as splash-icon — they're the
+       same source image, just used in different launchers. -->
+
+  <g transform="translate(512 512) scale(1.9) translate(-256 -256)">
+    <circle cx="256" cy="268" r="160" fill="#5BAE3F"/>
+    <ellipse cx="256" cy="348" rx="120" ry="44" fill="#87D86B" opacity="0.55"/>
+
+    <circle cx="190" cy="146" r="62" fill="#5BAE3F"/>
+    <circle cx="322" cy="146" r="62" fill="#5BAE3F"/>
+
+    <circle cx="190" cy="146" r="44" fill="#FFFFFF"/>
+    <circle cx="322" cy="146" r="44" fill="#FFFFFF"/>
+
+    <circle cx="190" cy="152" r="22" fill="#1A1A1A"/>
+    <circle cx="322" cy="152" r="22" fill="#1A1A1A"/>
+
+    <circle cx="200" cy="142" r="7" fill="#FFFFFF"/>
+    <circle cx="332" cy="142" r="7" fill="#FFFFFF"/>
+
+    <path d="M 188 286 Q 256 342 324 286" stroke="#1F4513" stroke-width="10" fill="none" stroke-linecap="round"/>
+
+    <ellipse cx="148" cy="288" rx="22" ry="14" fill="#F47A85" opacity="0.55"/>
+    <ellipse cx="364" cy="288" rx="22" ry="14" fill="#F47A85" opacity="0.55"/>
+  </g>
+</svg>

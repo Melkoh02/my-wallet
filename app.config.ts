@@ -29,7 +29,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: IS_DEV ? "froggy-dev" : "froggy",
   userInterfaceStyle: "automatic",
   ios: {
-    icon: "./assets/expo.icon",
+    // why: dropped the `icon: "./assets/expo.icon"` override (Xcode-26
+    // .iconcomposer asset bundle) — that was the "My Wallet" wallet icon,
+    // wired before the rebrand. Falls through to the top-level
+    // `icon: "./assets/images/icon.png"`, which is the new Froggy.
+    // When we eventually want a proper Liquid Glass / multi-mode iOS
+    // icon, regenerate the `.iconcomposer` from the Froggy SVG and
+    // re-add this line.
     bundleIdentifier: IS_DEV ? "dev.melkoh.froggy.dev" : "dev.melkoh.froggy",
     infoPlist: {
       UIFileSharingEnabled: true,
@@ -40,9 +46,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#2563EB",
+      // Cream — matches the icon.svg fill. Adaptive launchers composite
+      // the foreground PNG on top of this colour. Dropped backgroundImage
+      // (was a separate PNG) — a flat colour is the same visual result
+      // and keeps one fewer asset in sync.
+      backgroundColor: "#FFE5A8",
       foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
     package: IS_DEV ? "dev.melkoh.froggy.dev" : "dev.melkoh.froggy",
@@ -58,10 +67,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#1D4ED8",
+        // Cream — same as the icon background, so the app launch reads
+        // as "the icon expanded into a splash" rather than a colour shift.
+        backgroundColor: "#FFE5A8",
         android: {
           image: "./assets/images/splash-icon.png",
-          imageWidth: 76,
+          imageWidth: 220,
         },
       },
     ],

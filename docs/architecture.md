@@ -99,7 +99,7 @@ Foreground tasks are fired in parallel (each as its own unawaited promise inside
 - **`src/components/`** — atomic design layers. Atoms = primitives, molecules = small composites, organisms = feature-level (forms, pickers), templates = layout shells (`ScreenLayout`, `ModalLayout`, `HeaderBar`).
 - **`src/db/`** — schema, queries, migrations, seed. *The only place that imports `drizzle-orm` directly.* Screens go through query functions, not raw drizzle.
 - **`src/providers/`** — global state contexts. New global state = new provider. Don't sprinkle context creation across feature folders.
-- **`src/services/`** — side-effect-heavy code that touches the world (filesystem, network, device APIs). Includes `auth.service.ts` (biometric + PIN), `backup.service.ts`, `exchangeRate.service.ts`, `location.service.ts`, `contacts.service.ts`. Pure data transforms live in `utils/`.
+- **`src/services/`** — side-effect-heavy code that touches the world (filesystem, network, device APIs). Includes `auth.service.ts` (biometric + PIN), `backup.service.ts`, `exchangeRate.service.ts`, `location.service.ts` (GPS + reverse-geocode), `contacts.service.ts`. Pure data transforms live in `utils/`.
 - **`src/hooks/`** — query hooks that subscribe to `DataRefresh` revisions and re-fetch. One per entity.
 - **`src/theme/`** — color palettes, typography, spacing tokens. `useTheme()` consumers read from here via the provider.
 - **`src/i18n/`** — i18next config + locale JSON. Add a new key in all 5 locales at once.
@@ -107,6 +107,14 @@ Foreground tasks are fired in parallel (each as its own unawaited promise inside
 - **`src/plugins/`** — Expo config plugins (release signing).
 - **`src/utils/`** — pure transforms (formatting, date arithmetic, amount input helpers). No side effects.
 - **Tests** — `*.test.ts` files co-located with source. Run via `npm test` (Jest + `jest-expo` preset). Integration tests use `better-sqlite3` for in-memory SQLite via `src/db/test-client.ts`. See `CLAUDE.md` § Testing for what's covered and how to run.
+
+### Map stack
+- **`@maplibre/maplibre-react-native`** for native map rendering (vector tiles, GPU-accelerated, no API key, no Google).
+- **OpenFreeMap** (`https://tiles.openfreemap.org/styles/positron`) for tiles — free, no key, no account, OSM-based. Tile-source URL is centralised in `src/components/molecules/MapView.tsx` (`MAP_STYLE_URL`); switching providers = one-line edit.
+- **`src/components/molecules/MapView.tsx`** — thin wrapper around MapLibre's `Map` + `Camera` with the default style URL and pass-through children. Both the place picker and the spending heatmap mount through this; new map features compose `<GeoJSONSource>` / `<Layer>` / `<Marker>` children inside it rather than mounting their own map.
+- **`src/components/organisms/PlaceMapPicker.tsx`** — center-pin pattern (a fixed pin overlay sits at screen center; the map pans underneath). Map gestures resolve cleanly with React Navigation's modal swipe because the pin is uncontrolled by gesture and the map's gestures live entirely below the modal's swipe-down zone.
+- **`src/components/organisms/PlacesHeatmap.tsx`** — MapView + two `<GeoJSONSource>`s. The non-clustered source feeds `<Layer type="heatmap">` (raw normalised weights → density gradient); the clustered source (`cluster: true`, radius 50, max-zoom 14) feeds three layers — cluster bubble circles, cluster count symbol labels, and individual point dots. Tap dispatch: cluster hits ease the camera to `getClusterExpansionZoom(clusterId)`; individual hits emit `onPlacePress(placeId)` for the parent to handle navigation. Initial camera centre + zoom are computed from the bbox up front — no imperative `fitBounds` (which raced with map-style loading and crashed natively for some users).
+- Network is required for tile fetching. The "Use my current location" GPS button is the offline fallback for setting coords.
 
 ## Where to look for X
 

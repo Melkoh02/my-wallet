@@ -1,7 +1,7 @@
 {
   "name": "my-wallet",
   "main": "expo-router/entry",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@maplibre/maplibre-react-native": "^11.0.3",
     "@react-native-community/datetimepicker": "8.6.0",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/elements": "^2.9.10",

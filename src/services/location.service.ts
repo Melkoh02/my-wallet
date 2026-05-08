@@ -36,16 +36,35 @@ export async function getCurrentLocation(): Promise<LocationStamp | null> {
 
 async function buildStamp(latitude: number, longitude: number): Promise<LocationStamp> {
   const stamp: LocationStamp = { latitude, longitude };
+  const name = await reverseGeocodeCoords(latitude, longitude);
+  if (name) stamp.name = name;
+  return stamp;
+}
 
+/**
+ * Best-effort reverse-geocode of coords → human-readable address string.
+ * Returns null on any failure (no network, no Geocoder backend, no result).
+ * Used both by `getCurrentLocation` (suggesting a place name on GPS capture)
+ * and by the place form (auto-populating `places.address` when the user
+ * pans the map or captures coords).
+ *
+ * gotcha: on Android this routes through the system `Geocoder` which on
+ * stock devices uses Google Play Services. De-Googled forks (LineageOS-
+ * without-MicroG, GrapheneOS without sandboxed Play) will return empty
+ * results — that's fine, we just store no address. iOS uses Apple Maps
+ * geocoding which is always available.
+ */
+export async function reverseGeocodeCoords(
+  latitude: number,
+  longitude: number,
+): Promise<string | null> {
   try {
     const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
-    if (address) {
-      const parts = [address.name, address.city, address.region].filter(Boolean);
-      stamp.name = parts.join(", ");
-    }
+    if (!address) return null;
+    const parts = [address.name, address.city, address.region].filter(Boolean);
+    const joined = parts.join(", ");
+    return joined.length > 0 ? joined : null;
   } catch {
-    // Reverse geocoding failed, coords are still useful
+    return null;
   }
-
-  return stamp;
 }

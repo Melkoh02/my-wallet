@@ -27,8 +27,11 @@ import {
   deleteTransaction,
   transferDestAmount,
   getAllContactsWithActivity,
+  getTransactionsForPlace,
+  getTransactionsInBounds,
 } from "./transactions";
 import { createAccount, getAccountById } from "./accounts";
+import { createPlace } from "./places";
 import type { NewAccount, Transaction } from "@/db/schema";
 
 const baseAccount: Omit<NewAccount, "id"> = {
@@ -473,5 +476,232 @@ describe("deleteTransaction — balance reversal", () => {
     const acc = await createAccount({ ...baseAccount, balance: 1000 });
     await deleteTransaction(9999); // doesn't throw, doesn't change state
     expect((await getAccountById(acc.id))?.balance).toBe(1000);
+  });
+});
+
+describe("getTransactionsForPlace", () => {
+  it("returns only transactions linked to the given placeId, most-recent first", async () => {
+    const acc = await createAccount({ ...baseAccount });
+    const home = await createPlace({
+      name: "Home",
+      latitude: 1,
+      longitude: 1,
+      source: "manual",
+    });
+    const cafe = await createPlace({
+      name: "Cafe",
+      latitude: 2,
+      longitude: 2,
+      source: "manual",
+    });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 5,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:00",
+        placeId: home.id,
+      },
+      [],
+    );
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 7,
+        accountId: acc.id,
+        date: "2026-01-03",
+        time: "12:00",
+        placeId: home.id,
+      },
+      [],
+    );
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 9,
+        accountId: acc.id,
+        date: "2026-01-02",
+        time: "11:00",
+        placeId: cafe.id,
+      },
+      [],
+    );
+
+    const homeTxns = await getTransactionsForPlace(home.id);
+    expect(homeTxns).toHaveLength(2);
+    expect(homeTxns[0].amount).toBe(7); // 2026-01-03 ordered before 2026-01-01
+    expect(homeTxns[1].amount).toBe(5);
+    expect(homeTxns[0].placeName).toBe("Home"); // enrichment ran
+  });
+
+  it("returns an empty array when the place has no linked transactions", async () => {
+    const empty = await createPlace({ name: "Empty", source: "manual" });
+    expect(await getTransactionsForPlace(empty.id)).toEqual([]);
+  });
+});
+
+describe("getTransactionsInBounds", () => {
+  it("returns transactions whose place coords fall inside the bbox", async () => {
+    const acc = await createAccount({ ...baseAccount });
+    const inside = await createPlace({
+      name: "Inside",
+      latitude: 37.7749,
+      longitude: -122.4194,
+      source: "manual",
+    });
+    const outside = await createPlace({
+      name: "Outside NYC",
+      latitude: 40.7128,
+      longitude: -74.006,
+      source: "manual",
+    });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 1,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:00",
+        placeId: inside.id,
+      },
+      [],
+    );
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 2,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:00",
+        placeId: outside.id,
+      },
+      [],
+    );
+
+    // SF-area bbox.
+    const result = await getTransactionsInBounds({
+      west: -123,
+      south: 37,
+      east: -122,
+      north: 38,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].placeName).toBe("Inside");
+  });
+
+  it("excludes transactions with no place at all (innerJoin)", async () => {
+    const acc = await createAccount({ ...baseAccount });
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 1,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:00",
+        // no placeId
+      },
+      [],
+    );
+    const result = await getTransactionsInBounds({
+      west: -180,
+      south: -90,
+      east: 180,
+      north: 90,
+    });
+    expect(result).toEqual([]);
+  });
+
+  it("handles antimeridian-wrapping bounds (west > east)", async () => {
+    const acc = await createAccount({ ...baseAccount });
+    // Place at lng = 179 (just west of dateline).
+    const left = await createPlace({
+      name: "West of line",
+      latitude: -17.7,
+      longitude: 179,
+      source: "manual",
+    });
+    // Place at lng = -179 (just east of dateline).
+    const right = await createPlace({
+      name: "East of line",
+      latitude: -17.7,
+      longitude: -179,
+      source: "manual",
+    });
+    // Place that should be excluded — middle of America, far from dateline.
+    const far = await createPlace({
+      name: "Middle America",
+      latitude: 39,
+      longitude: -98,
+      source: "manual",
+    });
+    for (const placeId of [left.id, right.id, far.id]) {
+      await createTransaction(
+        {
+          type: "expense",
+          amount: 1,
+          accountId: acc.id,
+          date: "2026-01-01",
+          time: "10:00",
+          placeId,
+        },
+        [],
+      );
+    }
+
+    // Box that wraps the antimeridian: west=178, east=-178 (so it spans
+    // across 180/-180, NOT the long way around through America).
+    const result = await getTransactionsInBounds({
+      west: 178,
+      south: -20,
+      east: -178,
+      north: -15,
+    });
+    const names = result.map((r) => r.placeName).sort();
+    expect(names).toEqual(["East of line", "West of line"]);
+  });
+
+  it("filters to expense type — income/transfer at the same place are excluded", async () => {
+    const acc = await createAccount({ ...baseAccount });
+    const place = await createPlace({
+      name: "Office",
+      latitude: 37.7749,
+      longitude: -122.4194,
+      source: "manual",
+    });
+    // Salary deposited at the office.
+    await createTransaction(
+      {
+        type: "income",
+        amount: 1000,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:00",
+        placeId: place.id,
+      },
+      [],
+    );
+    // Coffee bought at the office.
+    await createTransaction(
+      {
+        type: "expense",
+        amount: 5,
+        accountId: acc.id,
+        date: "2026-01-01",
+        time: "10:30",
+        placeId: place.id,
+      },
+      [],
+    );
+
+    const result = await getTransactionsInBounds({
+      west: -180,
+      south: -90,
+      east: 180,
+      north: 90,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe("expense");
+    expect(result[0].amount).toBe(5);
   });
 });

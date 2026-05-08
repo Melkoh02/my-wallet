@@ -73,6 +73,12 @@ async function ensureBackupDir() {
 }
 
 async function exportAllData() {
+  // why: the `backups` table is intentionally omitted. Its rows track local
+  // backup files (filename + filePath in this device's documentDirectory or
+  // SAF tree) and don't transfer meaningfully across installs — restoring a
+  // backup made on a previous device shouldn't repopulate the new device's
+  // history with file paths that don't exist there. The local history
+  // rebuilds itself from the file system on next list refresh.
   const data = {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
@@ -229,6 +235,13 @@ async function restoreData(
   // invariant: import is atomic — wrap in BEGIN TRANSACTION; ROLLBACK on any error so the
   // user's existing data is never partially overwritten. delete order = reverse FK dependency
   // order; insert order = FK dependency order. see docs/merge-points.md § restoreData.
+  // gotcha: do NOT switch this to `db.transaction(async (tx) => ...)`. Both
+  // the expo-sqlite and better-sqlite3 Drizzle drivers define `transaction()`
+  // in "sync" mode — an async callback resolves to a Promise that the wrapper
+  // returns immediately, then COMMIT runs and the awaited body executes
+  // against a closed transaction. Manual BEGIN/COMMIT via `db.run(sql\`...\`)`
+  // shares the connection with subsequent `db.delete`/`db.insert` calls and
+  // is the correct pattern here.
   await db.run(sql`BEGIN TRANSACTION`);
   try {
     // invariant: delete in reverse FK order (children before parents) and re-insert in forward

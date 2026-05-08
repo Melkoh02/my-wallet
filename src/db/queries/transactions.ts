@@ -13,54 +13,12 @@ import {
 import { updateAccountBalance } from "./accounts";
 import { decrementVisitCount, incrementVisitCount } from "./places";
 import { captureRateForCurrency, type CurrencyConverter } from "@/services/exchangeRate.service";
-
-/**
- * Convert a transaction row's amount to display currency.
- *
- * Returns a tagged union with two states:
- *   - `converted` — usable in totals. `usedTodaysRate=false` when the stored rate
- *     matched today's display currency (historically stable); `true` when the
- *     stored rate was missing/stale and today's rate was used (caller surfaces
- *     the "approximate" banner).
- *   - `excluded` — caller drops the row from totals. `currency` is the source
- *     currency to add to `missingRates` for the UI, or `null` when even the
- *     source currency is unknown.
- */
-// invariant: tagged union enforces the three semantic states (stable / approximate / excluded)
-// at the type level. never collapse `excluded` to a numeric zero — that silently corrupts
-// cross-currency totals.
-export type ConvertedRow =
-  | { state: "converted"; value: number; usedTodaysRate: boolean }
-  | { state: "excluded"; currency: string | null };
-
-export function convertRow(
-  row: {
-    amount: number;
-    currency: string | null;
-    rateToDisplay: number | null;
-    displayCurrencySnapshot: string | null;
-  },
-  converter: CurrencyConverter,
-): ConvertedRow {
-  // A null currency means we genuinely don't know the source currency — e.g.
-  // a row whose account was hard-deleted before the Phase 2 backfill could run.
-  if (row.currency == null) {
-    return { state: "excluded", currency: null };
-  }
-  // Path 1: stored rate is still valid → historically stable conversion.
-  if (row.rateToDisplay != null && row.displayCurrencySnapshot === converter.displayCurrency) {
-    return { state: "converted", value: row.amount * row.rateToDisplay, usedTodaysRate: false };
-  }
-  // Path 2: fall back to today's rate.
-  if (!converter.hasRateFor(row.currency)) {
-    return { state: "excluded", currency: row.currency };
-  }
-  return {
-    state: "converted",
-    value: converter.convert(row.amount, row.currency),
-    usedTodaysRate: true,
-  };
-}
+// convertRow + ConvertedRow + AggregateMeta live in their own module to break
+// the circular import between queries/transactions and queries/places.
+// Imported locally for internal use AND re-exported so existing call sites
+// keep working unchanged.
+import { convertRow, type AggregateMeta, type ConvertedRow } from "./convert";
+export { convertRow, type AggregateMeta, type ConvertedRow };
 
 /**
  * Pick the destination-side amount for a transfer. Cross-currency transfers store
@@ -75,11 +33,6 @@ export function convertRow(
 export function transferDestAmount(txn: Pick<Transaction, "amount" | "toAmount">): number {
   return txn.toAmount ?? txn.amount;
 }
-
-export type AggregateMeta = {
-  missingRates: string[];
-  usedTodaysRate: boolean;
-};
 
 // invariant: SQLite parameter limit is 999. don't raise CHUNK_SIZE past ~950 or large-list
 // queries throw at runtime.
@@ -344,6 +297,68 @@ export async function getTransactionById(
   if (!txn) return undefined;
   const [enriched] = await enrichTransactionsBatch([txn]);
   return enriched;
+}
+
+/**
+ * All transactions linked to a given place_id, most-recent first. Powers
+ * the place detail screen ("what did I buy here?") and the heatmap
+ * tap-on-marker drill-in.
+ */
+export async function getTransactionsForPlace(
+  placeId: number,
+): Promise<TransactionWithRelations[]> {
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.placeId, placeId))
+    .orderBy(desc(transactions.date), desc(transactions.time));
+  if (rows.length === 0) return [];
+  return enrichTransactionsBatch(rows);
+}
+
+/**
+ * Expense transactions whose linked place's coords fall inside the given
+ * lat/lng bounding box. Powers the "Show all in view" sheet on the
+ * spending map — track the camera viewport, query when the user taps the
+ * button. Filtered to expense for parity with the heatmap (`getPlacesAsGeoJSON`),
+ * which is also expense-only — the sheet should answer "what spending sits
+ * inside this view?", matching what the heat colour shows.
+ *
+ * Antimeridian: when `west > east` (the box wraps ±180°) we OR two ranges
+ * together so an Asia-Pacific-spanning view doesn't silently exclude
+ * everything. The same logic that lives in `findNearestPlace`.
+ */
+export async function getTransactionsInBounds(bounds: {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}): Promise<TransactionWithRelations[]> {
+  const { west, south, east, north } = bounds;
+  const wrapsAntimeridian = west > east;
+  const lngCondition = wrapsAntimeridian
+    ? or(gte(places.longitude, west), lte(places.longitude, east))
+    : and(gte(places.longitude, west), lte(places.longitude, east));
+
+  const rows = await db
+    .select()
+    .from(transactions)
+    .innerJoin(places, eq(transactions.placeId, places.id))
+    .where(
+      and(
+        eq(transactions.type, "expense"),
+        gte(places.latitude, south),
+        lte(places.latitude, north),
+        lngCondition,
+        // place must have coords to be in bounds — innerJoin already enforces
+        // placeId IS NOT NULL but the lat/lng IS NOT NULL guard is implicit
+        // via the between filter.
+      ),
+    )
+    .orderBy(desc(transactions.date), desc(transactions.time));
+  if (rows.length === 0) return [];
+  // .innerJoin returns { transactions: row, places: row } — pull the txn out.
+  return enrichTransactionsBatch(rows.map((r) => r.transactions));
 }
 
 export async function createTransaction(

@@ -45,3 +45,6 @@ app-example
 /ios
 /android
 /.idea/
+
+# Transient design / scratch files
+/tmp/

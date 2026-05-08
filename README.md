@@ -1,8 +1,10 @@
-# My Wallet
+# Froggy — Money: Expense Tracker
 
 A fully offline personal finance tracker built with React Native and Expo.
 
 Track your income, expenses, and transfers across multiple accounts and currencies — all stored locally on your device. No accounts, no servers, no internet required.
+
+> **About the rebrand**: this project was previously called "My Wallet". Starting v2.2, it ships as "Froggy" on the device launcher and "Froggy Money: Expense Tracker" on the Play Store. Android package is `dev.melkoh.froggy`.
 
 ## Documentation
 
@@ -138,11 +140,17 @@ npm install
 npm run android          # Dev build (development variant)
 ```
 
-### Release Build
+### Release builds
+
+Two artefacts produced from the same prebuild output, used together for releases that need both:
 
 ```bash
-npm run android:release  # Prebuild + assembleRelease
+npm run android:release  # APK → android/app/build/outputs/apk/release/app-release.apk
+npm run android:bundle   # AAB → android/app/build/outputs/bundle/release/app-release.aab
 ```
+
+- **APK**: sideload distribution (the GitHub Releases asset that friends drag onto a device).
+- **AAB**: Google Play Store upload (Play requires AABs for new apps).
 
 Release builds are signed with `release.keystore` (project root). Passwords are in `keystore.properties` (gitignored). See `plugins/withReleaseSigning.js` for how signing is injected at prebuild time.
 

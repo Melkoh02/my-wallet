@@ -1,7 +1,7 @@
 # Claude Code Instructions
 
 ## Project Overview
-My Wallet — a fully offline personal finance tracker built with React Native (0.83) + Expo SDK 55 + TypeScript strict mode. Drizzle ORM with expo-sqlite for persistence. File-based routing via Expo Router.
+Froggy (Play Store: "Froggy Money: Expense Tracker") — a fully offline personal finance tracker built with React Native (0.83) + Expo SDK 55 + TypeScript strict mode. Drizzle ORM with expo-sqlite for persistence. File-based routing via Expo Router. Android package: `dev.melkoh.froggy`. iOS bundle: `dev.melkoh.froggy`. Repo URL stays `Melkoh02/my-wallet` for now (not renamed).
 
 ## Git Workflow
 
@@ -51,14 +51,17 @@ Only start this when the user explicitly says to release.
    - Add new section above the previous version (follow Keep a Changelog format).
    - Add release link at the bottom of the file.
    - Commit: `git commit -m "docs: update CHANGELOG for vX.Y.Z"`
-7. Build APK: `npm run android:release` (this runs prebuild WITHOUT APP_VARIANT, then assembleRelease)
+7. Build artefacts. Two paths, used together for releases that need both:
+   - **APK (sideload distribution + GitHub Releases)**: `npm run android:release` → `android/app/build/outputs/apk/release/app-release.apk`. Used for direct sideload installs to friends + the GitHub Releases asset.
+   - **AAB (Google Play)**: `npm run android:bundle` → `android/app/build/outputs/bundle/release/app-release.aab`. Required by Play Store for new apps.
    - IMPORTANT: Do NOT set APP_VARIANT for release builds. The prebuild must use production config.
    - Dev builds use `npm run android` which sets APP_VARIANT=development (different package name + scheme).
-8. Copy APK: `cp android/app/build/outputs/apk/release/app-release.apk my-wallet-vX.Y.Z.apk`
+8. Copy artefacts: `cp android/app/build/outputs/apk/release/app-release.apk froggy-vX.Y.Z.apk` and (when releasing to Play) `cp android/app/build/outputs/bundle/release/app-release.aab froggy-vX.Y.Z.aab`
 9. Push main: `git push origin main`
 10. Sync develop: `git checkout develop && git merge main && git push origin develop`
-11. Create GitHub release: `gh release create vX.Y.Z ./my-wallet-vX.Y.Z.apk -t "vX.Y.Z — <title>" -F /tmp/release-notes.md`
-12. Clean up: `rm my-wallet-vX.Y.Z.apk`
+11. Create GitHub release: `gh release create vX.Y.Z ./froggy-vX.Y.Z.apk -t "vX.Y.Z — <title>" -F /tmp/release-notes.md`
+12. Upload AAB to Play Console (manual via web — Internal Testing track first, then promote to Production once validated).
+13. Clean up: `rm froggy-vX.Y.Z.apk froggy-vX.Y.Z.aab`
 
 ### Commit Messages
 Use conventional commits, no co-author line:

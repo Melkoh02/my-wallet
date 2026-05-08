@@ -1,6 +1,6 @@
 # Flows
 
-User-facing scenarios this app supports. Written for QA and for anyone trying to understand what My Wallet *does* without reading the code. Vocabulary like "balance", "debt", "approximate", "currency snapshot" is defined in `glossary.md`.
+User-facing scenarios this app supports. Written for QA and for anyone trying to understand what Froggy *does* without reading the code. Vocabulary like "balance", "debt", "approximate", "currency snapshot" is defined in `glossary.md`.
 
 > **How to read a flow**
 > Each flow has: a **name**, a **trigger** (how the user gets there), the **happy path**, and **edge cases** worth probing. Where a flow merges with another, it's called out under "Touches".
@@ -425,7 +425,7 @@ Standard CRUD via the template list screen.
 ### 8.6 Pick / change / clear the Android external folder
 **Trigger**: Settings → Backup → Backup folder.
 
-- **Pick**: `requestDirectoryPermissionsAsync` SAF flow → finds or creates a `MyWallet` subfolder inside the chosen directory → persists the URI. Existing internal-storage backups are migrated (`migrateLegacyBackupsToFolder`) — copied to the new folder, internal copy deleted, DB row updated. Stale rows (file gone) are removed.
+- **Pick**: `requestDirectoryPermissionsAsync` SAF flow → finds or creates a `Froggy` subfolder inside the chosen directory → persists the URI. Existing internal-storage backups are migrated (`migrateLegacyBackupsToFolder`) — copied to the new folder, internal copy deleted, DB row updated. Stale rows (file gone) are removed.
 - **Change**: same as Pick. Older backups stay in their original location (the migration only runs on the *current* internal-storage rows; backups already in another SAF folder don't get re-moved).
 - **Clear**: erases `backup_folder_uri`. New backups go to internal storage. Existing backups are *not* moved back.
 - **Permission revoked externally**: the next attempt to read or list fails. UI shows "Permission to the backup folder was lost. Pick it again."

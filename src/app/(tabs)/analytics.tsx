@@ -232,6 +232,32 @@ export default function AnalyticsScreen() {
             </View>
           </View>
 
+          {/* Spending map entry — fullscreen heatmap of place-tagged expenses.
+              Sits high in the screen so the user finds it without scrolling. */}
+          <View style={styles.section}>
+            <Pressable
+              onPress={() => router.push("/analytics/places-map" as never)}
+              style={({ pressed }) => [
+                styles.spendingMapCard,
+                {
+                  backgroundColor: pressed ? colors.borderLight : colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View style={[styles.spendingMapIcon, { backgroundColor: colors.primary + "22" }]}>
+                <AppIcon name="map-search" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.spendingMapText}>
+                <AppText variant="label">{t("analytics.spendingMap")}</AppText>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {t("analytics.spendingMapDesc")}
+                </AppText>
+              </View>
+              <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
+            </Pressable>
+          </View>
+
           {/* Insights: savings rate, MoM change, projection */}
           {hasInsights && (
             <View style={styles.section}>
@@ -502,31 +528,6 @@ export default function AnalyticsScreen() {
           </View>
         </View>
       )}
-
-      {/* Spending map entry — fullscreen heatmap of place-tagged expenses */}
-      <View style={styles.section}>
-        <Pressable
-          onPress={() => router.push("/analytics/places-map" as never)}
-          style={({ pressed }) => [
-            styles.spendingMapCard,
-            {
-              backgroundColor: pressed ? colors.borderLight : colors.card,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={[styles.spendingMapIcon, { backgroundColor: colors.primary + "22" }]}>
-            <AppIcon name="map-search" size={22} color={colors.primary} />
-          </View>
-          <View style={styles.spendingMapText}>
-            <AppText variant="label">{t("analytics.spendingMap")}</AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              {t("analytics.spendingMapDesc")}
-            </AppText>
-          </View>
-          <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
-        </Pressable>
-      </View>
 
       {/* Bottom spacing */}
       <View style={styles.bottomPad} />

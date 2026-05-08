@@ -213,7 +213,7 @@ Single JSON file: `{ version: 1, exportedAt, accounts, categories, subcategories
 
 ### Storage location
 - **Default (Android & iOS)**: app-private `documentDirectory/backups/`. Lost on uninstall.
-- **Android with SAF folder**: user picks an external folder; the service creates/reuses a `MyWallet` subfolder inside it (`pickBackupFolder`) and stores the SAF tree URI in `backup_folder_uri`. Survives uninstall. `migrateLegacyBackupsToFolder` copies prior internal backups into the new folder when the user picks one.
+- **Android with SAF folder**: user picks an external folder; the service creates/reuses a `Froggy` subfolder inside it (`pickBackupFolder`) and stores the SAF tree URI in `backup_folder_uri`. Survives uninstall. `migrateLegacyBackupsToFolder` copies prior internal backups into the new folder when the user picks one. (Sideload users on the legacy "My Wallet" install have their files in a `MyWallet` subfolder; the new app creates `Froggy` as a sibling — they need to re-pick or move files manually after upgrading. New Play Store installs are fresh.)
 - **iOS**: backups land in the app's Files-app-visible directory; no SAF equivalent. The setup modal's iOS variant explains this.
 
 ### Restore (`restoreData`)

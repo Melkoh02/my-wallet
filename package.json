@@ -1,5 +1,5 @@
 {
-  "name": "my-wallet",
+  "name": "froggy",
   "main": "expo-router/entry",
   "version": "2.1.0",
   "scripts": {
@@ -8,6 +8,7 @@
     "android": "rm -rf android && APP_VARIANT=development expo run:android",
     "android:prebuild": "APP_VARIANT=development npx expo prebuild --clean",
     "android:release": "npx expo prebuild --clean && cd android && ./gradlew assembleRelease -x lint -x test",
+    "android:bundle": "npx expo prebuild --clean && cd android && ./gradlew bundleRelease -x lint -x test",
     "ios": "APP_VARIANT=development expo run:ios",
     "ios:release": "expo run:ios --configuration Release",
     "web": "expo start --web",

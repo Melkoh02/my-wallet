@@ -36,7 +36,11 @@ const BACKUP_DIR = `${documentDirectory}backups/`;
 const BACKUP_VERSION = 1;
 export const BACKUP_FOLDER_KEY = "backup_folder_uri";
 export const BACKUP_SETUP_DONE_KEY = "backup_setup_done";
-const SAF_SUBFOLDER_NAME = "MyWallet";
+// why: matches the launcher name. Existing sideload users on the old
+// "MyWallet" install would need to either re-pick a parent (the new app
+// creates its own "Froggy" subfolder there) or manually move their backups
+// from the legacy MyWallet folder. Documented in the v2.2 release notes.
+const SAF_SUBFOLDER_NAME = "Froggy";
 
 function isSafUri(uri: string): boolean {
   return uri.startsWith("content://");
@@ -384,7 +388,7 @@ export async function deleteBackup(id: number): Promise<void> {
 }
 
 /**
- * Prompt the user to pick a directory via SAF, create (or reuse) a "MyWallet"
+ * Prompt the user to pick a directory via SAF, create (or reuse) a "Froggy"
  * subfolder inside it, and persist the resulting URI.
  *
  * The URI returned by `makeDirectoryAsync` is a tree-document URI of form
@@ -407,7 +411,7 @@ export async function pickBackupFolder(): Promise<{
     if (!result.granted) {
       return { folderUri: null, cancelled: true };
     }
-    // Prefer reusing an existing MyWallet subfolder so re-picking the same parent
+    // Prefer reusing an existing Froggy subfolder so re-picking the same parent
     // doesn't scatter files across two locations.
     const existing = await findSubfolderByName(result.directoryUri, SAF_SUBFOLDER_NAME);
     const folderUri =

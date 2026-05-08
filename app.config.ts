@@ -16,21 +16,26 @@ function deriveVersionCode(v: string): number {
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_DEV ? "[Dev] My Wallet" : "My Wallet",
-  slug: "my-wallet",
+  // why: launcher name = "Froggy" (short, fits under the home-screen icon).
+  // Play Store listing title = "Froggy Money: Expense Tracker", configured in
+  // the Play Console (not in this file). Dev variant gets a "[Dev]" prefix
+  // so test builds don't visually collide with a Play Store install on the
+  // same device.
+  name: IS_DEV ? "[Dev] Froggy" : "Froggy",
+  slug: "froggy",
   version: VERSION,
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: IS_DEV ? "mywallet-dev" : "mywallet",
+  scheme: IS_DEV ? "froggy-dev" : "froggy",
   userInterfaceStyle: "automatic",
   ios: {
     icon: "./assets/expo.icon",
-    bundleIdentifier: IS_DEV ? "dev.melkoh.mywallet.dev" : "dev.melkoh.mywallet",
+    bundleIdentifier: IS_DEV ? "dev.melkoh.froggy.dev" : "dev.melkoh.froggy",
     infoPlist: {
       UIFileSharingEnabled: true,
       LSSupportsOpeningDocumentsInPlace: true,
       NSFaceIDUsageDescription:
-        "Use Face ID to authenticate before performing protected actions in My Wallet (e.g. opening Backups or disabling random-numbers privacy mode).",
+        "Use Face ID to authenticate before performing protected actions in Froggy (e.g. opening Backups or disabling random-numbers privacy mode).",
     },
   },
   android: {
@@ -40,7 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
-    package: IS_DEV ? "dev.melkoh.mywallet.dev" : "dev.melkoh.mywallet",
+    package: IS_DEV ? "dev.melkoh.froggy.dev" : "dev.melkoh.froggy",
     versionCode: deriveVersionCode(VERSION),
   },
   web: {

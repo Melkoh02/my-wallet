@@ -492,7 +492,15 @@
     "oneTransaction": "1笔交易",
     "nTransactions": "{{count}}笔交易",
     "convertedAtTodaysRate": "总计按今日汇率换算为 {{currency}}",
-    "missingRates": "无法获取 {{currencies}} 的汇率 — 这些金额已从总计中排除"
+    "missingRates": "无法获取 {{currencies}} 的汇率 — 这些金额已从总计中排除",
+    "spendingMap": "消费地图",
+    "spendingMapDesc": "常去消费地点的热力图",
+    "metricAmount": "按金额",
+    "metricCount": "按次数",
+    "spendingMapEmpty": "暂无消费可显示",
+    "spendingMapEmptyDesc": "为交易标记带坐标的地点，即可在地图上查看",
+    "spendingMapExcluded_one": "{{count}} 笔交易已排除 — 无地图位置",
+    "spendingMapExcluded_other": "{{count}} 笔交易已排除 — 无地图位置"
   },
   "format": {
     "today": "今天",

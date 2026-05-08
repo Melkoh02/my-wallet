@@ -11,6 +11,25 @@ jest.mock("@/db/client", () => {
   };
 });
 
+// Display = USD; rates relative to display: 1 EUR = 1.10 USD, 1 GBP = 1.30 USD.
+// Tests that simulate "missing rate" use a currency outside this map (XYZ).
+const FAKE_DISPLAY = "USD";
+const FAKE_RATES: Record<string, number> = { USD: 1, EUR: 1 / 1.1, GBP: 1 / 1.3 };
+const fakeConverter = {
+  displayCurrency: FAKE_DISPLAY,
+  convert(amount: number, fromCurrency: string) {
+    if (fromCurrency === FAKE_DISPLAY) return amount;
+    const rate = FAKE_RATES[fromCurrency];
+    if (!rate || rate === 0) return amount;
+    return amount / rate;
+  },
+  hasRateFor(fromCurrency: string) {
+    if (fromCurrency === FAKE_DISPLAY) return true;
+    const rate = FAKE_RATES[fromCurrency];
+    return !!rate && rate !== 0;
+  },
+};
+
 import {
   archivePlace,
   createPlace,
@@ -19,6 +38,7 @@ import {
   findNearestPlace,
   getActivePlaces,
   getPlaceById,
+  getPlacesAsGeoJSON,
   getPlacesWithStats,
   incrementVisitCount,
   recomputeAllVisitCounts,
@@ -297,4 +317,173 @@ test("idx_places_coords exists", async () => {
     sql`SELECT name FROM sqlite_master WHERE type='index' AND name='idx_places_coords'`,
   );
   expect(rows).toHaveLength(1);
+});
+
+describe("getPlacesAsGeoJSON", () => {
+  // Helper: insert an expense transaction at the given place with overrides.
+  async function insertExpense(
+    placeId: number | null,
+    amount: number,
+    currency: string,
+    rateToDisplay: number | null,
+    displayCurrencySnapshot: string | null,
+  ) {
+    const db = getTestDb();
+    if (!account) account = await makeAccount();
+    await db.insert(transactions).values({
+      type: "expense",
+      amount,
+      accountId: account.id,
+      date: "2026-01-01",
+      time: "12:00",
+      currency,
+      rateToDisplay,
+      displayCurrencySnapshot,
+      placeId,
+    });
+  }
+
+  beforeEach(async () => {
+    account = await makeAccount();
+  });
+
+  it("returns an empty FeatureCollection when there are no plottable expenses", async () => {
+    const result = await getPlacesAsGeoJSON("amount", fakeConverter);
+    expect(result.geojson.features).toHaveLength(0);
+    expect(result.approximate).toBe(false);
+    expect(result.missingRates).toEqual([]);
+    expect(result.excludedTransactionCount).toBe(0);
+  });
+
+  it("count metric: emits one feature per place with weight = expense count", async () => {
+    const home = await createPlace({
+      name: "Home",
+      latitude: 37.7749,
+      longitude: -122.4194,
+      source: "manual",
+    });
+    const cafe = await createPlace({
+      name: "Cafe",
+      latitude: 37.78,
+      longitude: -122.42,
+      source: "manual",
+    });
+    await insertExpense(home.id, 10, "USD", 1, "USD");
+    await insertExpense(home.id, 20, "USD", 1, "USD");
+    await insertExpense(cafe.id, 7, "USD", 1, "USD");
+
+    const result = await getPlacesAsGeoJSON("count", fakeConverter);
+    expect(result.geojson.features).toHaveLength(2);
+    const homeFeature = result.geojson.features.find((f) => f.properties.placeId === home.id);
+    const cafeFeature = result.geojson.features.find((f) => f.properties.placeId === cafe.id);
+    expect(homeFeature?.properties.weight).toBe(2);
+    expect(cafeFeature?.properties.weight).toBe(1);
+    // Coords are [lng, lat] per GeoJSON convention.
+    expect(homeFeature?.geometry.coordinates).toEqual([-122.4194, 37.7749]);
+  });
+
+  it("amount metric: sums to display currency, honouring stored rates", async () => {
+    const place = await createPlace({
+      name: "X",
+      latitude: 1,
+      longitude: 1,
+      source: "manual",
+    });
+    // 100 EUR, snapshot says 1 EUR = 1.10 USD → 110 USD. Stored rate honoured;
+    // not approximate.
+    await insertExpense(place.id, 100, "EUR", 1.1, "USD");
+    // 50 USD; pass-through.
+    await insertExpense(place.id, 50, "USD", 1, "USD");
+
+    const result = await getPlacesAsGeoJSON("amount", fakeConverter);
+    expect(result.geojson.features).toHaveLength(1);
+    expect(result.geojson.features[0].properties.weight).toBeCloseTo(160, 5);
+    expect(result.approximate).toBe(false);
+  });
+
+  it("amount metric: stale rate falls back to today's rate and flags approximate", async () => {
+    const place = await createPlace({
+      name: "X",
+      latitude: 1,
+      longitude: 1,
+      source: "manual",
+    });
+    // 100 EUR stamped against EUR display (different from current USD) — convertRow
+    // detects the stale snapshot and re-applies today's rate.
+    await insertExpense(place.id, 100, "EUR", 1, "EUR");
+    const result = await getPlacesAsGeoJSON("amount", fakeConverter);
+    expect(result.geojson.features).toHaveLength(1);
+    expect(result.geojson.features[0].properties.weight).toBeCloseTo(110, 5);
+    expect(result.approximate).toBe(true);
+  });
+
+  it("amount metric: drops rows with no rate and reports missing currency", async () => {
+    const place = await createPlace({
+      name: "X",
+      latitude: 1,
+      longitude: 1,
+      source: "manual",
+    });
+    await insertExpense(place.id, 50, "USD", 1, "USD"); // included
+    await insertExpense(place.id, 100, "XYZ", null, null); // dropped, no rate
+
+    const result = await getPlacesAsGeoJSON("amount", fakeConverter);
+    expect(result.geojson.features[0].properties.weight).toBeCloseTo(50, 5);
+    expect(result.missingRates).toContain("XYZ");
+  });
+
+  it("excludes places with no coords from the heatmap", async () => {
+    const noCoords = await createPlace({ name: "Online", source: "manual" }); // no lat/lng
+    await insertExpense(noCoords.id, 25, "USD", 1, "USD");
+
+    const result = await getPlacesAsGeoJSON("count", fakeConverter);
+    expect(result.geojson.features).toHaveLength(0);
+    expect(result.excludedTransactionCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it("counts expenses with no place at all toward excludedTransactionCount", async () => {
+    await insertExpense(null, 33, "USD", 1, "USD");
+    const result = await getPlacesAsGeoJSON("count", fakeConverter);
+    expect(result.geojson.features).toHaveLength(0);
+    expect(result.excludedTransactionCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it("includes archived places (analytics shouldn't hide history)", async () => {
+    const archivedPlace = await createPlace({
+      name: "Archived",
+      latitude: 1,
+      longitude: 1,
+      source: "manual",
+    });
+    await insertExpense(archivedPlace.id, 42, "USD", 1, "USD");
+    await archivePlace(archivedPlace.id);
+
+    const result = await getPlacesAsGeoJSON("count", fakeConverter);
+    expect(result.geojson.features).toHaveLength(1);
+    expect(result.geojson.features[0].properties.weight).toBe(1);
+  });
+
+  it("ignores income transactions even when linked to a place with coords", async () => {
+    const place = await createPlace({
+      name: "Office",
+      latitude: 1,
+      longitude: 1,
+      source: "manual",
+    });
+    const db = getTestDb();
+    // Salary deposit at the office address.
+    await db.insert(transactions).values({
+      type: "income",
+      amount: 1000,
+      accountId: account.id,
+      date: "2026-01-01",
+      time: "12:00",
+      currency: "USD",
+      rateToDisplay: 1,
+      displayCurrencySnapshot: "USD",
+      placeId: place.id,
+    });
+    const result = await getPlacesAsGeoJSON("count", fakeConverter);
+    expect(result.geojson.features).toHaveLength(0);
+  });
 });

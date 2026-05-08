@@ -493,7 +493,15 @@
     "oneTransaction": "1 transaction",
     "nTransactions": "{{count}} transactions",
     "convertedAtTodaysRate": "Totals converted to {{currency}} at today's exchange rate",
-    "missingRates": "Couldn't get exchange rate for {{currencies}} — those amounts are excluded from totals"
+    "missingRates": "Couldn't get exchange rate for {{currencies}} — those amounts are excluded from totals",
+    "spendingMap": "Spending map",
+    "spendingMapDesc": "Heatmap of where you spend the most",
+    "metricAmount": "By amount",
+    "metricCount": "By visits",
+    "spendingMapEmpty": "No spending to map yet",
+    "spendingMapEmptyDesc": "Tag transactions with places that have coordinates to see them on the map",
+    "spendingMapExcluded_one": "{{count}} transaction excluded — no map location",
+    "spendingMapExcluded_other": "{{count}} transactions excluded — no map location"
   },
   "format": {
     "today": "Today",

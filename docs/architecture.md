@@ -111,8 +111,9 @@ Foreground tasks are fired in parallel (each as its own unawaited promise inside
 ### Map stack
 - **`@maplibre/maplibre-react-native`** for native map rendering (vector tiles, GPU-accelerated, no API key, no Google).
 - **OpenFreeMap** (`https://tiles.openfreemap.org/styles/positron`) for tiles — free, no key, no account, OSM-based. Tile-source URL is centralised in `src/components/molecules/MapView.tsx` (`MAP_STYLE_URL`); switching providers = one-line edit.
-- **`src/components/molecules/MapView.tsx`** — thin wrapper around MapLibre's `Map` + `Camera` with the default style URL and pass-through children. Used by the place picker today; the planned spending-heatmap will compose `<GeoJSONSource>` + `<Layer>` children inside it.
+- **`src/components/molecules/MapView.tsx`** — thin wrapper around MapLibre's `Map` + `Camera` with the default style URL and pass-through children. Both the place picker and the spending heatmap mount through this; new map features compose `<GeoJSONSource>` / `<Layer>` / `<Marker>` children inside it rather than mounting their own map.
 - **`src/components/organisms/PlaceMapPicker.tsx`** — center-pin pattern (a fixed pin overlay sits at screen center; the map pans underneath). Map gestures resolve cleanly with React Navigation's modal swipe because the pin is uncontrolled by gesture and the map's gestures live entirely below the modal's swipe-down zone.
+- **`src/components/organisms/PlacesHeatmap.tsx`** — MapView + `<GeoJSONSource>` + `<Layer type="heatmap">`. Normalises raw weights to 0..1 in JS (max → 1) so a small number of large-amount expenses don't wash out the rest, then drives MapLibre's `heatmap-weight` expression off the normalised value. Auto-fits camera to feature bbox on mount.
 - Network is required for tile fetching. The "Use my current location" GPS button is the offline fallback for setting coords.
 
 ## Where to look for X

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScreenLayout } from "@/components/templates/ScreenLayout";
 import { HeaderBar } from "@/components/templates/HeaderBar";
@@ -24,6 +25,7 @@ import { translateCategoryName } from "@/constants/categories";
 import { spacing } from "@/theme/spacing";
 
 export default function AnalyticsScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { colors } = useTheme();
   const { revisions } = useDataRefresh();
@@ -501,6 +503,31 @@ export default function AnalyticsScreen() {
         </View>
       )}
 
+      {/* Spending map entry — fullscreen heatmap of place-tagged expenses */}
+      <View style={styles.section}>
+        <Pressable
+          onPress={() => router.push("/analytics/places-map" as never)}
+          style={({ pressed }) => [
+            styles.spendingMapCard,
+            {
+              backgroundColor: pressed ? colors.borderLight : colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={[styles.spendingMapIcon, { backgroundColor: colors.primary + "22" }]}>
+            <AppIcon name="map-search" size={22} color={colors.primary} />
+          </View>
+          <View style={styles.spendingMapText}>
+            <AppText variant="label">{t("analytics.spendingMap")}</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {t("analytics.spendingMapDesc")}
+            </AppText>
+          </View>
+          <AppIcon name="chevron-right" size={20} color={colors.iconSecondary} />
+        </Pressable>
+      </View>
+
       {/* Bottom spacing */}
       <View style={styles.bottomPad} />
       <HelpModal
@@ -615,6 +642,26 @@ const styles = StyleSheet.create({
   },
   bottomPad: {
     height: spacing["3xl"],
+  },
+  spendingMapCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  spendingMapIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  spendingMapText: {
+    flex: 1,
+    gap: 2,
   },
   insightLabel: {
     flexDirection: "row",

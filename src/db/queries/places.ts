@@ -1,7 +1,9 @@
-import { and, between, count, desc, eq, isNotNull, or, sql } from "drizzle-orm";
+import { and, between, count, desc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { places, transactions, type NewPlace, type Place } from "@/db/schema";
 import { boundingBox, haversineMeters } from "@/utils/geo";
+import { convertRow } from "./transactions";
+import type { CurrencyConverter } from "@/services/exchangeRate.service";
 
 export type PlaceWithStats = Place & {
   /**
@@ -201,4 +203,156 @@ export async function recomputeAllVisitCounts(): Promise<void> {
       SELECT COUNT(*) FROM transactions WHERE transactions.place_id = places.id
     )
   `);
+}
+
+// --- Spending heatmap ----------------------------------------------------
+
+/**
+ * GeoJSON Point feature with the heatmap weight + a name for tooltip use.
+ * Coordinates follow GeoJSON convention: [longitude, latitude].
+ */
+export type HeatmapFeature = {
+  type: "Feature";
+  geometry: { type: "Point"; coordinates: [number, number] };
+  properties: { weight: number; name: string; placeId: number };
+};
+
+export type HeatmapFeatureCollection = {
+  type: "FeatureCollection";
+  features: HeatmapFeature[];
+};
+
+export type HeatmapMetric = "count" | "amount";
+
+export type PlacesHeatmapData = {
+  geojson: HeatmapFeatureCollection;
+  /** True when at least one row needed today's rate to convert (display "≈"). */
+  approximate: boolean;
+  /** Source currencies whose rate couldn't be resolved — those rows were dropped. */
+  missingRates: string[];
+  /**
+   * Number of expense transactions that could not be plotted because they
+   * pointed at a place with no coords (or no place at all). UI surfaces this
+   * as "X transactions excluded — they have no map location."
+   */
+  excludedTransactionCount: number;
+};
+
+/**
+ * Build a GeoJSON feature collection of places weighted by either visit
+ * count or total expense amount in the user's display currency. Designed to
+ * feed a MapLibre `<HeatmapLayer>` directly via `[\"get\", \"weight\"]`.
+ *
+ * Filters:
+ *   - Only places with non-null coords (heatmap has no representation for
+ *     coord-less places — those are reported via `excludedTransactionCount`).
+ *   - Includes archived places too: archive only affects the picker; analytics
+ *     should reflect the full spending history.
+ *   - Counts/sums **expense** transactions only — income (refunds, salary
+ *     deposits) doesn't represent "where the user spent".
+ *
+ * Currency handling for `metric: "amount"` mirrors the existing aggregate
+ * pattern in `getMonthSummary` / `getCategorySummary`: stored
+ * `rateToDisplay` honoured when stable, today's rate substituted when
+ * stale (sets `approximate: true`), row excluded entirely when no rate is
+ * available (source currency added to `missingRates`).
+ */
+export async function getPlacesAsGeoJSON(
+  metric: HeatmapMetric,
+  converter: CurrencyConverter,
+): Promise<PlacesHeatmapData> {
+  // Pull every expense transaction with its currency snapshot + the linked
+  // place's coords + name. A LEFT JOIN here would let us count "excluded"
+  // unplotted rows; INNER JOIN is fine because we report excluded count
+  // separately via a follow-up cheap COUNT(*) — keeps this query small.
+  const plottable = await db
+    .select({
+      placeId: places.id,
+      placeName: places.name,
+      latitude: places.latitude,
+      longitude: places.longitude,
+      amount: transactions.amount,
+      currency: transactions.currency,
+      rateToDisplay: transactions.rateToDisplay,
+      displayCurrencySnapshot: transactions.displayCurrencySnapshot,
+    })
+    .from(transactions)
+    .innerJoin(places, eq(transactions.placeId, places.id))
+    .where(
+      and(
+        eq(transactions.type, "expense"),
+        isNotNull(places.latitude),
+        isNotNull(places.longitude),
+      ),
+    );
+
+  type Acc = { name: string; lat: number; lng: number; weight: number };
+  const byPlace = new Map<number, Acc>();
+  const missing = new Set<string>();
+  let approximate = false;
+
+  for (const row of plottable) {
+    let contribution: number;
+    if (metric === "count") {
+      contribution = 1;
+    } else {
+      const result = convertRow(
+        {
+          amount: row.amount,
+          currency: row.currency,
+          rateToDisplay: row.rateToDisplay,
+          displayCurrencySnapshot: row.displayCurrencySnapshot,
+        },
+        converter,
+      );
+      if (result.state === "excluded") {
+        if (result.currency) missing.add(result.currency);
+        continue;
+      }
+      if (result.usedTodaysRate) approximate = true;
+      contribution = result.value;
+    }
+    const existing = byPlace.get(row.placeId);
+    if (existing) {
+      existing.weight += contribution;
+    } else {
+      byPlace.set(row.placeId, {
+        name: row.placeName,
+        lat: row.latitude as number,
+        lng: row.longitude as number,
+        weight: contribution,
+      });
+    }
+  }
+
+  const features: HeatmapFeature[] = [];
+  for (const [placeId, acc] of byPlace) {
+    if (acc.weight <= 0) continue; // skip zero-weight points (no rendering value)
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [acc.lng, acc.lat] },
+      properties: { weight: acc.weight, name: acc.name, placeId },
+    });
+  }
+
+  // Cheap follow-up: how many expense transactions couldn't be plotted? A
+  // row is "excluded" if its place has no coords OR it has no place at all.
+  // This is purely UI footnote material — the heatmap doesn't depend on it.
+  const [excluded] = await db
+    .select({ c: count(transactions.id) })
+    .from(transactions)
+    .leftJoin(places, eq(transactions.placeId, places.id))
+    .where(
+      and(
+        eq(transactions.type, "expense"),
+        or(isNull(transactions.placeId), isNull(places.latitude)),
+      ),
+    );
+
+  return {
+    geojson: { type: "FeatureCollection", features },
+    approximate,
+    missingRates: [...missing],
+    excludedTransactionCount: excluded?.c ?? 0,
+  };
 }

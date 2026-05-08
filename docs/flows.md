@@ -591,6 +591,23 @@ Same gate flow as 9.8: biometric → PIN → navigate. On cancel, navigation is 
 ### 12.4 Top contacts (this month)
 - Aggregates expenses with a `contactId`, sums per contact, returns top N. Groups by contact ID, not name (so rename-after-split still groups correctly).
 
+### 12.5 Spending map (heatmap of place-tagged expenses)
+**Trigger**: Analytics tab → "Spending map" card → opens `/analytics/places-map`.
+
+1. Loads `getPlacesAsGeoJSON(metric, converter)` and feeds the result to a MapLibre heatmap. Default metric is **amount** (sum in display currency); a toggle at the top switches to **visits** (raw expense count).
+2. Camera auto-fits to the bounding box of all features on first paint.
+3. Banners:
+   - **"Converted at today's rate"** — shown when at least one row needed today's rate to convert (only relevant in amount mode).
+   - **"Couldn't get exchange rate for X"** — when at least one row was dropped because no rate is available.
+   - **"N transactions excluded — no map location"** — count of expenses linked to a place with no coords or no place at all.
+4. Empty state when there are no plottable expenses.
+
+**Edge cases**
+- Single-place data shows one hot dot at street zoom (fitBounds with zero-area bbox snaps to a single point).
+- Cross-currency multi-place data: normalisation in `PlacesHeatmap` keeps small-amount places visible alongside outliers — the gradient is *relative* per-render, not absolute across sessions.
+- Switching metric refetches; data updates with revisions.transactions / revisions.places / revisions.settings (display-currency change re-renders amount totals).
+- Archived places are included — analytics shouldn't hide spending history just because the user tidied up the picker.
+
 ---
 
 ## 13. Contacts

@@ -68,8 +68,15 @@ export default function PlaceFormScreen() {
   // saved address with whatever the geocoder returns *now* — and on
   // de-Googled Android (Geocoder returns nothing) that means clobbering the
   // address with null. The flag flips to true only when the user actually
-  // moves the pin or captures GPS.
+  // moves the pin or captures GPS (or when GPS auto-fetches on a new-place
+  // form mount, which is semantically equivalent to the user tapping the
+  // GPS button immediately).
   const coordsTouchedRef = useRef(false);
+  // Auto-fetch on mount runs once. If the form re-mounts later, we'd want
+  // to re-fetch — but if a single mount yields multiple GPS attempts we
+  // hammer the geocoder and create UI churn. Pattern matches
+  // `autoFetchedRef` in TransactionForm.
+  const autoFetchedRef = useRef(false);
 
   useEffect(() => {
     if (!params.id) return;
@@ -126,15 +133,12 @@ export default function PlaceFormScreen() {
     setCoordsCapturedNow(true);
   };
 
-  const handleCaptureCoords = async () => {
-    setFetchingCoords(true);
-    setCoordsError("");
-    const stamp = await getCurrentLocation();
-    setFetchingCoords(false);
-    if (!stamp) {
-      setCoordsError(t("places.coordsFailed"));
-      return;
-    }
+  // Apply a captured GPS stamp to form state. Shared between the manual
+  // "Use my current location" button and the new-place-form auto-fetch.
+  // why: keeping one path means the same name-pre-fill rule, recenter
+  // animation, and coordsTouched flip apply whether the GPS came from a
+  // user tap or the on-mount auto-fetch.
+  const applyGpsStamp = (stamp: { latitude: number; longitude: number; name?: string }) => {
     coordsTouchedRef.current = true;
     setLatitude(stamp.latitude);
     setLongitude(stamp.longitude);
@@ -146,6 +150,38 @@ export default function PlaceFormScreen() {
     // GPS reading instead of drifting silently.
     mapRef.current?.recenterToCoords(stamp.latitude, stamp.longitude);
   };
+
+  const handleCaptureCoords = async () => {
+    setFetchingCoords(true);
+    setCoordsError("");
+    const stamp = await getCurrentLocation();
+    setFetchingCoords(false);
+    if (!stamp) {
+      setCoordsError(t("places.coordsFailed"));
+      return;
+    }
+    applyGpsStamp(stamp);
+  };
+
+  // Auto-fetch GPS when opening a brand-new-place form so the map starts
+  // centred on the user's location. Permission is asked on the first GPS
+  // attempt the app makes, matching the existing transaction-form auto-add
+  // pattern. why: the common case is "I'm here, save this as a place" —
+  // the manual GPS button stays useful as a re-snap if the user pans away.
+  // Skipped in edit mode (saved coords are the user's intent) and skipped
+  // silently on permission denial / GPS failure (the manual button is the
+  // explicit fallback path).
+  useEffect(() => {
+    if (isEditing) return;
+    if (autoFetchedRef.current) return;
+    autoFetchedRef.current = true;
+    (async () => {
+      const stamp = await getCurrentLocation();
+      if (!stamp) return; // silent fail — user can still tap the GPS button
+      applyGpsStamp(stamp);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
 
   const handleClearCoords = () => {
     coordsTouchedRef.current = true;
